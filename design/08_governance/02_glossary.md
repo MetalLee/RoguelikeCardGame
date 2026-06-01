@@ -16,6 +16,8 @@
 | 敌人意图 | 敌人在下一次行动中将执行的行为预告。            | [[design/01_core_gameplay/02_combat_system]]           | 战斗系统     |
 | 遗物   | 通常跨战斗生效、改变规则或提供被动收益的奖励。       | [[design/02_content_systems/03_relics_items_rewards]]  | 遗物、道具与奖励 |
 | 事件   | 非标准战斗节点中的选择型遭遇。               | [[design/02_content_systems/04_events_and_encounters]] | 事件与遭遇    |
+| 连锁层数 | 玩家打出卡牌时积累的回合内战斗节奏资源，默认在回合结束或使用终结卡后归零；部分遗物或特殊终结卡可保留部分或全部层数。 | [[design/01_core_gameplay/02_combat_system]] | 战斗系统 |
+| 终结卡 | 在满足构筑、资源、牌序或连锁条件后兑现高收益的卡牌，通常会在结算后清空当前连锁层数。 | [[design/01_core_gameplay/03_card_system]] | 卡牌系统 |
 
 ## 关键词候选
 

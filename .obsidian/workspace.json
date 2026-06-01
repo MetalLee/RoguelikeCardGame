@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "design/08_governance/01_change_log.md",
+                "file": "inspiration/2026-06-02_00_product_brainstorm_qa.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "01_change_log"
+              "title": "2026-06-02_00_product_brainstorm_qa"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "design/08_governance/01_change_log.md",
+                "file": "inspiration/2026-06-02_00_product_brainstorm_qa.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "01_change_log 的反向链接列表"
+              "title": "2026-06-02_00_product_brainstorm_qa 的反向链接列表"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "design/08_governance/01_change_log.md",
+                "file": "inspiration/2026-06-02_00_product_brainstorm_qa.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "01_change_log 的出链列表"
+              "title": "2026-06-02_00_product_brainstorm_qa 的出链列表"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "design/08_governance/01_change_log.md",
+                "file": "inspiration/2026-06-02_00_product_brainstorm_qa.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "01_change_log 的大纲"
+              "title": "2026-06-02_00_product_brainstorm_qa 的大纲"
             }
           }
         ]
@@ -185,32 +185,32 @@
   },
   "active": "0a114e8759bd74a9",
   "lastOpenFiles": [
-    "design/06_technical_production/01_data_pipeline_and_tools.md",
-    "design/06_technical_production/00_technical_requirements.md",
-    "design/01_core_gameplay/03_card_system.md",
-    "AGENTS.md",
-    "README.md",
+    "design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic.md",
+    "design/08_governance/2026-06-02_combo_synergy_as_product_core.md",
     "design/README.md",
-    "design/01_core_gameplay/01_run_structure.md",
-    "design/01_core_gameplay/02_combat_system.md",
+    "inspiration/2026-06-02_00_product_brainstorm_qa.md",
+    "design/01_core_gameplay/00_core_loop.md",
+    "design/00_product/03_scope_and_success_criteria.md",
+    "design/03_experience/02_audio_feedback.md",
+    "design/00_product/02_player_and_market.md",
+    "design/00_product/00_game_concept.md",
+    "design/00_product/01_design_pillars.md",
     "design/01_core_gameplay/04_resource_economy.md",
     "design/01_core_gameplay/05_progression.md",
+    "design/01_core_gameplay/01_run_structure.md",
+    "design/01_core_gameplay/02_combat_system.md",
+    "design/01_core_gameplay/03_card_system.md",
     "design/02_content_systems/00_content_taxonomy.md",
     "design/02_content_systems/01_characters_and_archetypes.md",
+    "design/04_balance_data/01_difficulty_curve.md",
     "design/02_content_systems/02_enemies_and_bosses.md",
-    "design/02_content_systems/04_events_and_encounters.md",
-    "design/03_experience/02_audio_feedback.md",
-    "design/02_content_systems/03_relics_items_rewards.md",
-    "design/_templates/decision_record_template.md",
-    "design/_templates/design_doc_template.md",
-    "design/_templates/content_spec_template.md",
-    "design/07_production/02_playtest_plan.md",
-    "design/07_production/01_scope_risk_backlog.md",
+    "design/08_governance/01_change_log.md",
+    "design/04_balance_data/00_balance_principles.md",
+    "design/08_governance/00_decision_log.md",
+    "design/08_governance/2026-06-02_chain_count_as_combo_payoff_mechanic.md",
     "design/07_production/00_roadmap_milestones.md",
-    "design/00_product/01_design_pillars.md",
-    "design/00_product/00_game_concept.md",
-    "design/05_narrative_world/00_world_and_tone.md",
-    "design/05_narrative_world/01_story_delivery.md",
+    "design/08_governance/02_glossary.md",
+    "AGENTS.md",
     "design/08_governance",
     "design/07_production",
     "design/06_technical_production",
