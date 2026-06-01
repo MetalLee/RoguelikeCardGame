@@ -1,2 +1,2 @@
 # RoguelikeCardGame
-A roguelike card game.
+Roguelike卡牌游戏设计开发文档与资料

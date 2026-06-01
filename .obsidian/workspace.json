@@ -1,0 +1,225 @@
+{
+  "main": {
+    "id": "684bd82d7a881f1c",
+    "type": "split",
+    "children": [
+      {
+        "id": "8217aba7c2b47f02",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0a114e8759bd74a9",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "design/08_governance/01_change_log.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "01_change_log"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "4b2662c2719ee3cb",
+    "type": "split",
+    "children": [
+      {
+        "id": "d0fc77eaa6649d49",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3a9b6a2784cba342",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "86e5b8edbf53e1ed",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "f4aa60e6f2e08fbf",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "970c6178a7f13505",
+    "type": "split",
+    "children": [
+      {
+        "id": "bf0fcb74bd43a52b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2635666d000a8418",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "design/08_governance/01_change_log.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "01_change_log 的反向链接列表"
+            }
+          },
+          {
+            "id": "0d5aa63d172b352c",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "design/08_governance/01_change_log.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "01_change_log 的出链列表"
+            }
+          },
+          {
+            "id": "42c7ceedf4668672",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "6f13a4ca8d0b6cb3",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "cf1bef74d9198416",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "design/08_governance/01_change_log.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "01_change_log 的大纲"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false
+    }
+  },
+  "active": "0a114e8759bd74a9",
+  "lastOpenFiles": [
+    "design/06_technical_production/01_data_pipeline_and_tools.md",
+    "design/06_technical_production/00_technical_requirements.md",
+    "design/01_core_gameplay/03_card_system.md",
+    "AGENTS.md",
+    "README.md",
+    "design/README.md",
+    "design/01_core_gameplay/01_run_structure.md",
+    "design/01_core_gameplay/02_combat_system.md",
+    "design/01_core_gameplay/04_resource_economy.md",
+    "design/01_core_gameplay/05_progression.md",
+    "design/02_content_systems/00_content_taxonomy.md",
+    "design/02_content_systems/01_characters_and_archetypes.md",
+    "design/02_content_systems/02_enemies_and_bosses.md",
+    "design/02_content_systems/04_events_and_encounters.md",
+    "design/03_experience/02_audio_feedback.md",
+    "design/02_content_systems/03_relics_items_rewards.md",
+    "design/_templates/decision_record_template.md",
+    "design/_templates/design_doc_template.md",
+    "design/_templates/content_spec_template.md",
+    "design/07_production/02_playtest_plan.md",
+    "design/07_production/01_scope_risk_backlog.md",
+    "design/07_production/00_roadmap_milestones.md",
+    "design/00_product/01_design_pillars.md",
+    "design/00_product/00_game_concept.md",
+    "design/05_narrative_world/00_world_and_tone.md",
+    "design/05_narrative_world/01_story_delivery.md",
+    "design/08_governance",
+    "design/07_production",
+    "design/06_technical_production",
+    "design/05_narrative_world",
+    "design/04_balance_data",
+    "design/03_experience",
+    "design/02_content_systems",
+    "design/01_core_gameplay",
+    "design/00_product",
+    "design/_templates"
+  ]
+}
