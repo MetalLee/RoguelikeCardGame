@@ -17,6 +17,12 @@
 
 ### 2026-06-03
 
+- 根据开发者对 [[inspiration/2026-06-03_06_technical_production_qa|06 Technical Production Q&A]] 的回答，确认首版目标平台以 Windows PC 为主，后续再考虑 macOS、Linux 支持；内容数据一致使用 JSON + JSON Schema；第一版 MVP 只需要节点级自动存档；只做本地试玩日志和统计导出，暂不需要在线遥测。
+- 更新 [[design/06_technical_production/00_technical_requirements|技术需求]]、[[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]、[[design/06_technical_production/02_save_config_platform|存档、配置与平台]] 与 [[inspiration/2026-06-03_06_technical_production_qa|06 Technical Production Q&A]]，将待确认项收束为已确认，并在技术需求中新增 Godot 项目目标文件层级，作为后续 Godot 开发创建文件的准则。
+- 根据本轮技术生产整理，确认首版技术栈采用 Godot 4.6.x .NET 版 + C#，并使用 Codex 作为 coding agent 协助实现、校验、重构和文档维护。
+- 更新 [[design/06_technical_production/00_technical_requirements|技术需求]]、[[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]] 与 [[design/06_technical_production/02_save_config_platform|存档、配置与平台]]，补充技术定位、MVP 必备系统、规则层 / 表现层 / 数据层分工、JSON 数据管线、调试工具、存档策略、设置项和 PC 桌面优先平台目标。
+- 新增 [[design/08_governance/2026-06-03_godot_csharp_codex_technical_stack|采用 Godot + C# 与 Codex 的技术生产方案]] 决策记录，并更新 [[design/08_governance/00_decision_log|决策记录]]。
+- 将待开发者确认的问题整理到 [[inspiration/2026-06-03_06_technical_production_qa|06 Technical Production Q&A]]，包括首版平台、数据编辑格式、存档粒度和在线遥测 / 云存档需求。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认基础行动点上限为 3，遗物或技能可以提高上限；每回合恢复行动点数为当前行动点上限 + 额外行动点数，当前行动点可被效果继续增加。
 - 更新 [[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]]、[[design/08_governance/02_glossary|术语表]] 与 [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|连锁层数决策记录]]，补充行动点上限、当前回合行动点增加和下回合额外行动点的区别。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认默认牌库循环规则：抽牌堆不足时，将弃牌堆洗回抽牌堆继续抽；普通卡牌可在同一场战斗中多轮循环使用，部分卡牌可强制重洗弃牌堆。

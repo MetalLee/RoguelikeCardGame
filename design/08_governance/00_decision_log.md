@@ -18,6 +18,7 @@
 
 - [[design/08_governance/2026-06-02_combo_synergy_as_product_core|以卡组联动和 combo 爽感作为产品核心]]
 - [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|以连锁层数作为 combo 爽感兑现机制]]
+- [[design/08_governance/2026-06-03_godot_csharp_codex_technical_stack|采用 Godot + C# 与 Codex 的技术生产方案]]
 
 ## 摘要表
 
@@ -26,3 +27,4 @@
 | 2026-06-01 | 建立 design 目录作为最高设计准则 | 已接受 | 知识库治理 | [[design/README|Design Knowledge Base]] |
 | 2026-06-02 | 以卡组联动和 combo 爽感作为产品核心 | 已接受 | 产品 / 玩法 / 内容 / 平衡 | [[design/00_product/00_game_concept|游戏概述]]、[[design/00_product/01_design_pillars|设计支柱]] |
 | 2026-06-02 | 以连锁层数作为 combo 爽感兑现机制 | 已接受 | 战斗 / 卡牌 / 体验 / 平衡 | [[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]] |
+| 2026-06-03 | 采用 Godot + C# 与 Codex 的技术生产方案 | 已接受 | 技术 / 制作 / 工具 / 平台 | [[design/06_technical_production/00_technical_requirements|技术需求]]、[[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]、[[design/06_technical_production/02_save_config_platform|存档、配置与平台]] |
