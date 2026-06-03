@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "res://data/schemas/run_sequence.schema.json",
+  "title": "RoguelikeCardGame Run Sequence",
+  "type": "object",
+  "required": ["content_version", "id", "player", "starter_deck", "nodes", "completion"],
+  "additionalProperties": false,
+  "properties": {
+    "content_version": { "type": "string" },
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "player": {
+      "type": "object",
+      "required": ["max_hp", "base_action_points", "cards_per_turn"],
+      "additionalProperties": false,
+      "properties": {
+        "max_hp": { "type": "integer", "minimum": 1 },
+        "base_action_points": { "type": "integer", "minimum": 1 },
+        "cards_per_turn": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "starter_deck": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["card_id", "count"],
+        "additionalProperties": false,
+        "properties": {
+          "card_id": { "type": "string" },
+          "count": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["order", "encounter_id"],
+        "additionalProperties": false,
+        "properties": {
+          "order": { "type": "integer", "minimum": 1 },
+          "encounter_id": { "type": "string" }
+        }
+      }
+    },
+    "completion": {
+      "type": "object",
+      "required": ["boss_encounter_id", "success_state"],
+      "additionalProperties": false,
+      "properties": {
+        "boss_encounter_id": { "type": "string" },
+        "success_state": { "type": "string" }
+      }
+    }
+  }
+}

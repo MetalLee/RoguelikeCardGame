@@ -1,0 +1,224 @@
+{
+  "content_version": "mvp.0.1",
+  "items": [
+    {
+      "id": "card_basic_strike",
+      "type": "action",
+      "cost": 1,
+      "default_chain_delta": 1,
+      "target_rule": "single_enemy",
+      "effects": [
+        { "type": "damage", "target": "selected_enemy", "value": 6 }
+      ],
+      "rarity": "starter",
+      "tags": ["starter", "attack"],
+      "text_key": "card.basic_strike",
+      "art_key": "art.card.placeholder.strike"
+    },
+    {
+      "id": "card_quick_jab",
+      "type": "action",
+      "cost": 0,
+      "default_chain_delta": 1,
+      "target_rule": "single_enemy",
+      "effects": [
+        { "type": "damage", "target": "selected_enemy", "value": 3 }
+      ],
+      "rarity": "starter",
+      "tags": ["starter", "attack", "low_cost"],
+      "text_key": "card.quick_jab",
+      "art_key": "art.card.placeholder.quick_jab"
+    },
+    {
+      "id": "card_heavy_strike",
+      "type": "action",
+      "cost": 2,
+      "default_chain_delta": 1,
+      "target_rule": "single_enemy",
+      "effects": [
+        { "type": "damage", "target": "selected_enemy", "value": 13 }
+      ],
+      "rarity": "starter",
+      "tags": ["starter", "attack", "high_cost"],
+      "text_key": "card.heavy_strike",
+      "art_key": "art.card.placeholder.heavy_strike"
+    },
+    {
+      "id": "card_chain_cut",
+      "type": "action",
+      "cost": 1,
+      "default_chain_delta": 1,
+      "target_rule": "single_enemy",
+      "effects": [
+        { "type": "damage", "target": "selected_enemy", "value": 7 }
+      ],
+      "rarity": "common",
+      "tags": ["reward", "attack"],
+      "text_key": "card.chain_cut",
+      "art_key": "art.card.placeholder.chain_cut"
+    },
+    {
+      "id": "card_flow_step",
+      "type": "action",
+      "cost": 0,
+      "default_chain_delta": 1,
+      "target_rule": "single_enemy",
+      "effects": [
+        { "type": "damage", "target": "selected_enemy", "value": 4 }
+      ],
+      "rarity": "common",
+      "tags": ["reward", "attack", "low_cost"],
+      "text_key": "card.flow_step",
+      "art_key": "art.card.placeholder.flow_step"
+    },
+    {
+      "id": "card_guard_break",
+      "type": "action",
+      "cost": 2,
+      "default_chain_delta": 1,
+      "target_rule": "single_enemy",
+      "effects": [
+        { "type": "damage", "target": "selected_enemy", "value": 15 }
+      ],
+      "rarity": "uncommon",
+      "tags": ["reward", "attack", "high_cost"],
+      "text_key": "card.guard_break",
+      "art_key": "art.card.placeholder.guard_break"
+    },
+    {
+      "id": "card_basic_guard",
+      "type": "skill",
+      "cost": 0,
+      "default_chain_delta": 0,
+      "target_rule": "self",
+      "effects": [
+        { "type": "block", "target": "self", "value": 6 },
+        { "type": "gain_action_points", "target": "self", "value": 1 }
+      ],
+      "rarity": "starter",
+      "tags": ["starter", "defense", "resource"],
+      "text_key": "card.basic_guard",
+      "art_key": "art.card.placeholder.guard"
+    },
+    {
+      "id": "card_tactical_read",
+      "type": "skill",
+      "cost": 0,
+      "default_chain_delta": 0,
+      "target_rule": "self",
+      "effects": [
+        { "type": "draw_cards", "target": "self", "value": 2 }
+      ],
+      "rarity": "starter",
+      "tags": ["starter", "draw"],
+      "text_key": "card.tactical_read",
+      "art_key": "art.card.placeholder.tactical_read"
+    },
+    {
+      "id": "card_second_wind",
+      "type": "skill",
+      "cost": 0,
+      "default_chain_delta": 0,
+      "target_rule": "self",
+      "effects": [
+        { "type": "block", "target": "self", "value": 4 },
+        { "type": "gain_action_points", "target": "self", "value": 1 }
+      ],
+      "rarity": "common",
+      "tags": ["reward", "defense", "resource"],
+      "text_key": "card.second_wind",
+      "art_key": "art.card.placeholder.second_wind"
+    },
+    {
+      "id": "card_deep_focus",
+      "type": "skill",
+      "cost": 0,
+      "default_chain_delta": 0,
+      "target_rule": "self",
+      "effects": [
+        { "type": "draw_cards", "target": "self", "value": 2 }
+      ],
+      "rarity": "common",
+      "tags": ["reward", "draw"],
+      "text_key": "card.deep_focus",
+      "art_key": "art.card.placeholder.deep_focus"
+    },
+    {
+      "id": "card_setup_discount",
+      "type": "skill",
+      "cost": 0,
+      "default_chain_delta": 0,
+      "target_rule": "self",
+      "effects": [
+        { "type": "temporary_discount", "target": "hand_action_cards", "value": 1 }
+      ],
+      "rarity": "uncommon",
+      "tags": ["reward", "discount"],
+      "text_key": "card.setup_discount",
+      "art_key": "art.card.placeholder.setup_discount"
+    },
+    {
+      "id": "card_burst_finish",
+      "type": "finisher",
+      "cost": 0,
+      "min_chain": 3,
+      "default_chain_delta": "consume_all",
+      "target_rule": "single_enemy",
+      "effects": [
+        { "type": "damage", "target": "selected_enemy", "value": 18 },
+        { "type": "chain_threshold_bonus", "threshold": 5, "effect": { "type": "damage", "target": "selected_enemy", "value": 18 } }
+      ],
+      "rarity": "starter",
+      "tags": ["starter", "finisher", "single_target"],
+      "text_key": "card.burst_finish",
+      "art_key": "art.card.placeholder.burst_finish"
+    },
+    {
+      "id": "card_arc_sweep_finish",
+      "type": "finisher",
+      "cost": 0,
+      "min_chain": 3,
+      "default_chain_delta": "consume_all",
+      "target_rule": "all_enemies",
+      "effects": [
+        { "type": "damage", "target": "all_enemies", "value": 10 },
+        { "type": "chain_threshold_bonus", "threshold": 5, "effect": { "type": "damage", "target": "all_enemies", "value": 6 } }
+      ],
+      "rarity": "common",
+      "tags": ["reward", "finisher", "aoe"],
+      "text_key": "card.arc_sweep_finish",
+      "art_key": "art.card.placeholder.arc_sweep_finish"
+    },
+    {
+      "id": "card_refund_finish",
+      "type": "finisher",
+      "cost": 0,
+      "min_chain": 5,
+      "default_chain_delta": "consume_all",
+      "target_rule": "single_enemy",
+      "effects": [
+        { "type": "damage", "target": "selected_enemy", "value": 14 },
+        { "type": "gain_action_points", "target": "self", "value": 1 }
+      ],
+      "rarity": "uncommon",
+      "tags": ["reward", "finisher", "resource"],
+      "text_key": "card.refund_finish",
+      "art_key": "art.card.placeholder.refund_finish"
+    },
+    {
+      "id": "card_bulwark_finish",
+      "type": "finisher",
+      "cost": 0,
+      "min_chain": 3,
+      "default_chain_delta": "consume_all",
+      "target_rule": "self",
+      "effects": [
+        { "type": "block", "target": "self", "value": 16 }
+      ],
+      "rarity": "uncommon",
+      "tags": ["reward", "finisher", "defense"],
+      "text_key": "card.bulwark_finish",
+      "art_key": "art.card.placeholder.bulwark_finish"
+    }
+  ]
+}

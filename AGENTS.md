@@ -6,6 +6,7 @@
 - inspiration/：用于开发者随手记录玩法灵感、或记录每次用户与Codex的问答交互
 - insight/：同类游戏设计与评价洞察
 - design/：按照业界标准的游戏设计维度划分子目录，将灵感与洞察整理到对应文档中
+- game/: Godot游戏项目目录
 - AGENTS.md（本文件）：知识库根目录下的工作规则，
 
 ## Obsidian兼容规则
@@ -137,6 +138,34 @@ game/logs/
 
 先用占位数据即可，但字段要稳定。完成后运行数据校验，并修复所有校验错误。
 ```
+
+#### 任务 2 完成记录
+
+完成日期：2026-06-04
+
+已完成：
+- 已在 `game/data/schemas/` 下创建首版 JSON Schema，覆盖 `cards`、`relics`、`enemies`、`encounters`、`rewards`、`run_sequence`、`localization`。
+- 已在 `game/data/` 下创建 MVP 占位数据：`cards/cards.json`、`relics/relics.json`、`enemies/enemies.json`、`encounters/encounters.json`、`rewards/reward_packs.json`、`run_sequence/mvp_run.json`、`localization/zh_hans.json`。
+- 已创建 10 张初始牌组计数配置、3 类固定可重复奖励包、1 个普通遗物、6 场固定遭遇、MVP 线性 Run 序列和简体中文本地化文本键。
+- 已确保前两次普通战斗后的终结牌包包含群体攻击终结牌 `card_arc_sweep_finish`。
+- 已新增无第三方依赖的数据校验器 `game/tools/data_validator/validate_data.py`。
+- 已新增 Windows / Codex 友好的包装入口 `game/tools/data_validator/validate_data.ps1`。
+- 本任务未实现运行时加载、规则层模型或 Godot UI，仅建立首版数据格式、占位数据与可运行校验流程。
+
+校验工具已覆盖：
+- 内容 ID 唯一。
+- 引用的卡牌、敌人、遗物、奖励包、遭遇、Run 序列和文本键存在。
+- 奖励包候选数量必须为 3。
+- 终结牌必须定义正数 `min_chain`。
+- 行动牌默认 `default_chain_delta = 1`，技能牌默认 `default_chain_delta = 0`，终结牌默认 `default_chain_delta = "consume_all"`。
+- 奖励包候选卡牌类型必须匹配包类型。
+- 初始牌组计数必须为 10。
+- MVP Run 序列必须包含 6 场遭遇，Boss 通关目标必须引用 Boss 遭遇。
+- MVP 前两次普通战斗后的终结牌包必须包含群体攻击终结牌。
+
+验证结果：
+- `.\game\tools\data_validator\validate_data.ps1`：通过。
+- 输出结果：`Data validation passed. Validated 7 data files and 7 schemas.`
 
 ### 任务 3：实现规则层基础模型
 

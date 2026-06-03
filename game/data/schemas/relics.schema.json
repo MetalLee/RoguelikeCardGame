@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "res://data/schemas/relics.schema.json",
+  "title": "RoguelikeCardGame Relics",
+  "type": "object",
+  "required": ["content_version", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "content_version": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "rarity", "trigger", "conditions", "effects", "stack_rule", "text_key", "icon_key"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "rarity": { "type": "string", "enum": ["common", "uncommon", "rare", "boss"] },
+          "trigger": { "type": "string" },
+          "conditions": { "type": "array", "items": { "type": "object" } },
+          "effects": { "type": "array", "items": { "type": "object" } },
+          "stack_rule": { "type": "string", "enum": ["unique", "stackable"] },
+          "text_key": { "type": "string" },
+          "icon_key": { "type": "string" }
+        }
+      }
+    }
+  }
+}
