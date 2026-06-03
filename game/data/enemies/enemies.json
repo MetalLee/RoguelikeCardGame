@@ -25,13 +25,13 @@
           "id": "intent_scout_attack",
           "intent_type": "attack",
           "ui_text_key": "enemy.intent.intent_scout.attack",
-          "effects": [{ "type": "damage", "target": "player", "value": 8 }]
+          "effects": [{ "type": "damage", "target": "player", "value": 7 }]
         },
         {
-          "id": "intent_scout_prepare",
-          "intent_type": "buff",
-          "ui_text_key": "enemy.intent.intent_scout.prepare",
-          "effects": [{ "type": "gain_status", "target": "self", "status_id": "status_placeholder_focus", "value": 1 }]
+          "id": "intent_scout_guard",
+          "intent_type": "defend",
+          "ui_text_key": "enemy.intent.intent_scout.guard",
+          "effects": [{ "type": "gain_block", "target": "self", "value": 5 }]
         }
       ],
       "status_immunities": [],
@@ -41,7 +41,7 @@
     },
     {
       "id": "enemy_splitling",
-      "max_hp": 18,
+      "max_hp": 16,
       "intent_sequence": [
         {
           "id": "intent_splitling_attack",
@@ -57,19 +57,19 @@
     },
     {
       "id": "enemy_elite_guardian",
-      "max_hp": 52,
+      "max_hp": 48,
       "intent_sequence": [
         {
           "id": "intent_guardian_attack",
           "intent_type": "attack",
           "ui_text_key": "enemy.intent.elite_guardian.attack",
-          "effects": [{ "type": "damage", "target": "player", "value": 12 }]
+          "effects": [{ "type": "damage", "target": "player", "value": 11 }]
         },
         {
           "id": "intent_guardian_guard",
           "intent_type": "defend",
           "ui_text_key": "enemy.intent.elite_guardian.guard",
-          "effects": [{ "type": "gain_block", "target": "self", "value": 8 }]
+          "effects": [{ "type": "gain_block", "target": "self", "value": 7 }]
         }
       ],
       "status_immunities": [],
@@ -79,7 +79,7 @@
     },
     {
       "id": "enemy_relic_tester",
-      "max_hp": 38,
+      "max_hp": 36,
       "intent_sequence": [
         {
           "id": "intent_relic_tester_attack",
@@ -95,25 +95,25 @@
     },
     {
       "id": "enemy_chain_warden",
-      "max_hp": 90,
+      "max_hp": 84,
       "intent_sequence": [
         {
           "id": "intent_warden_attack",
           "intent_type": "attack",
           "ui_text_key": "enemy.intent.chain_warden.attack",
-          "effects": [{ "type": "damage", "target": "player", "value": 13 }]
+          "effects": [{ "type": "damage", "target": "player", "value": 12 }]
         },
         {
           "id": "intent_warden_pressure",
           "intent_type": "mixed",
           "ui_text_key": "enemy.intent.chain_warden.pressure",
           "effects": [
-            { "type": "damage", "target": "player", "value": 8 },
-            { "type": "gain_block", "target": "self", "value": 6 }
+            { "type": "damage", "target": "player", "value": 7 },
+            { "type": "gain_block", "target": "self", "value": 5 }
           ]
         }
       ],
-      "status_immunities": ["status_placeholder_stun"],
+      "status_immunities": [],
       "tags": ["boss"],
       "art_key": "art.enemy.placeholder.chain_warden",
       "ui_name_key": "enemy.chain_warden"

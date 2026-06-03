@@ -13,6 +13,16 @@ from typing import Any
 
 
 ID_PATTERN = re.compile(r"^[a-z0-9_]+$")
+CARD_EFFECT_TYPES = {
+    "damage",
+    "block",
+    "gain_block",
+    "draw_cards",
+    "gain_action_points",
+    "temporary_discount",
+    "chain_threshold_bonus",
+}
+ENEMY_INTENT_EFFECT_TYPES = {"damage", "block", "gain_block"}
 
 
 @dataclass(frozen=True)
@@ -172,6 +182,44 @@ def has_aoe_finisher(card: dict[str, Any]) -> bool:
     return False
 
 
+def validate_card_effect(effect: Any, location: str, errors: list[str]) -> None:
+    if not isinstance(effect, dict):
+        errors.append(f"{location}: effect must be an object")
+        return
+
+    effect_type = effect.get("type")
+    if effect_type not in CARD_EFFECT_TYPES:
+        errors.append(f"{location}.type: unsupported MVP card effect {effect_type!r}")
+        return
+
+    if effect_type == "chain_threshold_bonus":
+        threshold = effect.get("threshold")
+        if not isinstance(threshold, int) or threshold <= 0:
+            errors.append(f"{location}.threshold: chain_threshold_bonus must define a positive threshold")
+        nested = effect.get("effect")
+        if not isinstance(nested, dict):
+            errors.append(f"{location}.effect: chain_threshold_bonus must define a nested effect")
+        else:
+            validate_card_effect(nested, f"{location}.effect", errors)
+
+
+def validate_enemy_intent_effect(effect: Any, location: str, errors: list[str]) -> None:
+    if not isinstance(effect, dict):
+        errors.append(f"{location}: effect must be an object")
+        return
+
+    effect_type = effect.get("type")
+    target = effect.get("target")
+    if effect_type not in ENEMY_INTENT_EFFECT_TYPES:
+        errors.append(f"{location}.type: unsupported MVP enemy intent effect {effect_type!r}")
+        return
+
+    if effect_type == "damage" and target != "player":
+        errors.append(f"{location}.target: MVP enemy damage effects must target 'player'")
+    if effect_type in {"block", "gain_block"} and target != "self":
+        errors.append(f"{location}.target: MVP enemy block effects must target 'self'")
+
+
 def validate_cross_references(documents: dict[str, dict[str, Any]], errors: list[str]) -> None:
     localization_entries = documents["localization"].get("entries", {})
     localization = localization_entries if isinstance(localization_entries, dict) else {}
@@ -231,6 +279,9 @@ def validate_cross_references(documents: dict[str, dict[str, Any]], errors: list
             if cost != 0:
                 errors.append(f"cards:{card_id}.cost: MVP finisher cards should default to 0 cost")
 
+        for index, effect in enumerate(card.get("effects", [])):
+            validate_card_effect(effect, f"cards:{card_id}.effects[{index}]", errors)
+
     for relic in relics:
         relic_id = relic.get("id", "<missing>")
         add_text_key(errors, localization, relic.get("text_key"), f"relics:{relic_id}.text_key")
@@ -246,6 +297,12 @@ def validate_cross_references(documents: dict[str, dict[str, Any]], errors: list
                     intent.get("ui_text_key"),
                     f"enemies:{enemy_id}.intent_sequence[{index}].ui_text_key",
                 )
+                for effect_index, effect in enumerate(intent.get("effects", [])):
+                    validate_enemy_intent_effect(
+                        effect,
+                        f"enemies:{enemy_id}.intent_sequence[{index}].effects[{effect_index}]",
+                        errors,
+                    )
 
     for pack in rewards:
         pack_id = pack.get("id", "<missing>")

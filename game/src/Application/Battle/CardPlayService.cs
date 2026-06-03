@@ -205,6 +205,7 @@ public sealed class CardPlayService
             Log = log
         };
 
+        updated = AppendCombatOutcomeLogs(updated);
         return PlayCardResult.Success(updated, updated.Log.Skip(logStartIndex));
     }
 
@@ -368,6 +369,57 @@ public sealed class CardPlayService
                 ["effect_type"] = effectType
             }
         });
+
+        return combat with { Log = log };
+    }
+
+    private static CombatState AppendCombatOutcomeLogs(CombatState combat)
+    {
+        var log = combat.Log.ToList();
+        var loggedDeaths = log
+            .Where(item => item.EventType == CombatLogEventType.EnemyDied)
+            .SelectMany(item => item.TargetIds)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var enemy in combat.Enemies.Where(enemy => enemy.CurrentHp <= 0 && !loggedDeaths.Contains(enemy.InstanceId)))
+        {
+            log.Add(new CombatLogEvent
+            {
+                EventId = $"{combat.CombatId}_turn_{combat.TurnNumber}_enemy_died_{enemy.InstanceId}_{log.Count + 1}",
+                EventType = CombatLogEventType.EnemyDied,
+                TurnNumber = combat.TurnNumber,
+                SourceId = enemy.EnemyId,
+                TargetIds = [enemy.InstanceId],
+                NumericChanges = new Dictionary<string, int>
+                {
+                    ["current_hp"] = enemy.CurrentHp
+                }
+            });
+        }
+
+        if (combat.Enemies.Count > 0 && combat.Enemies.All(enemy => enemy.CurrentHp <= 0) && combat.Status != CombatStatus.Victory)
+        {
+            log.Add(new CombatLogEvent
+            {
+                EventId = $"{combat.CombatId}_turn_{combat.TurnNumber}_combat_ended_victory",
+                EventType = CombatLogEventType.CombatEnded,
+                TurnNumber = combat.TurnNumber,
+                NumericChanges = new Dictionary<string, int>
+                {
+                    ["player_hp"] = combat.PlayerHp
+                },
+                Metadata = new Dictionary<string, string>
+                {
+                    ["status"] = CombatStatus.Victory.ToString()
+                }
+            });
+
+            return combat with
+            {
+                Status = CombatStatus.Victory,
+                Log = log
+            };
+        }
 
         return combat with { Log = log };
     }

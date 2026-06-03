@@ -12,6 +12,7 @@ public enum CombatLogEventType
     CardPlayed,
     CardPlayRejected,
     EffectResolved,
+    EnemyDied,
     EnemyIntentResolved,
     PlayerTurnEnded,
     EnemyTurnPlaceholderResolved,

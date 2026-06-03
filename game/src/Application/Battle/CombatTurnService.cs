@@ -1,4 +1,6 @@
 using RoguelikeCardGame.Domain.Combat;
+using RoguelikeCardGame.Domain.Effects;
+using RoguelikeCardGame.Domain.Enemies;
 
 namespace RoguelikeCardGame.Application.Battle;
 
@@ -89,6 +91,76 @@ public sealed class CombatTurnService
             },
             Log = log
         };
+    }
+
+    public IReadOnlyList<EnemyIntentView> GetEnemyIntentViews(
+        CombatState combat,
+        IReadOnlyDictionary<string, EnemyDefinition> enemiesById)
+    {
+        ArgumentNullException.ThrowIfNull(combat);
+        ArgumentNullException.ThrowIfNull(enemiesById);
+
+        return combat.Enemies
+            .Where(enemy => enemy.CurrentHp > 0)
+            .Select(enemy =>
+            {
+                var definition = GetEnemyDefinition(enemy, enemiesById);
+                var intent = GetCurrentIntent(definition, enemy.IntentIndex);
+                return new EnemyIntentView
+                {
+                    EnemyInstanceId = enemy.InstanceId,
+                    EnemyId = enemy.EnemyId,
+                    IntentIndex = enemy.IntentIndex,
+                    IntentId = intent.Id,
+                    IntentType = intent.IntentType,
+                    UiTextKey = intent.UiTextKey,
+                    EffectPreviews = intent.Effects.Select(effect => new EnemyIntentEffectPreview
+                    {
+                        Type = effect.Type,
+                        Target = effect.Target,
+                        Value = effect.Value
+                    }).ToList()
+                };
+            })
+            .ToList();
+    }
+
+    public CombatState ResolveEnemyTurn(
+        CombatState combat,
+        IReadOnlyDictionary<string, EnemyDefinition> enemiesById)
+    {
+        ArgumentNullException.ThrowIfNull(combat);
+        ArgumentNullException.ThrowIfNull(enemiesById);
+        if (combat.Status != CombatStatus.EnemyTurn)
+        {
+            throw new InvalidOperationException("Enemy turn can only resolve during EnemyTurn status.");
+        }
+
+        var working = combat;
+        foreach (var enemy in combat.Enemies.Where(enemy => enemy.CurrentHp > 0))
+        {
+            var latestEnemy = working.Enemies.FirstOrDefault(item => item.InstanceId == enemy.InstanceId);
+            if (latestEnemy is null || latestEnemy.CurrentHp <= 0)
+            {
+                continue;
+            }
+
+            var definition = GetEnemyDefinition(latestEnemy, enemiesById);
+            var intent = GetCurrentIntent(definition, latestEnemy.IntentIndex);
+
+            foreach (var effect in intent.Effects)
+            {
+                working = ResolveEnemyIntentEffect(working, latestEnemy.InstanceId, intent, effect);
+                if (working.Status == CombatStatus.Defeat)
+                {
+                    return AdvanceEnemyIntent(working, latestEnemy.InstanceId);
+                }
+            }
+
+            working = AdvanceEnemyIntent(working, latestEnemy.InstanceId);
+        }
+
+        return working;
     }
 
     public CombatState ResolveEnemyTurnPlaceholder(CombatState combat)
@@ -243,5 +315,163 @@ public sealed class CombatTurnService
                 DiscardPile = discardPile
             },
             events);
+    }
+
+    private static CombatState ResolveEnemyIntentEffect(
+        CombatState combat,
+        string enemyInstanceId,
+        EnemyIntentDefinition intent,
+        EffectDefinition effect)
+    {
+        return effect.Type switch
+        {
+            "damage" when effect.Target == "player" => ResolveEnemyDamage(combat, enemyInstanceId, intent, effect),
+            "block" or "gain_block" when effect.Target == "self" => ResolveEnemyBlock(combat, enemyInstanceId, intent, effect),
+            _ => AppendEnemyIntentLog(combat, enemyInstanceId, intent, [], new Dictionary<string, int>(), $"unsupported_placeholder:{effect.Type}")
+        };
+    }
+
+    private static CombatState ResolveEnemyDamage(
+        CombatState combat,
+        string enemyInstanceId,
+        EnemyIntentDefinition intent,
+        EffectDefinition effect)
+    {
+        var incomingDamage = Math.Max(0, effect.Value ?? 0);
+        var blockedDamage = Math.Min(combat.PlayerBlock, incomingDamage);
+        var hpDamage = Math.Max(0, incomingDamage - blockedDamage);
+        var playerHpAfter = Math.Max(0, combat.PlayerHp - hpDamage);
+        var updated = combat with
+        {
+            PlayerBlock = combat.PlayerBlock - blockedDamage,
+            PlayerHp = playerHpAfter
+        };
+
+        updated = AppendEnemyIntentLog(updated, enemyInstanceId, intent, ["player"], new Dictionary<string, int>
+        {
+            ["incoming_damage"] = incomingDamage,
+            ["blocked_damage"] = blockedDamage,
+            ["hp_damage"] = hpDamage,
+            ["player_block_after"] = updated.PlayerBlock,
+            ["player_hp_after"] = updated.PlayerHp
+        }, "damage");
+
+        return updated.PlayerHp <= 0
+            ? AppendCombatEndedLog(updated with { Status = CombatStatus.Defeat }, CombatStatus.Defeat)
+            : updated;
+    }
+
+    private static CombatState ResolveEnemyBlock(
+        CombatState combat,
+        string enemyInstanceId,
+        EnemyIntentDefinition intent,
+        EffectDefinition effect)
+    {
+        var block = Math.Max(0, effect.Value ?? 0);
+        var enemies = combat.Enemies.ToList();
+        var index = enemies.FindIndex(enemy => enemy.InstanceId == enemyInstanceId);
+        if (index < 0)
+        {
+            return combat;
+        }
+
+        enemies[index] = enemies[index] with
+        {
+            Block = enemies[index].Block + block
+        };
+        var updated = combat with { Enemies = enemies };
+
+        return AppendEnemyIntentLog(updated, enemyInstanceId, intent, [enemyInstanceId], new Dictionary<string, int>
+        {
+            ["block_gained"] = block,
+            ["enemy_block_after"] = enemies[index].Block
+        }, effect.Type);
+    }
+
+    private static CombatState AdvanceEnemyIntent(CombatState combat, string enemyInstanceId)
+    {
+        var enemies = combat.Enemies
+            .Select(enemy => enemy.InstanceId == enemyInstanceId ? enemy with { IntentIndex = enemy.IntentIndex + 1 } : enemy)
+            .ToList();
+
+        return combat with { Enemies = enemies };
+    }
+
+    private static CombatState AppendEnemyIntentLog(
+        CombatState combat,
+        string enemyInstanceId,
+        EnemyIntentDefinition intent,
+        IEnumerable<string> targetIds,
+        Dictionary<string, int> numericChanges,
+        string effectType)
+    {
+        var log = combat.Log.ToList();
+        log.Add(new CombatLogEvent
+        {
+            EventId = $"{combat.CombatId}_turn_{combat.TurnNumber}_enemy_intent_{log.Count + 1}",
+            EventType = CombatLogEventType.EnemyIntentResolved,
+            TurnNumber = combat.TurnNumber,
+            SourceId = enemyInstanceId,
+            TargetIds = targetIds.ToList(),
+            MessageKey = intent.UiTextKey,
+            NumericChanges = numericChanges,
+            Metadata = new Dictionary<string, string>
+            {
+                ["intent_id"] = intent.Id,
+                ["intent_type"] = intent.IntentType.ToString(),
+                ["effect_type"] = effectType
+            }
+        });
+
+        return combat with { Log = log };
+    }
+
+    private static CombatState AppendCombatEndedLog(CombatState combat, CombatStatus status)
+    {
+        var log = combat.Log.ToList();
+        log.Add(new CombatLogEvent
+        {
+            EventId = $"{combat.CombatId}_turn_{combat.TurnNumber}_combat_ended_{status.ToString().ToLowerInvariant()}",
+            EventType = CombatLogEventType.CombatEnded,
+            TurnNumber = combat.TurnNumber,
+            NumericChanges = new Dictionary<string, int>
+            {
+                ["player_hp"] = combat.PlayerHp
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["status"] = status.ToString()
+            }
+        });
+
+        return combat with { Log = log };
+    }
+
+    private static EnemyDefinition GetEnemyDefinition(
+        CombatEnemyState enemy,
+        IReadOnlyDictionary<string, EnemyDefinition> enemiesById)
+    {
+        if (!enemiesById.TryGetValue(enemy.EnemyId, out var definition))
+        {
+            throw new InvalidOperationException($"Unknown enemy definition id '{enemy.EnemyId}'.");
+        }
+
+        return definition;
+    }
+
+    private static EnemyIntentDefinition GetCurrentIntent(EnemyDefinition definition, int intentIndex)
+    {
+        if (definition.IntentSequence.Count == 0)
+        {
+            throw new InvalidOperationException($"Enemy definition '{definition.Id}' has no intent sequence.");
+        }
+
+        var normalizedIndex = intentIndex % definition.IntentSequence.Count;
+        if (normalizedIndex < 0)
+        {
+            normalizedIndex += definition.IntentSequence.Count;
+        }
+
+        return definition.IntentSequence[normalizedIndex];
     }
 }

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using RoguelikeCardGame.Application.Battle;
+using RoguelikeCardGame.Application.Rewards;
 using RoguelikeCardGame.Application.Runs;
 using RoguelikeCardGame.Domain.Cards;
 using RoguelikeCardGame.Domain.Combat;
@@ -107,6 +108,25 @@ var arcSweepFinisher = new CardDefinition
     ArtKey = "art.card.placeholder.arc_sweep_finish"
 };
 
+var refundFinisher = new CardDefinition
+{
+    Id = "card_refund_finish",
+    Type = CardType.Finisher,
+    Cost = 0,
+    MinChain = 5,
+    DefaultChainChange = ChainChange.ConsumeAll,
+    TargetRule = TargetRule.SingleEnemy,
+    Effects =
+    [
+        new EffectDefinition { Type = "damage", Target = "selected_enemy", Value = 14 },
+        new EffectDefinition { Type = "gain_action_points", Target = "self", Value = 1 }
+    ],
+    Rarity = CardRarity.Uncommon,
+    Tags = ["finisher", "resource"],
+    TextKey = "card.refund_finish",
+    ArtKey = "art.card.placeholder.refund_finish"
+};
+
 var relic = new RelicDefinition
 {
     Id = "relic_mvp_chain_spark",
@@ -138,6 +158,32 @@ var enemy = new EnemyDefinition
     UiNameKey = "enemy.training_dummy"
 };
 
+var sequenceEnemy = new EnemyDefinition
+{
+    Id = "enemy_sequence_tester",
+    MaxHp = 20,
+    IntentSequence =
+    [
+        new EnemyIntentDefinition
+        {
+            Id = "intent_sequence_attack",
+            IntentType = EnemyIntentType.Attack,
+            UiTextKey = "enemy.intent.sequence_tester.attack",
+            Effects = [new EffectDefinition { Type = "damage", Target = "player", Value = 6 }]
+        },
+        new EnemyIntentDefinition
+        {
+            Id = "intent_sequence_guard",
+            IntentType = EnemyIntentType.Defend,
+            UiTextKey = "enemy.intent.sequence_tester.guard",
+            Effects = [new EffectDefinition { Type = "gain_block", Target = "self", Value = 4 }]
+        }
+    ],
+    Tags = ["test", "sequence"],
+    ArtKey = "art.enemy.placeholder.sequence_tester",
+    UiNameKey = "enemy.sequence_tester"
+};
+
 var encounter = new EncounterDefinition
 {
     Id = "encounter_mvp_normal_01",
@@ -145,7 +191,7 @@ var encounter = new EncounterDefinition
     Enemies = [new EncounterEnemyDefinition { InstanceId = "enemy_01", EnemyId = enemy.Id }],
     RewardProfile = new EncounterRewardProfileDefinition
     {
-        CardPackIds = ["reward_pack_mvp_action"],
+        CardPackIds = ["reward_pack_mvp_action", "reward_pack_mvp_skill", "reward_pack_mvp_finisher"],
         RelicId = null
     },
     TeachingGoalKey = "encounter.mvp_normal_01.goal",
@@ -164,6 +210,76 @@ var rewardPack = new RewardPackDefinition
     TextKey = "reward_pack.mvp_action"
 };
 
+var skillRewardPack = new RewardPackDefinition
+{
+    Id = "reward_pack_mvp_skill",
+    PackType = CardType.Skill,
+    CandidateIds = [guardSkill.Id, drawSkill.Id, discountSkill.Id],
+    MinPick = 0,
+    MaxPick = 3,
+    GuaranteeRule = "fixed_three_candidates",
+    RepeatRule = RewardRepeatRule.Repeatable,
+    TextKey = "reward_pack.mvp_skill"
+};
+
+var finisherRewardPack = new RewardPackDefinition
+{
+    Id = "reward_pack_mvp_finisher",
+    PackType = CardType.Finisher,
+    CandidateIds = [arcSweepFinisher.Id, refundFinisher.Id, finisher.Id],
+    MinPick = 0,
+    MaxPick = 3,
+    GuaranteeRule = "fixed_three_candidates_with_aoe_finisher",
+    RepeatRule = RewardRepeatRule.Repeatable,
+    TextKey = "reward_pack.mvp_finisher"
+};
+
+var eliteEncounter = new EncounterDefinition
+{
+    Id = "encounter_mvp_elite_01",
+    NodeType = EncounterNodeType.Elite,
+    Enemies = [new EncounterEnemyDefinition { InstanceId = "enemy_01", EnemyId = sequenceEnemy.Id }],
+    RewardProfile = new EncounterRewardProfileDefinition
+    {
+        CardPackIds = ["reward_pack_mvp_action", "reward_pack_mvp_skill", "reward_pack_mvp_finisher"],
+        RelicId = relic.Id
+    },
+    TeachingGoalKey = "encounter.mvp_elite_01.goal",
+    DifficultyNote = "Smoke test elite encounter."
+};
+
+var bossEncounter = new EncounterDefinition
+{
+    Id = "encounter_mvp_boss_01",
+    NodeType = EncounterNodeType.Boss,
+    Enemies = [new EncounterEnemyDefinition { InstanceId = "enemy_01", EnemyId = sequenceEnemy.Id }],
+    RewardProfile = new EncounterRewardProfileDefinition
+    {
+        CardPackIds = [],
+        RelicId = null
+    },
+    TeachingGoalKey = "encounter.mvp_boss_01.goal",
+    DifficultyNote = "Smoke test boss encounter."
+};
+
+var enemiesById = new Dictionary<string, EnemyDefinition>
+{
+    [enemy.Id] = enemy,
+    [sequenceEnemy.Id] = sequenceEnemy
+};
+
+var rewardPacksById = new Dictionary<string, RewardPackDefinition>
+{
+    [rewardPack.Id] = rewardPack,
+    [skillRewardPack.Id] = skillRewardPack,
+    [finisherRewardPack.Id] = finisherRewardPack
+};
+
+var relicsById = new Dictionary<string, RelicDefinition>
+{
+    [relic.Id] = relic
+};
+
 var serializedCard = JsonSerializer.Serialize(strike, options);
 var deserializedCard = JsonSerializer.Deserialize<CardDefinition>(serializedCard, options);
 AssertEqual(strike.Id, deserializedCard?.Id, "CardDefinition serializes and deserializes");
@@ -177,18 +293,26 @@ var run = runFactory.CreateNewRun(
     baseActionPoints: 3,
     cardsPerTurn: 5,
     starterDeck: [strike.Id, strike.Id, strike.Id, strike.Id, finisher.Id],
-    encounterSequence: [encounter.Id]);
+    encounterSequence: [encounter.Id, eliteEncounter.Id, bossEncounter.Id]);
 
 AssertEqual(RunStatus.InProgress, run.Status, "RunStateFactory starts run in progress");
 AssertEqual(60, run.PlayerHp, "RunStateFactory starts at full HP");
 AssertEqual(5, run.MasterDeck.Count, "RunStateFactory copies starter deck");
 
 var combatFactory = new CombatStateFactory();
+var damagedRunReadyForCombat = run with { PlayerHp = 1 };
+var fullHealCombat = combatFactory.CreateCombat(
+    combatId: "combat_full_heal_001",
+    runState: damagedRunReadyForCombat,
+    encounter: encounter,
+    enemiesById: enemiesById);
+AssertEqual(run.PlayerMaxHp, fullHealCombat.PlayerHp, "CombatStateFactory starts each combat at full player HP");
+
 var initialCombat = combatFactory.CreateCombat(
     combatId: "combat_smoke_001",
     runState: run,
     encounter: encounter,
-    enemiesById: new Dictionary<string, EnemyDefinition> { [enemy.Id] = enemy });
+    enemiesById: enemiesById);
 
 AssertEqual(CombatStatus.NotStarted, initialCombat.Status, "CombatStateFactory creates a not-started combat");
 AssertEqual(0, initialCombat.ActionPoints, "CombatStateFactory does not restore action points before combat starts");
@@ -206,6 +330,13 @@ AssertEqual(enemy.MaxHp, combat.Enemies[0].CurrentHp, "CombatStateFactory create
 Assert(combat.Log.Any(item => item.EventType == CombatLogEventType.CardsDrawn), "StartCombat records a draw event");
 Assert(combat.Log.Any(item => item.EventType == CombatLogEventType.TurnStarted), "StartCombat records a turn-start event");
 
+var openingIntentViews = turnService.GetEnemyIntentViews(combat, enemiesById);
+AssertEqual(1, openingIntentViews.Count, "GetEnemyIntentViews returns one view per living enemy");
+AssertEqual("intent_dummy_attack", openingIntentViews[0].IntentId, "GetEnemyIntentViews exposes the current fixed intent id");
+AssertEqual(EnemyIntentType.Attack, openingIntentViews[0].IntentType, "GetEnemyIntentViews exposes intent type");
+AssertEqual("enemy.intent.training_dummy.attack", openingIntentViews[0].UiTextKey, "GetEnemyIntentViews exposes UI text key");
+AssertEqual(5, openingIntentViews[0].EffectPreviews[0].Value, "GetEnemyIntentViews exposes damage preview value");
+
 var endedTurn = turnService.EndPlayerTurn(combat with { ActionPoints = 2, Chain = 3, PlayerBlock = 7 });
 AssertEqual(CombatStatus.EnemyTurn, endedTurn.Status, "EndPlayerTurn enters enemy turn");
 AssertEqual(0, endedTurn.ActionPoints, "EndPlayerTurn clears unused action points");
@@ -215,11 +346,13 @@ AssertEqual(run.CardsPerTurn, endedTurn.DeckZones.DiscardPileCount, "EndPlayerTu
 AssertEqual(7, endedTurn.PlayerBlock, "EndPlayerTurn keeps block until next turn start");
 Assert(endedTurn.Log.Any(item => item.EventType == CombatLogEventType.CardsDiscarded), "EndPlayerTurn records discarded cards");
 
-var afterEnemyPlaceholder = turnService.ResolveEnemyTurnPlaceholder(endedTurn);
-AssertEqual(1, afterEnemyPlaceholder.Enemies[0].IntentIndex, "Enemy placeholder advances intent index");
-AssertEqual(7, afterEnemyPlaceholder.PlayerBlock, "Enemy placeholder does not clear remaining block");
+var afterEnemyTurn = turnService.ResolveEnemyTurn(endedTurn, enemiesById);
+AssertEqual(1, afterEnemyTurn.Enemies[0].IntentIndex, "ResolveEnemyTurn advances fixed intent index");
+AssertEqual(2, afterEnemyTurn.PlayerBlock, "ResolveEnemyTurn spends player block before HP");
+AssertEqual(60, afterEnemyTurn.PlayerHp, "ResolveEnemyTurn prevents HP damage when block fully covers attack");
+Assert(afterEnemyTurn.Log.Any(item => item.EventType == CombatLogEventType.EnemyIntentResolved), "ResolveEnemyTurn records enemy intent resolution");
 
-var nextTurn = turnService.PrepareNextPlayerTurn(afterEnemyPlaceholder);
+var nextTurn = turnService.PrepareNextPlayerTurn(afterEnemyTurn);
 AssertEqual(CombatStatus.PlayerTurn, nextTurn.Status, "PrepareNextPlayerTurn returns to player turn");
 AssertEqual(2, nextTurn.TurnNumber, "PrepareNextPlayerTurn increments turn number");
 AssertEqual(0, nextTurn.PlayerBlock, "PrepareNextPlayerTurn clears remaining block");
@@ -324,13 +457,105 @@ var discountResult = cardPlayService.PlayCard(CreatePlayableCombat([discountSkil
 Assert(discountResult.Succeeded, "Temporary discount placeholder skill can be played");
 Assert(discountResult.Events.Any(item => item.Metadata.TryGetValue("effect_type", out var effectType) && effectType == "temporary_discount_placeholder"), "Temporary discount placeholder emits an effect log event");
 
+var sequenceCombat = CreateEnemyTurnCombat(
+    enemies: [CreateEnemyState("enemy_01", currentHp: 20, maxHp: 20, enemyId: sequenceEnemy.Id)],
+    playerHp: 30);
+var sequenceViewBefore = turnService.GetEnemyIntentViews(sequenceCombat, enemiesById);
+AssertEqual("intent_sequence_attack", sequenceViewBefore[0].IntentId, "Fixed intent sequence starts at the first intent");
+var sequenceAfterAttack = turnService.ResolveEnemyTurn(sequenceCombat, enemiesById);
+AssertEqual(24, sequenceAfterAttack.PlayerHp, "Enemy attack damages player HP when block is absent");
+AssertEqual(1, sequenceAfterAttack.Enemies[0].IntentIndex, "Enemy attack advances to the next fixed intent");
+var sequenceViewAfterAttack = turnService.GetEnemyIntentViews(sequenceAfterAttack, enemiesById);
+AssertEqual("intent_sequence_guard", sequenceViewAfterAttack[0].IntentId, "Fixed intent sequence exposes the next intent after resolution");
+var sequenceAfterGuard = turnService.ResolveEnemyTurn(sequenceAfterAttack, enemiesById);
+AssertEqual(4, sequenceAfterGuard.Enemies[0].Block, "Enemy defend intent grants enemy block");
+AssertEqual(2, sequenceAfterGuard.Enemies[0].IntentIndex, "Enemy defend intent advances sequence again");
+
+var partialDeathResult = cardPlayService.PlayCard(
+    CreatePlayableCombat(
+        [strike.Id],
+        actionPoints: 1,
+        enemies:
+        [
+            CreateEnemyState("enemy_01", currentHp: 6, maxHp: 24),
+            CreateEnemyState("enemy_02", currentHp: 10, maxHp: 24)
+        ]),
+    strike,
+    "enemy_01");
+Assert(partialDeathResult.Succeeded, "Damage card can kill one enemy");
+AssertEqual(0, partialDeathResult.Combat.Enemies[0].CurrentHp, "Enemy HP reaches zero when killed");
+AssertEqual(CombatStatus.PlayerTurn, partialDeathResult.Combat.Status, "Combat continues when enemies remain alive");
+Assert(partialDeathResult.Events.Any(item => item.EventType == CombatLogEventType.EnemyDied), "Enemy death emits a structured log event");
+
+var victoryResult = cardPlayService.PlayCard(
+    CreatePlayableCombat([strike.Id], actionPoints: 1, enemies: [CreateEnemyState("enemy_01", currentHp: 6, maxHp: 24)]),
+    strike,
+    "enemy_01");
+Assert(victoryResult.Succeeded, "Damage card can end combat");
+AssertEqual(CombatStatus.Victory, victoryResult.Combat.Status, "Combat enters victory when all enemies die");
+Assert(victoryResult.Events.Any(item => item.EventType == CombatLogEventType.CombatEnded && item.Metadata["status"] == CombatStatus.Victory.ToString()), "Victory emits combat-ended log event");
+
+var lethalEnemyTurn = CreateEnemyTurnCombat(enemies: [CreateEnemyState("enemy_01")], playerHp: 5);
+var defeatedCombat = turnService.ResolveEnemyTurn(lethalEnemyTurn, enemiesById);
+AssertEqual(CombatStatus.Defeat, defeatedCombat.Status, "Combat enters defeat when player HP reaches zero");
+AssertEqual(0, defeatedCombat.PlayerHp, "Enemy lethal attack clamps player HP to zero");
+Assert(defeatedCombat.Log.Any(item => item.EventType == CombatLogEventType.CombatEnded && item.Metadata["status"] == CombatStatus.Defeat.ToString()), "Defeat emits combat-ended log event");
+
+var runProgressService = new RunProgressService();
+var failedRun = runProgressService.ApplyCombatResult(run, defeatedCombat);
+AssertEqual(RunStatus.Failed, failedRun.Status, "Run fails when combat ends in defeat");
+AssertEqual(0, failedRun.PlayerHp, "Run failure stores zero player HP");
+AssertEqual(run.CurrentEncounterIndex, failedRun.CurrentEncounterIndex, "Run failure does not advance to a retry node");
+
+var rewardService = new RewardService();
+var availablePacks = rewardService.GetAvailableCardPacks(encounter, rewardPacksById);
+AssertEqual(3, availablePacks.Count, "Normal combat victory offers three reward pack types");
+Assert(availablePacks.Any(pack => pack.PackType == CardType.Action), "Reward choice includes action pack");
+Assert(availablePacks.Any(pack => pack.PackType == CardType.Skill), "Reward choice includes skill pack");
+Assert(availablePacks.Any(pack => pack.PackType == CardType.Finisher), "Reward choice includes finisher pack");
+
+var openedActionPack = rewardService.OpenRewardPack(rewardPack.Id, rewardPacksById);
+AssertEqual(3, openedActionPack.CandidateIds.Count, "Opening a reward pack exposes exactly three candidates");
+Assert(openedActionPack.CandidateIds.All(cardId => rewardPack.CandidateIds.Contains(cardId)), "Opened pack exposes the selected pack candidates");
+
+var skippedRewardRun = rewardService.ClaimCards(run, openedActionPack, []);
+AssertEqual(run.MasterDeck.Count, skippedRewardRun.MasterDeck.Count, "Skipping reward cards leaves deck unchanged");
+
+var multiPickRun = rewardService.ClaimCards(run, openedActionPack, [strike.Id, "card_quick_jab"]);
+AssertEqual(run.MasterDeck.Count + 2, multiPickRun.MasterDeck.Count, "Reward claim can add multiple cards");
+AssertEqual("card_quick_jab", multiPickRun.MasterDeck[^1], "Reward claim appends selected cards to the master deck");
+
+var duplicatePickRun = rewardService.ClaimCards(run, openedActionPack, [strike.Id, strike.Id]);
+AssertEqual(run.MasterDeck.Count + 2, duplicatePickRun.MasterDeck.Count, "Reward claim allows duplicate card ids when pack is repeatable");
+AssertEqual(6, duplicatePickRun.MasterDeck.Count(cardId => cardId == strike.Id), "Duplicate reward cards can coexist with existing deck copies");
+
+var eliteRelicRun = rewardService.GrantEncounterRelic(run, eliteEncounter, relicsById);
+Assert(eliteRelicRun.RelicIds.Contains(relic.Id), "Elite encounter grants its fixed relic");
+var duplicateRelicRun = rewardService.GrantEncounterRelic(eliteRelicRun, eliteEncounter, relicsById);
+AssertEqual(1, duplicateRelicRun.RelicIds.Count(cardId => cardId == relic.Id), "Fixed unique relic is not duplicated if granted again");
+
+var victoriousCombat = CreateCombatResult(encounter.Id, CombatStatus.Victory, playerHp: 27);
+var postNormalCombatRun = runProgressService.ApplyCombatResult(run, victoriousCombat, encounter);
+AssertEqual(RunStatus.InProgress, postNormalCombatRun.Status, "Normal combat victory keeps run in progress before advancement");
+var advancedRun = runProgressService.AdvanceAfterRewards(postNormalCombatRun, encounter);
+AssertEqual(1, advancedRun.CurrentEncounterIndex, "Run advances linearly after rewards are resolved");
+AssertEqual(run.PlayerMaxHp, advancedRun.PlayerHp, "Run heals to full before the next encounter");
+
+var preparedRun = runProgressService.PrepareForCombat(advancedRun with { PlayerHp = 3 });
+AssertEqual(run.PlayerMaxHp, preparedRun.PlayerHp, "PrepareForCombat heals the player to full HP");
+
+var bossVictoryCombat = CreateCombatResult(bossEncounter.Id, CombatStatus.Victory, playerHp: 14);
+var clearedRun = runProgressService.ApplyCombatResult(advancedRun with { CurrentEncounterIndex = 2 }, bossVictoryCombat, bossEncounter);
+AssertEqual(RunStatus.Cleared, clearedRun.Status, "Boss victory clears the MVP run");
+AssertEqual(14, clearedRun.PlayerHp, "Boss clear keeps remaining combat HP on the run result");
+
 var serializedBundle = JsonSerializer.Serialize(new
 {
-    Cards = new[] { strike, finisher, guardSkill, drawSkill, discountSkill, arcSweepFinisher },
+    Cards = new[] { strike, finisher, guardSkill, drawSkill, discountSkill, arcSweepFinisher, refundFinisher },
     Relics = new[] { relic },
-    Enemies = new[] { enemy },
-    Encounters = new[] { encounter },
-    Rewards = new[] { rewardPack },
+    Enemies = new[] { enemy, sequenceEnemy },
+    Encounters = new[] { encounter, eliteEncounter, bossEncounter },
+    Rewards = new[] { rewardPack, skillRewardPack, finisherRewardPack },
     Run = run,
     Combat = combat
 }, options);
@@ -374,16 +599,62 @@ static CombatState CreatePlayableCombat(
     };
 }
 
-static CombatEnemyState CreateEnemyState(string instanceId, int currentHp = 24, int maxHp = 24, int block = 0)
+static CombatState CreateEnemyTurnCombat(
+    List<CombatEnemyState> enemies,
+    int playerHp = 60,
+    int playerBlock = 0,
+    int turnNumber = 1)
+{
+    return new CombatState
+    {
+        CombatId = "combat_enemy_turn",
+        EncounterId = "encounter_enemy_turn",
+        Status = CombatStatus.EnemyTurn,
+        TurnNumber = turnNumber,
+        PlayerMaxHp = 60,
+        PlayerHp = playerHp,
+        PlayerBlock = playerBlock,
+        BaseActionPoints = 3,
+        CardsPerTurn = 5,
+        ActionPoints = 0,
+        Chain = 0,
+        DeckZones = new DeckZones(),
+        Enemies = enemies
+    };
+}
+
+static CombatState CreateCombatResult(string encounterId, CombatStatus status, int playerHp)
+{
+    return new CombatState
+    {
+        CombatId = $"combat_result_{encounterId}",
+        EncounterId = encounterId,
+        Status = status,
+        TurnNumber = 1,
+        PlayerMaxHp = 60,
+        PlayerHp = playerHp,
+        BaseActionPoints = 3,
+        CardsPerTurn = 5,
+        Enemies = [CreateEnemyState("enemy_01", currentHp: status == CombatStatus.Victory ? 0 : 24)]
+    };
+}
+
+static CombatEnemyState CreateEnemyState(
+    string instanceId,
+    int currentHp = 24,
+    int maxHp = 24,
+    int block = 0,
+    string enemyId = "enemy_training_dummy",
+    int intentIndex = 0)
 {
     return new CombatEnemyState
     {
         InstanceId = instanceId,
-        EnemyId = "enemy_training_dummy",
+        EnemyId = enemyId,
         MaxHp = maxHp,
         CurrentHp = currentHp,
         Block = block,
-        IntentIndex = 0
+        IntentIndex = intentIndex
     };
 }
 

@@ -17,6 +17,7 @@ public sealed class CombatStateFactory
         ArgumentNullException.ThrowIfNull(encounter);
         ArgumentNullException.ThrowIfNull(enemiesById);
 
+        var startingPlayerHp = runState.PlayerMaxHp;
         var enemyStates = encounter.Enemies.Select(enemyEntry =>
         {
             if (!enemiesById.TryGetValue(enemyEntry.EnemyId, out var enemyDefinition))
@@ -42,7 +43,7 @@ public sealed class CombatStateFactory
             Status = CombatStatus.NotStarted,
             TurnNumber = 0,
             PlayerMaxHp = runState.PlayerMaxHp,
-            PlayerHp = runState.PlayerMaxHp,
+            PlayerHp = startingPlayerHp,
             PlayerBlock = 0,
             BaseActionPoints = runState.BaseActionPoints,
             CardsPerTurn = runState.CardsPerTurn,

@@ -324,12 +324,35 @@ game/logs/
 - Run 失败。
 ```
 
-### 任务 7：落地 MVP 内容数据
+#### 任务 6 完成记录
+
+完成日期：2026-06-04
+
+已完成：
+- 已在 `game/src/Application/Battle/CombatTurnService.cs` 中新增真实敌人回合结算 `ResolveEnemyTurn`，按固定 `intent_sequence` 和 `IntentIndex` 逐个解析活着敌人的当前意图。
+- 已新增敌人意图显示数据 `game/src/Domain/Combat/EnemyIntentView.cs`，提供敌人实例、敌人 ID、当前意图 ID、意图类型、UI 文本键和效果预览，供后续 Godot 表现层读取。
+- 已实现敌人攻击结算：玩家防御先抵挡伤害，剩余伤害扣玩家生命，并输出 `EnemyIntentResolved` 结构化日志。
+- 已实现敌人防御意图的基础结算：`gain_block` / `block` 作用于敌人自身，便于 MVP 精英和 Boss 的固定意图使用。
+- 已在 `game/src/Application/Battle/CardPlayService.cs` 中补充战斗结果检查：卡牌伤害可使敌人生命降至 0，记录 `EnemyDied`；全部敌人死亡时进入 `CombatStatus.Victory` 并记录 `CombatEnded`。
+- 已新增 `game/src/Application/Runs/RunProgressService.cs`，将 `CombatStatus.Defeat` 映射为 `RunStatus.Failed`，并将玩家生命记录为 0。
+- 已扩展 `game/src/Domain/Combat/CombatLogEvent.cs`，新增 `EnemyDied` 事件类型。
+- 已扩展 `game/tests/Unit/Program.cs`，覆盖敌人攻击、防御抵挡、固定意图序列推进与显示、敌人防御意图、敌人死亡、战斗胜利和 Run 失败。
+- 本任务未实现状态系统、Boss 阶段变化、奖励推进、通关 Run 结算或 Godot UI；这些留给后续任务。
+
+验证结果：
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `dotnet build game\RoguelikeCardGame.csproj`：通过，0 个警告、0 个错误。
+- `.\game\tools\data_validator\validate_data.ps1`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
+- 当前 Codex 沙箱中直接运行 `dotnet` 仍可能因写入 `obj` / `.godot\mono\temp\obj` 缓存受限而失败；已按权限规则重跑并验证通过。
+
+### 任务 7：录入并校验第一版 MVP 可玩内容
 
 ```text
-任务：落地第一版 MVP 占位内容数据。
+任务：录入并校验第一版 MVP 可玩内容。
 
-请在 game/data/ 下创建或补全：
+本任务的重点是“填写可玩的 MVP 内容”，不是重新设计数据格式、Schema 或校验器。请沿用任务 2 已建立的 JSON Schema、数据目录结构和数据校验工具；只有当现有格式无法表达必要 MVP 内容时，才做最小字段扩展，并同步更新 Schema、校验工具和相关测试。
+
+请在 game/data/ 下创建或补全第一版 MVP 的真实可玩内容：
 - 初始牌组 10 张：6 张行动牌、3 张技能牌、1 张终结牌。
 - 奖励牌 9 张：行动牌 3 张、技能牌 3 张、终结牌 3 张。
 - 普通遗物 1 个。
@@ -346,8 +369,52 @@ game/logs/
 - 普通战斗 4 试用遗物和新卡。
 - Boss 战斗综合检验。
 
-数值可以保守占位，但必须能跑完闭环。完成后运行数据校验，并修复所有校验错误。
+内容要求：
+- 每张卡牌、每个敌人、每个遭遇、每个奖励包和遗物都必须有稳定内容 ID。
+- 卡牌效果和敌人意图必须能被当前规则层或已明确的 MVP 占位效果结算。
+- 前两次普通战斗后的终结牌包必须包含群体攻击终结牌。
+- 奖励池为固定可重复池，允许重复加入同名牌。
+- 数值可以采用保守原型数值，但必须服务 6 场战斗闭环，不再只是 Schema 示例数据。
+- 不新增路线图、商店、事件、休息节点、长期成长或完整内容池。
+
+完成后：
+- 运行任务 2 建立的数据校验命令，并修复所有校验错误。
+- 运行已有规则层 / 内容加载相关测试。
+- 简要说明这些内容如何支撑 6 场 MVP 战斗，以及哪些数值仍需后续试玩调优。
 ```
+
+#### 任务 7 完成记录
+
+完成日期：2026-06-04
+
+已完成：
+- 已沿用任务 2 的数据目录、JSON Schema 和校验工具，未新增路线图、商店、事件、休息节点、长期成长或完整内容池。
+- 已确认并保留 `game/data/cards/cards.json` 中第一版 MVP 可玩卡牌内容：初始牌组通过 Run 配置形成 10 张牌，构成为 6 张行动牌、3 张技能牌、1 张终结牌；奖励牌池为 3 张行动牌、3 张技能牌、3 张终结牌。
+- 已确认并保留 `game/data/rewards/reward_packs.json` 中三类固定可重复奖励包，每包固定 3 张同类型候选牌；终结牌包包含群体攻击终结牌 `card_arc_sweep_finish`，可支撑前两次普通战斗后的多敌人教学准备。
+- 已收紧 `game/data/enemies/enemies.json` 中敌人意图和保守原型数值：移除当前规则层未结算的 `gain_status` 占位意图，改为已实现的攻击 / 防御意图；略降低多敌人、精英和 Boss 数值，服务 6 场 MVP 闭环。
+- 已同步更新 `game/data/localization/zh_hans.json` 中敌人意图数值与文本键，确保简体中文本地化与数据一致。
+- 已保留 `game/data/relics/relics.json` 中普通遗物 `relic_mvp_chain_spark`，用于精英战后奖励与普通战斗 4 / Boss 战的后续收益验证。
+- 已保留 `game/data/encounters/encounters.json` 中 6 场固定遭遇和 `game/data/run_sequence/mvp_run.json` 中 MVP 线性 Run 序列。
+- 已扩展 `game/tools/data_validator/validate_data.py`，新增 MVP 卡牌效果和敌人意图效果白名单校验，确保卡牌效果、敌人攻击 / 防御意图都能被当前规则层或明确 MVP 占位结算。
+
+6 场 MVP 内容支撑：
+- 普通战斗 1：`enemy_training_dummy` 低伤害单体攻击，用于教学行动点、出牌和连锁积累。
+- 普通战斗 2：`enemy_intent_scout` 在攻击和防御之间循环，用于教学敌人意图显示、防御时机和敌人防御。
+- 普通战斗 3：双 `enemy_splitling`，用于教学多敌人目标选择，并让前两战可获得的群体终结牌发挥价值。
+- 精英战斗：`enemy_elite_guardian` 高生命、攻击 / 防御循环，用于检验攻防节奏，并在胜利后提供固定普通遗物。
+- 普通战斗 4：`enemy_relic_tester` 中等压力单体战，用于试用遗物和新增奖励牌。
+- Boss 战斗：`enemy_chain_warden` 单体高生命 Boss，交替攻击与压迫意图，综合检验行动点规划、连锁、终结牌、防御和奖励构筑成果。
+
+仍需后续试玩调优：
+- 敌人生命和伤害是否让 6 场战斗稳定落在 10-15 分钟 MVP 时长内。
+- 奖励牌是否足以明显改善普通战斗 3、精英和 Boss 的节奏。
+- `card_setup_discount` 当前仍是规则层明确的临时减费占位效果，后续接入真实减费状态后需要回测强度。
+- `relic_mvp_chain_spark` 的触发结算尚未在规则层落地，任务 8 / 后续流程接入遗物后需要验证收益是否足够可感知。
+
+验证结果：
+- `.\game\tools\data_validator\validate_data.ps1`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `dotnet build game\RoguelikeCardGame.csproj`：通过，0 个警告、0 个错误。
 
 ### 任务 8：实现奖励包与 Run 推进
 
@@ -373,6 +440,25 @@ game/logs/
 - Boss 通关。
 - 失败结算。
 ```
+
+#### 任务 8 完成记录
+
+完成日期：2026-06-04
+
+已完成：
+- 已新增 `game/src/Application/Rewards/RewardService.cs`，实现战后奖励包流程：列出遭遇可选奖励包、打开指定奖励包、暴露固定 3 张候选牌、校验并领取 0-3 张卡牌。
+- 已支持奖励牌加入 `RunState.MasterDeck`，同名卡牌可以重复加入，重复候选 ID 也按选择次数追加。
+- 已支持精英遭遇通过 `EncounterRewardProfileDefinition.RelicId` 额外获得固定遗物，并避免同一固定遗物重复加入。
+- 已扩展 `game/src/Application/Runs/RunProgressService.cs`：支持 `PrepareForCombat` 满血开战、`ApplyCombatResult` 处理失败 / Boss 通关、`AdvanceAfterRewards` 线性推进到下一场战斗。
+- 已明确 `game/src/Application/Battle/CombatStateFactory.cs` 每场战斗以玩家最大生命开始，满足 MVP 每场战斗开始时生命回满。
+- 已扩展 `game/tests/Unit/Program.cs`，覆盖奖励包选择、打开 3 候选、跳过拿牌、选择多张、重复加入同名牌、精英遗物获得、Boss 通关、失败结算、线性推进和满血开战。
+- 本任务未接入 Godot UI 奖励界面、未实现遗物战斗触发效果，也未实现结算 / 重开流程；这些留给任务 9 / 10 及后续流程。
+
+验证结果：
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `dotnet build game\RoguelikeCardGame.csproj`：通过，0 个警告、0 个错误。
+- `.\game\tools\data_validator\validate_data.ps1`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
+- 当前 Codex 沙箱中直接运行 `dotnet` 仍可能因写入 `obj` / `.godot\mono\temp\obj` 缓存受限而失败；已按权限规则重跑并验证通过。
 
 ### 任务 9：接入 Godot 战斗界面最小可玩版
 
