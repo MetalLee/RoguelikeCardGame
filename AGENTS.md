@@ -237,6 +237,23 @@ game/logs/
 完成后运行测试。
 ```
 
+#### 任务 4 完成记录
+
+完成日期：2026-06-04
+
+已完成：
+- 已新增 `game/src/Application/Battle/CombatTurnService.cs`，实现战斗开始、回合开始、抽牌、弃牌、弃牌堆重洗、玩家回合结束、敌人行动占位和新回合准备。
+- 已更新 `game/src/Domain/Combat/CombatState.cs`，增加 `base_action_points` 与 `cards_per_turn`，用于规则层恢复行动点和每回合抽牌数量。
+- 已更新 `game/src/Domain/Combat/CombatLogEvent.cs`，新增 `CardsDrawn`、`CardsDiscarded`、`DeckReshuffled`、`PlayerTurnEnded`、`EnemyTurnPlaceholderResolved`、`NewTurnPrepared` 等日志事件类型。
+- 已调整 `game/src/Application/Battle/CombatStateFactory.cs`，让工厂创建 `NotStarted` 战斗状态；正式进入第一回合由 `CombatTurnService.StartCombat` 负责。
+- 已扩展 `game/tests/Unit/Program.cs` smoke tests，覆盖战斗开始、抽牌、弃牌、重洗、防御清空时点、行动点恢复和回合结束清空规则。
+- 本任务未实现卡牌使用、伤害结算、敌人攻击、防御抵挡或胜负结算；敌人行动仍是占位，只推进意图索引并写入日志。
+
+验证结果：
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `dotnet build game\RoguelikeCardGame.csproj`：通过，0 个警告、0 个错误。
+- `.\game\tools\data_validator\validate_data.ps1`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
+
 ### 任务 5：实现卡牌使用与基础效果系统
 
 ```text
@@ -263,6 +280,27 @@ game/logs/
 - 技能牌默认不加连锁。
 - 终结牌清空连锁。
 ```
+
+#### 任务 5 完成记录
+
+完成日期：2026-06-04
+
+已完成：
+- 已新增 `game/src/Application/Battle/CardPlayService.cs`，实现规则层卡牌使用入口 `CanPlayCard` / `PlayCard` 与 `PlayCardResult`。
+- 已实现 UI 可读取的失败原因 `PlayCardFailureReason`，覆盖非玩家回合、手牌不存在、行动点不足、连锁不足和目标缺失，并返回所需行动点、当前行动点、所需连锁、当前连锁、目标规则和本地化消息键。
+- 已支持行动牌消耗行动点并默认 `+1` 连锁，技能牌默认不消耗行动点且不增加连锁，终结牌默认不消耗行动点、要求 `min_chain` 且使用后清空连锁。
+- 已支持单体敌人、全部敌人、自己目标规则。
+- 已支持基础效果模板：伤害、防御 / 获得防御、抽牌、获得当前回合行动点、临时减费占位；同时保留 `chain_threshold_bonus` 结算能力以兼容现有终结牌数据。
+- 已让成功出牌返回 `CardPlayed`、`EffectResolved`、抽牌相关事件等结构化日志；失败出牌返回 `CardPlayRejected` 结构化事件。
+- 已扩展 `game/src/Domain/Combat/CombatLogEvent.cs`，新增 `CardPlayRejected` 事件类型。
+- 已扩展 `game/tests/Unit/Program.cs`，覆盖可打出、费用不足、连锁不足、目标缺失、行动牌默认加连锁、技能牌默认不加连锁、终结牌清空连锁，并额外覆盖群体目标、抽牌、获得行动点和临时减费占位。
+- 本任务未接入 Godot UI、未实现敌人死亡 / 胜负结算，也未把卡牌数值写入表现层；这些留给后续任务。
+
+验证结果：
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `dotnet build game\RoguelikeCardGame.csproj`：通过，0 个警告、0 个错误。
+- `.\game\tools\data_validator\validate_data.ps1`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
+- 当前 Codex 沙箱中直接运行 `dotnet` 可能因写入 `obj` / `.godot\mono\temp\obj` 缓存受限而失败；已按权限规则重跑并验证通过。
 
 ### 任务 6：实现敌人意图与胜负结算
 

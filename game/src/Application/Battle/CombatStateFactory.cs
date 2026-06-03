@@ -39,12 +39,14 @@ public sealed class CombatStateFactory
         {
             CombatId = combatId,
             EncounterId = encounter.Id,
-            Status = CombatStatus.PlayerTurn,
-            TurnNumber = 1,
+            Status = CombatStatus.NotStarted,
+            TurnNumber = 0,
             PlayerMaxHp = runState.PlayerMaxHp,
             PlayerHp = runState.PlayerMaxHp,
             PlayerBlock = 0,
-            ActionPoints = runState.BaseActionPoints,
+            BaseActionPoints = runState.BaseActionPoints,
+            CardsPerTurn = runState.CardsPerTurn,
+            ActionPoints = 0,
             Chain = 0,
             DeckZones = new DeckZones
             {

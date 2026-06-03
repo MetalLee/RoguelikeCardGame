@@ -55,6 +55,12 @@ public sealed record CombatState
     [JsonPropertyName("player_block")]
     public int PlayerBlock { get; init; }
 
+    [JsonPropertyName("base_action_points")]
+    public int BaseActionPoints { get; init; }
+
+    [JsonPropertyName("cards_per_turn")]
+    public int CardsPerTurn { get; init; }
+
     [JsonPropertyName("action_points")]
     public int ActionPoints { get; init; }
 

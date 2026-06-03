@@ -6,9 +6,16 @@ public enum CombatLogEventType
 {
     CombatStarted,
     TurnStarted,
+    CardsDrawn,
+    CardsDiscarded,
+    DeckReshuffled,
     CardPlayed,
+    CardPlayRejected,
     EffectResolved,
     EnemyIntentResolved,
+    PlayerTurnEnded,
+    EnemyTurnPlaceholderResolved,
+    NewTurnPrepared,
     CombatEnded
 }
 
