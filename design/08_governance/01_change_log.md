@@ -15,8 +15,17 @@
 
 ## 日志
 
+### 2026-06-04
+
+- 根据开发者关于 Godot 工程与知识库是否同仓库的确认，决定第一版 MVP 阶段采用同一个 Git 仓库，但将 Godot 工程固定放入 `game/` 子目录，避免工程文件与 Obsidian 知识库根目录混杂。
+- 新增 [[design/08_governance/2026-06-04_keep_godot_project_in_same_repo_game_subdir|Godot 工程与知识库同仓库并放入 game 子目录]] 决策记录，并更新 [[design/08_governance/00_decision_log|决策记录]]。
+- 更新 [[design/06_technical_production/00_technical_requirements|技术需求]]，将 Godot 项目目标文件层级从仓库根目录调整为 `game/` 工程根目录。
+
 ### 2026-06-03
 
+- 根据 [[inspiration/2026-06-03_03_experience_mvp_visual_qa|03 Experience MVP Visual Q&A]]，确认主视觉方向调整为“手绘漫画书风格”：整体像可交互漫画，战斗演出使用漫画分镜、速度线、冲击格、局部特写和拟声字。
+- 根据开发者对第一张关键图片的进一步要求，确认视觉母版需要包含：简洁漫画剑客主角、简洁漫画恶魔敌人、血红行动牌、冷青 / 幽蓝技能牌、紫黑终结牌、三类卡牌包，以及简单偏 Q 版漫画遗物。
+- 更新 [[design/03_experience/01_visual_direction|视觉方向]]、[[design/03_experience/00_ui_ux|界面与交互]]、[[design/00_product/02_player_and_market|目标玩家与市场定位]] 与 [[design/05_narrative_world/00_world_and_tone|世界观与语气]]，并新增 [[design/08_governance/2026-06-03_hand_drawn_comic_book_visual_direction|采用手绘漫画书风格作为主视觉方向]] 决策记录。
 - 根据开发者对 [[inspiration/2026-06-03_06_technical_production_qa|06 Technical Production Q&A]] 的回答，确认首版目标平台以 Windows PC 为主，后续再考虑 macOS、Linux 支持；内容数据一致使用 JSON + JSON Schema；第一版 MVP 只需要节点级自动存档；只做本地试玩日志和统计导出，暂不需要在线遥测。
 - 更新 [[design/06_technical_production/00_technical_requirements|技术需求]]、[[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]、[[design/06_technical_production/02_save_config_platform|存档、配置与平台]] 与 [[inspiration/2026-06-03_06_technical_production_qa|06 Technical Production Q&A]]，将待确认项收束为已确认，并在技术需求中新增 Godot 项目目标文件层级，作为后续 Godot 开发创建文件的准则。
 - 根据本轮技术生产整理，确认首版技术栈采用 Godot 4.6.x .NET 版 + C#，并使用 Codex 作为 coding agent 协助实现、校验、重构和文档维护。
@@ -116,7 +125,7 @@
 - 更新 [[design/00_product/00_game_concept|游戏概述]]、[[design/00_product/02_player_and_market|目标玩家与市场定位]]、[[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]] 与 [[design/05_narrative_world/00_world_and_tone|世界观与语气]]，补充剧情、装备系统、动作操作和纯观演体验边界。
 - 根据 [[inspiration/2026-06-02_00_product_brainstorm_qa|00 Product 头脑风暴 Q&A]]，确认竞品参照为《杀戮尖塔》和《吸血鬼爬行者》，差异化重点为画面风格、连锁机制、打击感和动画演出爽感。
 - 更新 [[design/00_product/02_player_and_market|目标玩家与市场定位]]、[[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/03_experience/02_audio_feedback|音频与反馈]]，补充竞品参照和表现层差异化要求。
-- 根据 [[inspiration/2026-06-02_00_product_brainstorm_qa|00 Product 头脑风暴 Q&A]]，确认视觉基调为“暗黑哥特 + 手绘漫画”。
+- 根据 [[inspiration/2026-06-02_00_product_brainstorm_qa|00 Product 头脑风暴 Q&A]]，确认过早期视觉基调；该表述已被 2026-06-03 的手绘漫画书风格决策替代。
 - 更新 [[design/00_product/02_player_and_market|目标玩家与市场定位]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/05_narrative_world/00_world_and_tone|世界观与语气]]，补充画面风格差异化和氛围边界。
 - 根据 [[inspiration/2026-06-02_00_product_brainstorm_qa|00 Product 头脑风暴 Q&A]]，确认产品成功标准优先级：高层数连锁效果与演出爽感、玩家社区分享流派、反复游玩深度。
 - 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充成功标准优先级、观察问题和测试记录项。

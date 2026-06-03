@@ -1,20 +1,43 @@
 # Godot 4+ specific ignores
 .godot/
 .nomedia
+game/.godot/
+game/.import/
+game/.mono/
 
 # Godot-specific ignores
 .import/
 export.cfg
 export_credentials.cfg
 *.tmp
+game/export.cfg
+game/export_credentials.cfg
 
 # Imported translations (automatically generated from CSV files)
 *.translation
 
 # Mono-specific ignores
 .mono/
-data_*/
+/data_*/
+/game/data_*/
 mono_crash.*.json
+game/.godot/mono/
+game/.appdata/
+game/.dotnet/
+game/.nuget/
+game/**/bin/
+game/**/obj/
+game/**/.vs/
+game/**/.vscode/
+game/*.log
+
+# Build and export outputs
+game/builds/
+game/exports/
+
+# Local debug and playtest output
+game/logs/*
+!game/logs/.gitkeep
 
 # ide
 .idea
