@@ -190,6 +190,29 @@ game/logs/
 - 补充单元测试或最小测试，验证模型可创建、序列化或被服务层使用。
 ```
 
+#### 任务 3 完成记录
+
+完成日期：2026-06-04
+
+已完成：
+- 已在 `game/src/Domain/Cards/` 实现 `CardDefinition`，包含卡牌类型、稀有度、目标规则、默认连锁变化和效果列表。
+- 已在 `game/src/Domain/Relics/` 实现 `RelicDefinition`，包含稀有度、触发时机、条件、效果和堆叠规则。
+- 已在 `game/src/Domain/Enemies/` 实现 `EnemyDefinition` 与 `EnemyIntentDefinition`，用于表达敌人生命、意图序列和 UI 文本键。
+- 已在 `game/src/Domain/Combat/` 实现 `EncounterDefinition`、`CombatState`、`DeckZones`、`CombatLogEvent` 等基础战斗模型。
+- 已在 `game/src/Domain/Rewards/` 实现 `RewardPackDefinition`。
+- 已在 `game/src/Domain/Runs/` 实现 `RunState`。
+- 已在 `game/src/Application/Runs/` 新增 `RunStateFactory`，用于创建最小 Run 状态。
+- 已在 `game/src/Application/Battle/` 新增 `CombatStateFactory`，用于根据 Run、遭遇和敌人定义创建最小战斗状态。
+- 已新增 `game/tests/Unit/RoguelikeCardGame.Tests.csproj` 与 `game/tests/Unit/Program.cs`，作为无测试框架依赖的规则层 smoke test。
+- 已更新 `game/RoguelikeCardGame.csproj`，启用 implicit usings，并排除 `tests/**/*.cs`，避免测试入口被 Godot 主工程编译。
+- 本任务未实现回合流程、出牌结算、敌人行动结算、奖励选择或 UI，仅建立可被后续服务层使用的基础模型。
+
+验证结果：
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `dotnet build game\RoguelikeCardGame.csproj`：通过，0 个警告、0 个错误。
+- `.\game\tools\data_validator\validate_data.ps1`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
+- 规则层 smoke test 只编译 `game/src/Domain/` 与 `game/src/Application/`，验证这些基础模型可在普通 .NET console 项目中创建、序列化并被服务层使用，不依赖 Godot 节点树。
+
 ### 任务 4：实现回合流程与抽弃牌循环
 
 ```text
