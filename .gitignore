@@ -18,3 +18,7 @@ mono_crash.*.json
 
 # ide
 .idea
+
+# personal cfg and plugins
+.claudian
+.obsidian
