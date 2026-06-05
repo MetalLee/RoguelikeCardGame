@@ -484,6 +484,26 @@ game/logs/
 表现层只调用规则层，不自行结算伤害、抽牌、连锁、费用或防御。完成后运行 Godot 项目检查或可用的启动验证。
 ```
 
+#### 任务 9 完成记录
+
+完成日期：2026-06-05
+
+已完成：
+- 已新增 `game/src/Infrastructure/Content/GameContent.cs` 与 `game/src/Infrastructure/Content/RunSequenceDefinition.cs`，将 `game/data/` 中的卡牌、敌人、遭遇、奖励包、遗物、本地化和 MVP Run 序列加载为现有 `Domain` 模型。
+- 已更新 `game/src/Presentation/Menus/MainMenu.cs`，把 `game/scenes/main/Main.tscn` 接入最小战斗界面。
+- 战斗界面已显示玩家生命、防御、行动点、当前连锁层数与 3 / 5 / 8 阈值、抽牌堆 / 弃牌堆 / 卡组数量、敌人生命、敌人防御、敌人意图、手牌和最近结算日志。
+- 战斗交互已支持选择敌人目标、点击手牌出牌、行动牌消耗行动点并增加连锁、技能牌结算防御 / 抽牌 / 回费、终结牌按连锁条件可用并清空连锁、结束回合、敌人行动和进入下一回合。
+- 表现层只调用 `CombatStateFactory`、`CombatTurnService`、`CardPlayService`、`RunProgressService`、`RewardService` 等 Application 服务；伤害、抽牌、连锁、费用和防御仍由规则层结算。
+- 已在战斗 UI 中通过按钮禁用和 tooltip 暴露无法出牌原因，包括行动点不足、连锁不足、目标缺失和非玩家回合等。
+- 该界面仍是程序化占位 UI，尚未拆分正式 Battle / Card / Enemy 组件，也未接入手绘漫画书视觉资产和动画演出。
+
+验证结果：
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
+- `godot-mono --headless --path game --quit`：通过，项目可加载。
+- `godot-mono --headless --path game`：运行超过 5 秒未立即崩溃，说明主场景启动链路可用。
+
 ### 任务 10：接入奖励、结算与重开流程
 
 ```text
@@ -505,6 +525,27 @@ game/logs/
 
 先保证流程稳定，不做路线图、商店、事件或休息节点。
 ```
+
+#### 任务 10 完成记录
+
+完成日期：2026-06-05
+
+已完成：
+- 已在 `game/src/Presentation/Menus/MainMenu.cs` 中接入 MVP 界面流程闭环：主菜单 / 开始 MVP -> 战斗 -> 奖励选择 -> 下一场战斗 -> 精英遗物 -> Boss -> 通关结算 / 失败结算 -> 重开。
+- 普通 / 精英战斗胜利后会进入卡牌包选择界面；玩家先选择行动牌包、技能牌包或终结牌包，再看到 3 张同类型候选牌。
+- 打开奖励包后，玩家可点击候选牌切换选择状态，并确认选择 0-3 张加入卡组；同名牌允许重复加入。
+- 精英战斗胜利后，确认奖励时会通过 `RewardService.GrantEncounterRelic` 发放固定普通遗物 `relic_mvp_chain_spark`。
+- 已在战斗流程中接入 `relic_mvp_chain_spark` 的 MVP 表现：每回合第一次使用行动牌时获得 2 点防御，并写入结构化日志。
+- Boss 击败后进入 MVP 通关界面，显示最终卡组数量和遗物数量，并提供重新开始。
+- 玩家生命归零后进入失败界面，并提供重新开始。
+- 本轮仍未实现路线图、商店、事件、休息节点、长期成长或正式存档。
+
+验证结果：
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
+- `godot-mono --headless --path game --quit`：通过，项目可加载。
+- 已通过 Godot 4.6.3 .NET 版打开 `game/project.godot`，确认 Godot GUI 可加载项目。
 
 ### 任务 11：实现调试入口、日志与试玩指标导出
 

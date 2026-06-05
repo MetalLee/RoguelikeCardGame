@@ -15,6 +15,13 @@
 
 ## 日志
 
+### 2026-06-05
+
+- 根据第一版 MVP 开发推进，新增 `game/src/Infrastructure/Content/` 内容加载层，将 `game/data/` 中卡牌、敌人、遭遇、奖励包、遗物、本地化和 MVP Run 序列加载为现有规则层模型，保持内容数据驱动，不把数值写死在 Godot 场景中。
+- 更新 `game/src/Presentation/Menus/MainMenu.cs`，将 Godot 主场景接入最小可玩闭环：主菜单 / 开始 MVP -> 6 场固定战斗 -> 战后卡牌包 -> 精英固定普通遗物 -> Boss 通关或失败 -> 重开。
+- 本轮实现覆盖 [[design/03_experience/00_ui_ux|界面与交互]] 中的 MVP 级信息表达：玩家生命、防御、行动点、连锁层数、抽弃牌数量、敌人生命、敌人意图、手牌、无法出牌原因提示和最近结算日志。
+- 补充 `game/README.md` 的团队通用运行环境说明与验证命令，记录项目依赖 Godot 4.6.x .NET 版和 .NET SDK 8.0.x，并验证 `dotnet build`、规则层 smoke test、数据校验和 Godot headless 项目加载通过。
+
 ### 2026-06-04
 
 - 根据开发者关于 Godot 工程与知识库是否同仓库的确认，决定第一版 MVP 阶段采用同一个 Git 仓库，但将 Godot 工程固定放入 `game/` 子目录，避免工程文件与 Obsidian 知识库根目录混杂。

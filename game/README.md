@@ -2,7 +2,37 @@
 
 本文记录第一版 MVP 中，从玩家进入战斗、打出卡牌、造成伤害、击败敌人、战斗胜利，到选择卡包、打开卡包、选择卡片加入牌组的规则层调用链路。
 
-当前阶段尚未接入 Godot 战斗 UI。以下链路描述的是后续表现层应调用的 `Application` 服务，以及这些服务如何读写 `Domain` 状态对象。
+## 运行环境
+
+项目当前目标运行环境：
+
+- Godot：`4.6.3.stable.mono` 或同系列 Godot 4.6.x .NET 版。
+- .NET SDK：`8.0.x`，项目目标框架为 `net8.0`。
+
+团队成员可使用各自平台的官方安装方式配置 Godot .NET 与 .NET SDK。只要命令行可调用 `dotnet`，并能通过 Godot .NET 编辑器打开 `game/project.godot` 即可。
+
+常用命令：
+
+```bash
+cd game
+
+dotnet build RoguelikeCardGame.csproj -v:minimal
+dotnet run --project tests/Unit/RoguelikeCardGame.Tests.csproj
+python3 tools/data_validator/validate_data.py
+# Godot 命令名称依安装方式不同可能是 godot、godot4、godot-mono 或 Godot 可执行文件路径。
+godot-mono --headless --path . --quit
+godot-mono --path .
+```
+
+最近一次验证结果（2026-06-05）：
+
+- `dotnet build RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python3 tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
+- `godot-mono --headless --path . --quit`：通过，项目可加载。
+- Godot GUI 可通过 Godot .NET 编辑器打开 `game/project.godot`，或在命令行使用对应 Godot 可执行文件运行 `--path .`。
+
+当前阶段已通过 `src/Presentation/Menus/MainMenu.cs` 接入程序化占位 UI，可跑通 MVP 战斗、奖励、通关 / 失败和重开流程。以下链路描述表现层调用的 `Application` 服务，以及这些服务如何读写 `Domain` 状态对象。
 
 ## 总览调用图
 

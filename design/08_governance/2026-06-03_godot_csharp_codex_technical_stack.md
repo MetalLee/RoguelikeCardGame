@@ -8,7 +8,7 @@
 
 开发者确认本项目计划使用 Godot + C# 作为技术栈，并使用 Codex 作为 coding agent。项目当前处于设计知识库和第一版 MVP 规划阶段，核心目标是验证 [[design/00_product/00_game_concept|卡组联动与 combo 爽感]]、[[design/01_core_gameplay/02_combat_system|连锁层数战斗机制]] 和 10-15 分钟线性 MVP。
 
-本机当前可用 Godot 版本为 4.6.3 stable。Godot 官方文档显示，C# 项目需要使用 .NET 版编辑器；Godot 4 C# 项目适合优先面向桌面平台，而 Web 不适合作为首版导出目标。
+当前项目推荐并已验证的 Godot 小版本为 4.6.3 stable。Godot 官方文档显示，C# 项目需要使用 .NET 版编辑器；Godot 4 C# 项目适合优先面向桌面平台，而 Web 不适合作为首版导出目标。
 
 ## 选项
 
