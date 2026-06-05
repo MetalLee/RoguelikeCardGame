@@ -6,7 +6,7 @@
 - inspiration/：用于开发者随手记录玩法灵感、或记录每次用户与Codex的问答交互
 - insight/：同类游戏设计与评价洞察
 - design/：按照业界标准的游戏设计维度划分子目录，将灵感与洞察整理到对应文档中
-- game/: Godot游戏项目目录
+- game/：Godot游戏项目目录
 - AGENTS.md（本文件）：知识库根目录下的工作规则，
 
 ## Obsidian兼容规则
@@ -574,6 +574,26 @@ game/logs/
 
 日志与指标输出应放在 game/logs/ 或明确的开发期输出目录，并避免提交个人日志。
 ```
+
+#### 任务 11 完成记录
+
+完成日期：2026-06-05
+
+已完成：
+- 已新增 `game/src/Application/Debug/DebugRunService.cs`，支持直接进入指定固定遭遇、指定随机种子、覆盖初始牌组、追加指定卡牌、预览指定奖励包，并创建调试用 `RunState` 与 `CombatState`。
+- 已新增 `game/src/Application/Debug/PlaytestMetricsService.cs`，可从结构化 `CombatState.Log` 汇总 MVP 试玩指标：Run 种子、节点顺序、每场战斗回合数、受伤、胜负、最高连锁、3 / 5 / 8 阈值达到次数、终结牌使用次数、终结牌额外效果触发次数、奖励选择、遗物获得、通关 / 失败节点和总时长。
+- 已新增 `game/src/Application/Debug/DebugExportService.cs`，可导出结构化战斗日志 JSON 和试玩指标 JSON。
+- 已新增开发期命令行入口 `game/tools/debug_mvp/debug_mvp.py` 与 Windows 包装脚本 `game/tools/debug_mvp/debug_mvp.ps1`，可读取 `game/data/` 并在 `game/logs/` 生成调试会话、战斗日志骨架和指标骨架。
+- 已扩展 `game/tests/Unit/Program.cs`，覆盖调试遭遇入口、seed、牌组覆盖、追加卡牌、奖励包预览、指标汇总和 JSON 导出。
+- 已确认 `.gitignore` 已忽略 `game/logs/*` 且保留 `game/logs/.gitkeep`，开发期个人日志不会被提交。
+- 当前命令行入口用于 UI 未接入前的调试会话与导出骨架；真实交互战斗接入后，应由 Godot 表现层把实际 `CombatState.Log` 和 Run 过程记录传给 `DebugExportService` / `PlaytestMetricsService`。
+
+验证结果：
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `dotnet build game\RoguelikeCardGame.csproj`：通过，0 个警告、0 个错误。
+- `.\game\tools\data_validator\validate_data.ps1`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
+- `.\game\tools\debug_mvp\debug_mvp.ps1 -EncounterId encounter_mvp_normal_03 -Seed 424242 -AddCard card_arc_sweep_finish -RewardPackId reward_pack_mvp_finisher`：通过，并在 `game/logs/` 下生成调试会话、战斗日志骨架和试玩指标骨架。
+- 当前 Codex 沙箱中直接运行 `dotnet` 仍可能因写入 `obj` / `.godot\mono\temp\obj` 缓存受限而失败；已按权限规则重跑并验证通过。
 
 ### 任务 12：MVP 体验打磨与验收
 

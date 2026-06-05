@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using RoguelikeCardGame.Application.Battle;
+using RoguelikeCardGame.Application.Debug;
 using RoguelikeCardGame.Application.Rewards;
 using RoguelikeCardGame.Application.Runs;
 using RoguelikeCardGame.Domain.Cards;
@@ -548,6 +549,140 @@ var bossVictoryCombat = CreateCombatResult(bossEncounter.Id, CombatStatus.Victor
 var clearedRun = runProgressService.ApplyCombatResult(advancedRun with { CurrentEncounterIndex = 2 }, bossVictoryCombat, bossEncounter);
 AssertEqual(RunStatus.Cleared, clearedRun.Status, "Boss victory clears the MVP run");
 AssertEqual(14, clearedRun.PlayerHp, "Boss clear keeps remaining combat HP on the run result");
+
+var debugRunService = new DebugRunService();
+var debugStart = debugRunService.StartDebugEncounter(
+    new DebugRunDefaults
+    {
+        PlayerMaxHp = 60,
+        BaseActionPoints = 3,
+        CardsPerTurn = 5,
+        StarterDeck = [strike.Id, finisher.Id],
+        EncounterSequence = [encounter.Id, eliteEncounter.Id, bossEncounter.Id]
+    },
+    new DebugRunConfiguration
+    {
+        RunId = "debug_run_test",
+        Seed = 98765,
+        EncounterId = eliteEncounter.Id,
+        StarterDeckOverride = [finisher.Id],
+        AdditionalCardIds = [strike.Id],
+        RewardPackPreviewIds = [finisherRewardPack.Id]
+    },
+    new Dictionary<string, EncounterDefinition>
+    {
+        [encounter.Id] = encounter,
+        [eliteEncounter.Id] = eliteEncounter,
+        [bossEncounter.Id] = bossEncounter
+    },
+    enemiesById,
+    rewardPacksById);
+AssertEqual(98765, debugStart.RunState.Seed, "Debug run entry preserves requested seed");
+AssertEqual(eliteEncounter.Id, debugStart.Encounter.Id, "Debug run entry can enter a selected fixed encounter directly");
+AssertEqual(1, debugStart.RunState.CurrentEncounterIndex, "Debug run entry sets current encounter index for selected encounter");
+AssertEqual(2, debugStart.RunState.MasterDeck.Count, "Debug run entry supports starter deck override plus added cards");
+AssertEqual(strike.Id, debugStart.RunState.MasterDeck[^1], "Debug run entry appends requested card ids");
+AssertEqual(1, debugStart.RewardPackPreviews.Count, "Debug run entry supports selected reward pack preview");
+AssertEqual(3, debugStart.RewardPackPreviews[0].CandidateIds.Count, "Debug reward pack preview exposes three candidates");
+
+var metricsCombat = CreateCombatResult(encounter.Id, CombatStatus.Victory, playerHp: 51) with
+{
+    CombatId = "combat_metrics",
+    TurnNumber = 2,
+    Log =
+    [
+        new CombatLogEvent
+        {
+            EventId = "metrics_action_played",
+            EventType = CombatLogEventType.CardPlayed,
+            TurnNumber = 1,
+            SourceId = strike.Id,
+            NumericChanges = new Dictionary<string, int> { ["chain_before"] = 2 },
+            Metadata = new Dictionary<string, string> { ["card_type"] = CardType.Action.ToString() }
+        },
+        new CombatLogEvent
+        {
+            EventId = "metrics_chain_3",
+            EventType = CombatLogEventType.EffectResolved,
+            TurnNumber = 1,
+            SourceId = strike.Id,
+            NumericChanges = new Dictionary<string, int> { ["chain_before"] = 2, ["chain_after"] = 3 },
+            Metadata = new Dictionary<string, string> { ["effect_type"] = "default_chain_change" }
+        },
+        new CombatLogEvent
+        {
+            EventId = "metrics_finisher_played",
+            EventType = CombatLogEventType.CardPlayed,
+            TurnNumber = 2,
+            SourceId = finisher.Id,
+            NumericChanges = new Dictionary<string, int> { ["chain_before"] = 5 },
+            Metadata = new Dictionary<string, string> { ["card_type"] = CardType.Finisher.ToString() }
+        },
+        new CombatLogEvent
+        {
+            EventId = "metrics_finisher_bonus",
+            EventType = CombatLogEventType.EffectResolved,
+            TurnNumber = 2,
+            SourceId = finisher.Id,
+            NumericChanges = new Dictionary<string, int> { ["threshold"] = 5, ["chain_before_play"] = 5, ["triggered"] = 1 },
+            Metadata = new Dictionary<string, string> { ["effect_type"] = "chain_threshold_bonus" }
+        },
+        new CombatLogEvent
+        {
+            EventId = "metrics_enemy_damage",
+            EventType = CombatLogEventType.EnemyIntentResolved,
+            TurnNumber = 2,
+            SourceId = "enemy_01",
+            TargetIds = ["player"],
+            NumericChanges = new Dictionary<string, int> { ["hp_damage"] = 4 }
+        }
+    ]
+};
+var metricsService = new PlaytestMetricsService();
+var metricsReport = metricsService.BuildReport(
+    clearedRun,
+    [encounter.Id, eliteEncounter.Id, bossEncounter.Id],
+    [metricsCombat],
+    [
+        new PlaytestRewardChoiceMetric
+        {
+            NodeOrder = 1,
+            EncounterId = encounter.Id,
+            RewardPackId = rewardPack.Id,
+            RewardPackType = rewardPack.PackType.ToString(),
+            PickedCount = 2,
+            CardIds = [strike.Id, "card_quick_jab"]
+        }
+    ],
+    [
+        new PlaytestRelicGrantMetric
+        {
+            NodeOrder = 2,
+            EncounterId = eliteEncounter.Id,
+            RelicId = relic.Id
+        }
+    ],
+    DateTimeOffset.UnixEpoch,
+    DateTimeOffset.UnixEpoch.AddSeconds(90));
+AssertEqual(run.Seed, metricsReport.RunSeed, "Metrics report stores run seed");
+AssertEqual(3, metricsReport.NodeOrder.Count, "Metrics report stores node order");
+AssertEqual(2, metricsReport.Combats[0].TurnCount, "Metrics report stores combat turn count");
+AssertEqual(4, metricsReport.Combats[0].DamageTaken, "Metrics report sums damage taken");
+AssertEqual(5, metricsReport.Combats[0].HighestChain, "Metrics report stores highest chain");
+AssertEqual(1, metricsReport.Combats[0].ChainThreshold3ReachedCount, "Metrics report counts chain threshold 3 crossings");
+AssertEqual(1, metricsReport.Combats[0].FinisherUseCount, "Metrics report counts finisher use");
+AssertEqual(1, metricsReport.Combats[0].FinisherBonusTriggerCount, "Metrics report counts triggered finisher bonus effects");
+AssertEqual(2, metricsReport.Rewards[0].PickedCount, "Metrics report stores reward pick count");
+AssertEqual(relic.Id, metricsReport.Relics[0].RelicId, "Metrics report stores relic grants");
+AssertEqual(90, (int)metricsReport.TotalDurationSeconds, "Metrics report stores total duration");
+
+var exportService = new DebugExportService();
+var exportDirectory = Path.Combine(Path.GetTempPath(), "RoguelikeCardGameDebugTests", Guid.NewGuid().ToString("N"));
+var combatLogPath = exportService.ExportCombatLog(metricsCombat, exportDirectory, "combat_log.json");
+var metricsPath = exportService.ExportMetrics(metricsReport, exportDirectory, "metrics.json");
+Assert(File.Exists(combatLogPath), "Debug export writes combat log JSON");
+Assert(File.Exists(metricsPath), "Debug export writes metrics JSON");
+Assert(File.ReadAllText(metricsPath).Contains("run_seed"), "Exported metrics use snake_case fields");
 
 var serializedBundle = JsonSerializer.Serialize(new
 {
