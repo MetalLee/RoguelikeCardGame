@@ -50,23 +50,23 @@
 
 卡面插画资源只负责卡牌中部的漫画分镜画面，不承载卡框、标题、费用、连锁需求或规则文本；正式卡牌实例由 Godot 将插画与对应卡牌模板和 UI 文本动态组合。
 
-| 卡牌 | 视觉职责 | 资源 |
-| --- | --- | --- |
-| 基础斩击 | 血红速度线、剑客横向斩击和命中爆裂，用于支撑行动牌 `card_basic_strike` 的基础攻击与连锁启动反馈。 | ![[game/assets/art/cards/artwork/card_basic_strike.png\|基础斩击卡面]] |
-| 迅捷刺击 | 极窄直线突刺、远距离命中点和高速残影，用于支撑 0 费行动牌 `card_quick_jab` 的轻快启动感。 | ![[game/assets/art/cards/artwork/card_quick_jab.png\|迅捷刺击卡面]] |
-| 重斩 | 自上而下的重击构图和大面积命中爆裂，用于支撑 2 费行动牌 `card_heavy_strike` 的高成本强打反馈。 | ![[game/assets/art/cards/artwork/card_heavy_strike.png\|重斩卡面]] |
-| 连段切击 | 多个剑客动作残影和连续弧形斩击，用于支撑奖励行动牌 `card_chain_cut` 的连段推进感。 | ![[game/assets/art/cards/artwork/card_chain_cut.png\|连段切击卡面]] |
-| 流步 | 低身位滑步、绕行动线和远端追击命中，用于支撑奖励行动牌 `card_flow_step` 的位移与低费连锁启动感。 | ![[game/assets/art/cards/artwork/card_flow_step.png\|流步卡面]] |
-| 破防重击 | 剑光撞击盾牌并炸裂碎片，用于支撑奖励行动牌 `card_guard_break` 的破防和高压输出感。 | ![[game/assets/art/cards/artwork/card_guard_break.png\|破防重击卡面]] |
-| 基础防御 | 剑客架刀形成蓝色护盾，用于支撑技能牌 `card_basic_guard` 的防御和当前回合行动点恢复反馈。 | ![[game/assets/art/cards/artwork/card_basic_guard.png\|基础防御卡面]] |
-| 战术观察 | 分镜视线、目标锁定和路线规划，用于支撑技能牌 `card_tactical_read` 的观察、过牌和战术预判感。 | ![[game/assets/art/cards/artwork/card_tactical_read.png\|战术观察卡面]] |
-| 回稳 | 剑客低身位稳住姿态并形成环形能量，用于支撑技能牌 `card_second_wind` 的防御 / 回费和节奏恢复感。 | ![[game/assets/art/cards/artwork/card_second_wind.png\|回稳卡面]] |
-| 深度专注 | 静坐蓄势、环绕光刃和冷青能量场，用于支撑技能牌 `card_deep_focus` 的专注过牌与卡组运转感。 | ![[game/assets/art/cards/artwork/card_deep_focus.png\|深度专注卡面]] |
-| 预备减费 | 多分镜准备动作、握剑和起势姿态，用于支撑技能牌 `card_setup_discount` 的预备、减费和后续连段铺垫。 | ![[game/assets/art/cards/artwork/card_setup_discount.png\|预备减费卡面]] |
-| 爆裂终结 | 紫黑能量斩击贯穿单体目标并爆裂，用于支撑终结牌 `card_burst_finish` 的单体高伤害兑现。 | ![[game/assets/art/cards/artwork/card_burst_finish.png\|爆裂终结卡面]] |
-| 弧光横扫 | 宽幅紫色弧光横扫多名敌人，用于支撑终结牌 `card_arc_sweep_finish` 的群体攻击和多目标爆发。 | ![[game/assets/art/cards/artwork/card_arc_sweep_finish.png\|弧光横扫卡面]] |
-| 回流终结 | 紫色能量斩击命中后形成回旋流线，用于支撑终结牌 `card_refund_finish` 的伤害与资源返还感。 | ![[game/assets/art/cards/artwork/card_refund_finish.png\|回流终结卡面]] |
-| 壁垒终结 | 巨大紫黑晶体壁垒拔地而起，用于支撑终结牌 `card_bulwark_finish` 的高额防御和压迫感。 | ![[game/assets/art/cards/artwork/card_bulwark_finish.png\|壁垒终结卡面]] |
+| 卡牌   | 视觉职责                                                         | 资源                                                                   |
+| ---- | ------------------------------------------------------------ | -------------------------------------------------------------------- |
+| 基础斩击 | 血红速度线、剑客横向斩击和命中爆裂，用于支撑行动牌 `card_basic_strike` 的基础攻击与连锁启动反馈。  | ![[game/assets/art/cards/artwork/card_basic_strike.png\|基础斩击卡面]]     |
+| 迅捷刺击 | 极窄直线突刺、远距离命中点和高速残影，用于支撑 0 费行动牌 `card_quick_jab` 的轻快启动感。      | ![[game/assets/art/cards/artwork/card_quick_jab.png\|迅捷刺击卡面]]        |
+| 重斩   | 自上而下的重击构图和大面积命中爆裂，用于支撑 2 费行动牌 `card_heavy_strike` 的高成本强打反馈。  | ![[game/assets/art/cards/artwork/card_heavy_strike.png\|重斩卡面]]       |
+| 连段切击 | 多个剑客动作残影和连续弧形斩击，用于支撑奖励行动牌 `card_chain_cut` 的连段推进感。           | ![[game/assets/art/cards/artwork/card_chain_cut.png\|连段切击卡面]]        |
+| 流步   | 低身位滑步、绕行动线和远端追击命中，用于支撑奖励行动牌 `card_flow_step` 的位移与低费连锁启动感。    | ![[game/assets/art/cards/artwork/card_flow_step.png\|流步卡面]]          |
+| 破防重击 | 剑光撞击盾牌并炸裂碎片，用于支撑奖励行动牌 `card_guard_break` 的破防和高压输出感。          | ![[game/assets/art/cards/artwork/card_guard_break.png\|破防重击卡面]]      |
+| 基础防御 | 剑客架刀形成蓝色护盾，用于支撑技能牌 `card_basic_guard` 的防御和当前回合行动点恢复反馈。       | ![[game/assets/art/cards/artwork/card_basic_guard.png\|基础防御卡面]]      |
+| 战术观察 | 分镜视线、目标锁定和路线规划，用于支撑技能牌 `card_tactical_read` 的观察、过牌和战术预判感。    | ![[game/assets/art/cards/artwork/card_tactical_read.png\|战术观察卡面]]    |
+| 回稳   | 剑客低身位稳住姿态并形成环形能量，用于支撑技能牌 `card_second_wind` 的防御 / 回费和节奏恢复感。  | ![[game/assets/art/cards/artwork/card_second_wind.png\|回稳卡面]]        |
+| 深度专注 | 静坐蓄势、环绕光刃和冷青能量场，用于支撑技能牌 `card_deep_focus` 的专注过牌与卡组运转感。       | ![[game/assets/art/cards/artwork/card_deep_focus.png\|深度专注卡面]]       |
+| 预备减费 | 多分镜准备动作、握剑和起势姿态，用于支撑技能牌 `card_setup_discount` 的预备、减费和后续连段铺垫。 | ![[game/assets/art/cards/artwork/card_setup_discount.png\|预备减费卡面]]   |
+| 爆裂终结 | 紫黑能量斩击贯穿单体目标并爆裂，用于支撑终结牌 `card_burst_finish` 的单体高伤害兑现。        | ![[game/assets/art/cards/artwork/card_burst_finish.png\|爆裂终结卡面]]     |
+| 弧光横扫 | 宽幅紫色弧光横扫多名敌人，用于支撑终结牌 `card_arc_sweep_finish` 的群体攻击和多目标爆发。    | ![[game/assets/art/cards/artwork/card_arc_sweep_finish.png\|弧光横扫卡面]] |
+| 回流终结 | 紫色能量斩击命中后形成回旋流线，用于支撑终结牌 `card_refund_finish` 的伤害与资源返还感。      | ![[game/assets/art/cards/artwork/card_refund_finish.png\|回流终结卡面]]    |
+| 壁垒终结 | 巨大紫黑晶体壁垒拔地而起，用于支撑终结牌 `card_bulwark_finish` 的高额防御和压迫感。        | ![[game/assets/art/cards/artwork/card_bulwark_finish.png\|壁垒终结卡面]]   |
 
 ## 第一版 MVP 战斗 VFX 资源
 

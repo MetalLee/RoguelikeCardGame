@@ -43,14 +43,14 @@
 
 所有 MVP 敌人立绘遵循 [[design/03_experience/01_visual_direction|视觉方向]] 中的手绘漫画书风格：粗墨线、网点阴影、清晰轮廓、透明背景，并默认朝左，便于在 16:9 战斗 UI 右侧面对玩家。
 
-| 敌人 ID                  | 战斗职责                                   | 美术资源                                                |
-| ---------------------- | -------------------------------------- | ----------------------------------------------------------- | 
-| `enemy_training_dummy` | 普通战斗 1，教学行动点 / 出牌 / 连锁。低威胁训练假人。        | ![[game/assets/art/enemies/enemy_training_dummy.png\|训练假人]] |         |
-| `enemy_intent_scout`   | 普通战斗 2，教学敌人意图与防御。小型斥候，具备攻击 / 防御双重预期。   | ![[game/assets/art/enemies/enemy_intent_scout.png\|意图斥候]]  |
-| `enemy_splitling`      | 普通战斗 3，教学多敌人与目标选择。小型分裂恶魔，可重复出现两个实例。    | ![[game/assets/art/enemies/enemy_splitling.png\|分裂小怪]]  |
-| `enemy_elite_guardian` | 精英战斗，检验攻防节奏。高大装甲守卫，强调攻防压力。             | ![[game/assets/art/enemies/enemy_elite_guardian.png\|精英守卫]]  |
-| `enemy_relic_tester`   | 普通战斗 4，试用遗物与新卡。余烬试炼者，表现精英后规则收益测试。      | ![[game/assets/art/enemies/enemy_relic_tester.png\|余烬试炼者]] |
-| `enemy_chain_warden`   | Boss 战斗，综合检验行动点、连锁、终结牌、防御和构筑奖励。大型连锁看守。 | ![[game/assets/art/enemies/enemy_chain_warden.png\|连锁看守]]  |
+| 敌人 ID                  | 战斗职责                                   | 美术资源                                                        |     |
+| ---------------------- | -------------------------------------- | ----------------------------------------------------------- | --- |
+| `enemy_training_dummy` | 普通战斗 1，教学行动点 / 出牌 / 连锁。低威胁训练假人。        | ![[game/assets/art/enemies/enemy_training_dummy.png\|训练假人]] |     |
+| `enemy_intent_scout`   | 普通战斗 2，教学敌人意图与防御。小型斥候，具备攻击 / 防御双重预期。   | ![[game/assets/art/enemies/enemy_intent_scout.png\|意图斥候]]   |     |
+| `enemy_splitling`      | 普通战斗 3，教学多敌人与目标选择。小型分裂恶魔，可重复出现两个实例。    | ![[game/assets/art/enemies/enemy_splitling.png\|分裂小怪]]      |     |
+| `enemy_elite_guardian` | 精英战斗，检验攻防节奏。高大装甲守卫，强调攻防压力。             | ![[game/assets/art/enemies/enemy_elite_guardian.png\|精英守卫]] |     |
+| `enemy_relic_tester`   | 普通战斗 4，试用遗物与新卡。余烬试炼者，表现精英后规则收益测试。      | ![[game/assets/art/enemies/enemy_relic_tester.png\|余烬试炼者]]  |     |
+| `enemy_chain_warden`   | Boss 战斗，综合检验行动点、连锁、终结牌、防御和构筑奖励。大型连锁看守。 | ![[game/assets/art/enemies/enemy_chain_warden.png\|连锁看守]]   |     |
 
 ## 设计准则
 
