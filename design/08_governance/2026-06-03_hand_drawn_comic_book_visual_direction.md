@@ -31,7 +31,7 @@
 
 ## 后续行动
 
-- 生成第一版 MVP 关键界面效果图，作为后续 Godot + C# 实现时的视觉上下文。
+- 已生成并归档第一版 MVP 关键元素视觉母版：![[game/assets/art/style_guides/mvp_key_elements_visual_master.png|第一版 MVP 关键元素视觉母版]]，作为后续 Godot + C# 表现层、卡牌模板、敌人立绘、牌包和遗物素材的视觉上下文。
 - 在 [[design/03_experience/01_visual_direction|视觉方向]] 中持续细化漫画书风格的色彩、线条、分镜和特效准则。
 - 在 [[design/03_experience/00_ui_ux|界面与交互]] 中验证漫画分镜演出不会移动或遮挡核心战斗 UI。
 - 后续若重新引入强题材装饰，需要再次记录决策并验证可读性。
@@ -42,3 +42,4 @@
 - [[design/03_experience/00_ui_ux|界面与交互]]
 - [[design/00_product/02_player_and_market|目标玩家与市场定位]]
 - [[design/05_narrative_world/00_world_and_tone|世界观与语气]]
+- ![[game/assets/art/style_guides/mvp_key_elements_visual_master.png|第一版 MVP 关键元素视觉母版]]

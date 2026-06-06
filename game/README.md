@@ -69,10 +69,10 @@ flowchart TD
 
 ```csharp
 var combat = combatStateFactory.CreateCombat(
-    combatId,
-    runState,
-    encounter,
-    enemiesById);
+	combatId,
+	runState,
+	encounter,
+	enemiesById);
 ```
 
 关键类与方法：
@@ -110,9 +110,9 @@ combat = combatTurnService.StartCombat(combat);
 
 ```csharp
 var result = cardPlayService.PlayCard(
-    combat,
-    cardDefinition,
-    targetEnemyInstanceId);
+	combat,
+	cardDefinition,
+	targetEnemyInstanceId);
 ```
 
 关键类与方法：
@@ -211,9 +211,9 @@ result.Combat.Status == CombatStatus.Victory
 
 ```csharp
 runState = runProgressService.ApplyCombatResult(
-    runState,
-    combat,
-    encounter);
+	runState,
+	combat,
+	encounter);
 ```
 
 关键类与方法：
@@ -240,8 +240,8 @@ runState = runProgressService.PrepareForCombat(runState);
 
 ```csharp
 var packs = rewardService.GetAvailableCardPacks(
-    encounter,
-    rewardPacksById);
+	encounter,
+	rewardPacksById);
 ```
 
 关键类与方法：
@@ -266,8 +266,8 @@ MVP 普通战斗会提供：
 
 ```csharp
 var openedPack = rewardService.OpenRewardPack(
-    packId,
-    rewardPacksById);
+	packId,
+	rewardPacksById);
 ```
 
 关键类与方法：
@@ -294,9 +294,9 @@ openedPack.CandidateIds
 
 ```csharp
 runState = rewardService.ClaimCards(
-    runState,
-    openedPack,
-    selectedCardIds);
+	runState,
+	openedPack,
+	selectedCardIds);
 ```
 
 关键类与方法：
@@ -314,9 +314,9 @@ runState = rewardService.ClaimCards(
 
 ```csharp
 runState = rewardService.GrantEncounterRelic(
-    runState,
-    encounter,
-    relicsById);
+	runState,
+	encounter,
+	relicsById);
 ```
 
 ## 9. 奖励后推进到下一场
@@ -325,8 +325,8 @@ runState = rewardService.GrantEncounterRelic(
 
 ```csharp
 runState = runProgressService.AdvanceAfterRewards(
-    runState,
-    encounter);
+	runState,
+	encounter);
 ```
 
 关键类与方法：

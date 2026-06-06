@@ -13,7 +13,7 @@
       "rarity": "starter",
       "tags": ["starter", "attack"],
       "text_key": "card.basic_strike",
-      "art_key": "art.card.placeholder.strike"
+      "art_key": "art.card.basic_strike"
     },
     {
       "id": "card_quick_jab",
@@ -27,7 +27,7 @@
       "rarity": "starter",
       "tags": ["starter", "attack", "low_cost"],
       "text_key": "card.quick_jab",
-      "art_key": "art.card.placeholder.quick_jab"
+      "art_key": "art.card.quick_jab"
     },
     {
       "id": "card_heavy_strike",
@@ -41,7 +41,7 @@
       "rarity": "starter",
       "tags": ["starter", "attack", "high_cost"],
       "text_key": "card.heavy_strike",
-      "art_key": "art.card.placeholder.heavy_strike"
+      "art_key": "art.card.heavy_strike"
     },
     {
       "id": "card_chain_cut",
@@ -55,7 +55,7 @@
       "rarity": "common",
       "tags": ["reward", "attack"],
       "text_key": "card.chain_cut",
-      "art_key": "art.card.placeholder.chain_cut"
+      "art_key": "art.card.chain_cut"
     },
     {
       "id": "card_flow_step",
@@ -69,7 +69,7 @@
       "rarity": "common",
       "tags": ["reward", "attack", "low_cost"],
       "text_key": "card.flow_step",
-      "art_key": "art.card.placeholder.flow_step"
+      "art_key": "art.card.flow_step"
     },
     {
       "id": "card_guard_break",
@@ -83,7 +83,7 @@
       "rarity": "uncommon",
       "tags": ["reward", "attack", "high_cost"],
       "text_key": "card.guard_break",
-      "art_key": "art.card.placeholder.guard_break"
+      "art_key": "art.card.guard_break"
     },
     {
       "id": "card_basic_guard",
@@ -98,7 +98,7 @@
       "rarity": "starter",
       "tags": ["starter", "defense", "resource"],
       "text_key": "card.basic_guard",
-      "art_key": "art.card.placeholder.guard"
+      "art_key": "art.card.basic_guard"
     },
     {
       "id": "card_tactical_read",
@@ -112,7 +112,7 @@
       "rarity": "starter",
       "tags": ["starter", "draw"],
       "text_key": "card.tactical_read",
-      "art_key": "art.card.placeholder.tactical_read"
+      "art_key": "art.card.tactical_read"
     },
     {
       "id": "card_second_wind",
@@ -127,7 +127,7 @@
       "rarity": "common",
       "tags": ["reward", "defense", "resource"],
       "text_key": "card.second_wind",
-      "art_key": "art.card.placeholder.second_wind"
+      "art_key": "art.card.second_wind"
     },
     {
       "id": "card_deep_focus",
@@ -141,7 +141,7 @@
       "rarity": "common",
       "tags": ["reward", "draw"],
       "text_key": "card.deep_focus",
-      "art_key": "art.card.placeholder.deep_focus"
+      "art_key": "art.card.deep_focus"
     },
     {
       "id": "card_setup_discount",
@@ -155,7 +155,7 @@
       "rarity": "uncommon",
       "tags": ["reward", "discount"],
       "text_key": "card.setup_discount",
-      "art_key": "art.card.placeholder.setup_discount"
+      "art_key": "art.card.setup_discount"
     },
     {
       "id": "card_burst_finish",
@@ -171,7 +171,7 @@
       "rarity": "starter",
       "tags": ["starter", "finisher", "single_target"],
       "text_key": "card.burst_finish",
-      "art_key": "art.card.placeholder.burst_finish"
+      "art_key": "art.card.burst_finish"
     },
     {
       "id": "card_arc_sweep_finish",
@@ -187,7 +187,7 @@
       "rarity": "common",
       "tags": ["reward", "finisher", "aoe"],
       "text_key": "card.arc_sweep_finish",
-      "art_key": "art.card.placeholder.arc_sweep_finish"
+      "art_key": "art.card.arc_sweep_finish"
     },
     {
       "id": "card_refund_finish",
@@ -203,7 +203,7 @@
       "rarity": "uncommon",
       "tags": ["reward", "finisher", "resource"],
       "text_key": "card.refund_finish",
-      "art_key": "art.card.placeholder.refund_finish"
+      "art_key": "art.card.refund_finish"
     },
     {
       "id": "card_bulwark_finish",
@@ -218,7 +218,7 @@
       "rarity": "uncommon",
       "tags": ["reward", "finisher", "defense"],
       "text_key": "card.bulwark_finish",
-      "art_key": "art.card.placeholder.bulwark_finish"
+      "art_key": "art.card.bulwark_finish"
     }
   ]
 }

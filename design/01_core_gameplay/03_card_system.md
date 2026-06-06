@@ -32,6 +32,40 @@
 - 少数卡牌可以通过效果文本突破默认规则，例如额外增加层数、消耗部分层数、保留层数或改变结算后的连锁状态。
 - 遗物也可以突破默认规则，但必须明确触发时机、层数变化和限制条件。
 
+## 第一版 MVP 卡牌模板资源
+
+当前三类卡牌模板已归档到 `game/assets/art/cards/templates/`，用于后续 Godot 表现层替换占位卡牌 UI。模板只定义卡框、标题栏、插画区、效果描述区、类型色彩和徽记位置；正式运行时的卡牌名称、费用、连锁需求、效果文本和数值仍应由 Godot UI 绘制，避免图片内文字影响本地化、数值迭代和可读性。
+
+| 卡牌类型 | 视觉职责 | 模板资源 |
+| --- | --- | --- |
+| 行动牌 | 血红主题，左上角保留行动点徽记区域，用于表达行动点消耗和攻击 / 连锁启动职责。 | ![[game/assets/art/cards/templates/action_card_template.png\|行动牌模板]] |
+| 技能牌 | 冷青 / 幽蓝主题，不展示行动点徽记，用于表达防御、过牌、观察和资源调整职责。 | ![[game/assets/art/cards/templates/skill_card_template.png\|技能牌模板]] |
+| 终结牌 | 紫黑主题，左上角保留链环 / 连锁需求徽记区域，用于表达连锁门槛和高连锁兑现职责。 | ![[game/assets/art/cards/templates/finisher_card_template.png\|终结牌模板]] |
+
+三类模板必须保持统一竖版比例和一致的 UI 安全区。若后续调整模板尺寸、标题栏高度、插画区高度或效果描述区高度，需要同步更新 [[design/03_experience/01_visual_direction|视觉方向]] 与 Godot 表现层布局。
+
+## 第一版 MVP 卡面资源
+
+卡面资源是卡牌插画层，不包含卡框、卡牌名、费用、连锁需求或规则文本。Godot 表现层应按 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]] 中的卡牌视觉素材组合约定，将卡面资源与对应类型模板、数据文本和状态叠层动态组合成卡牌实例。
+
+| 卡牌 ID | 卡牌名 | 类型 | art_key | 卡面资源 | 用途说明 |
+| --- | --- | --- | --- | --- | --- |
+| `card_basic_strike` | 基础斩击 | 行动牌 | `art.card.basic_strike` | ![[game/assets/art/cards/artwork/card_basic_strike.png\|基础斩击卡面]] | 初始牌组 1 费普通攻击，用于表达基础出牌、伤害和 +1 连锁的教学职责。 |
+| `card_quick_jab` | 迅捷刺击 | 行动牌 | `art.card.quick_jab` | ![[game/assets/art/cards/artwork/card_quick_jab.png\|迅捷刺击卡面]] | 初始牌组 0 费弱攻击，用于表达低成本启动、补足连锁和轻击节奏。 |
+| `card_heavy_strike` | 重斩 | 行动牌 | `art.card.heavy_strike` | ![[game/assets/art/cards/artwork/card_heavy_strike.png\|重斩卡面]] | 初始牌组 2 费强攻击，用于表达高行动点成本对应更强伤害和重击反馈。 |
+| `card_chain_cut` | 连段切击 | 行动牌 | `art.card.chain_cut` | ![[game/assets/art/cards/artwork/card_chain_cut.png\|连段切击卡面]] | 行动牌奖励池中的稳定输出牌，用于表现连续斩击和连锁推进。 |
+| `card_flow_step` | 流步 | 行动牌 | `art.card.flow_step` | ![[game/assets/art/cards/artwork/card_flow_step.png\|流步卡面]] | 行动牌奖励池中的低费连锁牌，用于表现位移、追击和快速启动。 |
+| `card_guard_break` | 破防重击 | 行动牌 | `art.card.guard_break` | ![[game/assets/art/cards/artwork/card_guard_break.png\|破防重击卡面]] | 行动牌奖励池中的高费强打牌，用于表现破盾、强命中和高压输出。 |
+| `card_basic_guard` | 基础防御 | 技能牌 | `art.card.basic_guard` | ![[game/assets/art/cards/artwork/card_basic_guard.png\|基础防御卡面]] | 初始牌组基础防御技能，用于表达防御架势、护盾反馈和回费辅助。 |
+| `card_tactical_read` | 战术观察 | 技能牌 | `art.card.tactical_read` | ![[game/assets/art/cards/artwork/card_tactical_read.png\|战术观察卡面]] | 初始牌组过牌技能，用于表达观察、预判和寻找后续行动牌。 |
+| `card_second_wind` | 回稳 | 技能牌 | `art.card.second_wind` | ![[game/assets/art/cards/artwork/card_second_wind.png\|回稳卡面]] | 技能牌奖励池中的防御 / 回费牌，用于表达重新站稳、恢复节奏和防守转进。 |
+| `card_deep_focus` | 深度专注 | 技能牌 | `art.card.deep_focus` | ![[game/assets/art/cards/artwork/card_deep_focus.png\|深度专注卡面]] | 技能牌奖励池中的过牌牌，用于表达专注蓄势、沉静观察和卡组运转。 |
+| `card_setup_discount` | 预备减费 | 技能牌 | `art.card.setup_discount` | ![[game/assets/art/cards/artwork/card_setup_discount.png\|预备减费卡面]] | 技能牌奖励池中的减费占位牌，用于表达准备姿态、资源调整和下步连段铺垫。 |
+| `card_burst_finish` | 爆裂终结 | 终结牌 | `art.card.burst_finish` | ![[game/assets/art/cards/artwork/card_burst_finish.png\|爆裂终结卡面]] | 初始牌组单体爆发终结牌，用于表达连锁兑现后的强力单体伤害。 |
+| `card_arc_sweep_finish` | 弧光横扫 | 终结牌 | `art.card.arc_sweep_finish` | ![[game/assets/art/cards/artwork/card_arc_sweep_finish.png\|弧光横扫卡面]] | 终结牌奖励池中的群体攻击牌，用于支撑多敌人教学和范围爆发。 |
+| `card_refund_finish` | 回流终结 | 终结牌 | `art.card.refund_finish` | ![[game/assets/art/cards/artwork/card_refund_finish.png\|回流终结卡面]] | 终结牌奖励池中的资源返还牌，用于表达释放后回流行动点和继续操作空间。 |
+| `card_bulwark_finish` | 壁垒终结 | 终结牌 | `art.card.bulwark_finish` | ![[game/assets/art/cards/artwork/card_bulwark_finish.png\|壁垒终结卡面]] | 终结牌奖励池中的防御终结牌，用于表达高连锁后转化为坚固壁垒。 |
+
 ## 初始牌组基准
 
 默认初始牌组为 10 张牌：
@@ -102,6 +136,16 @@
 - MVP 教学引导：第一版 MVP 的前两次普通战斗奖励采用固定保底、不明牌的方式引导玩家有机会拿到群体攻击终结牌，用于支撑普通战斗 3 的多敌人与目标选择教学。普通战斗 1 后和普通战斗 2 后的终结牌包都固定包含 1 张群体攻击终结牌；外层仍只显示卡牌包类型，不预览具体卡牌；玩家仍需选择终结牌包才能看到并获得该牌。MVP 不做动态触发、首次选择追踪、额外去重或补偿逻辑。
 
 具体稀有度名称、概率、保底细节、特殊节点奖励结构、开包反馈和是否存在特殊效果改变卡牌包信息量后续定义。
+
+### 第一版 MVP 卡牌包资源
+
+当前三类固定可重复卡牌包已有对应美术资源，统一放入 `game/assets/art/cards/packs/`。这些资源用于外层奖励选择，只表达包类型，不展示具体候选卡牌。
+
+| 奖励包 ID | 包类型 | 美术资源 |
+| --- | --- | --- |
+| `reward_pack_mvp_action` | 行动牌包 | ![[game/assets/art/cards/packs/reward_pack_mvp_action.png\|行动牌包]] |
+| `reward_pack_mvp_skill` | 技能牌包 | ![[game/assets/art/cards/packs/reward_pack_mvp_skill.png\|技能牌包]] |
+| `reward_pack_mvp_finisher` | 终结牌包 | ![[game/assets/art/cards/packs/reward_pack_mvp_finisher.png\|终结牌包]] |
 
 ## 卡牌设计准则
 
@@ -198,3 +242,4 @@
 
 - [[design/02_content_systems/01_characters_and_archetypes|角色与构筑原型]]
 - [[design/04_balance_data/00_balance_principles|平衡原则]]
+- [[design/03_experience/01_visual_direction|视觉方向]]

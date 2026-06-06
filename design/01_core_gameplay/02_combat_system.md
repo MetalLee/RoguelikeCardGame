@@ -94,6 +94,17 @@
 - 高连锁终结牌需要有足够打击感：命中节奏、停顿、伤害数字、屏幕反馈、音效和动画应共同放大兑现瞬间。
 - 连锁机制应提供爽感，但不能让所有回合都退化为无脑堆层数；敌人压力、资源限制、手牌结构和防御需求应持续制造取舍。
 
+## 第一版 MVP 战斗反馈资源
+
+第一版 MVP 的战斗 VFX 资源已归档到 `game/assets/art/vfx/`，用于表现层根据规则结算事件播放动画。VFX 只表达反馈，不承担规则判断；伤害、防御、连锁变化、阈值达成和终结牌效果仍以规则层结算与结构化日志为准。
+
+- 行动牌普通攻击命中可使用 ![[game/assets/art/vfx/vfx_slash_speed_lines.png|普通斩击速度线]]，高费强打或破防命中可使用 ![[game/assets/art/vfx/vfx_heavy_strike_impact_frame.png|重击冲击格]]。
+- 群体攻击终结牌或全体敌人伤害可使用 ![[game/assets/art/vfx/vfx_group_sweep_arc_light.png|群体横扫弧光]]。
+- 获得防御、格挡和防御型终结牌可使用 ![[game/assets/art/vfx/vfx_defense_shield_flash.png|防御护盾闪光]]。
+- 每次连锁层数提升可使用 ![[game/assets/art/vfx/vfx_chain_gain_spark.png|连锁提升火花]]；首次达到 3 / 5 / 8 层阈值时分别使用 ![[game/assets/art/vfx/vfx_chain_threshold_3_burst.png|3 层阈值小爆闪]]、![[game/assets/art/vfx/vfx_chain_threshold_5_burst.png|5 层阈值中爆闪]]、![[game/assets/art/vfx/vfx_chain_threshold_8_burst.png|8 层阈值大爆闪]]。
+- 终结牌释放和高连锁兑现可使用 ![[game/assets/art/vfx/vfx_finisher_release_shockwave.png|终结牌紫黑冲击波]]，并叠加命中、伤害数字和短暂停顿。
+- 敌人受击可使用 ![[game/assets/art/vfx/vfx_enemy_hit_comic_burst.png|敌人受击漫画爆点]]，用于同步伤害数字和目标反应。
+
 ## 设计准则
 
 - 敌人意图应清楚表达即将发生的伤害、强化、削弱或特殊行动。

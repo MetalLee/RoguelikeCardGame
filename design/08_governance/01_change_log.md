@@ -15,6 +15,21 @@
 
 ## 日志
 
+### 2026-06-06
+
+- 归档终结牌“爆裂终结”“弧光横扫”“回流终结”“壁垒终结”的卡面插画到 `game/assets/art/cards/artwork/`，更新对应卡牌 `art_key`，并同步 [[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]] 的卡面资源索引；至此第一版 MVP 已录入的行动牌、技能牌和终结牌均具备独立卡面插画。
+- 归档技能牌“基础防御”“战术观察”“回稳”“深度专注”“预备减费”的卡面插画到 `game/assets/art/cards/artwork/`，更新对应卡牌 `art_key`，并同步 [[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]] 的卡面资源索引。
+- 归档行动牌“迅捷刺击”“重斩”“连段切击”“流步”“破防重击”的卡面插画到 `game/assets/art/cards/artwork/`，更新对应卡牌 `art_key`，并同步 [[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]] 的卡面资源索引。
+- 归档行动牌“基础斩击”卡面插画到 `game/assets/art/cards/artwork/card_basic_strike.png`，并更新 `card_basic_strike` 的 `art_key` 为 `art.card.basic_strike`；同步更新 [[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]，明确该资源会与行动牌模板在 Godot 中动态组合。
+- 更新 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]，明确卡牌在 Godot 中优先由类型模板、卡面插画、数据文本和状态叠层动态组合展示，完整卡图预烘焙只作为后期可选缓存方案。
+- 将第一版 MVP 关键元素视觉母版归档到 `game/assets/art/style_guides/mvp_key_elements_visual_master.png`，作为后续主角、敌人、卡牌、牌包、遗物和战斗 UI 素材生成的稳定视觉参考。
+- 更新 [[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/08_governance/2026-06-03_hand_drawn_comic_book_visual_direction|采用手绘漫画书风格作为主视觉方向]]，在关联部分嵌入该视觉母版，并明确母版中文字仅作为排版参考，正式运行时文本仍由 Godot UI 绘制。
+- 更新 [[design/03_experience/01_visual_direction|视觉方向]]，明确剑客主角在使用卡牌时应根据卡牌效果展示不同动作，剑客动作资源统一放入 `game/assets/art/characters/swordsman/`；同时确认所有终结牌都需要独立美术资源，不能只复用通用模板或普通攻击动作。
+- 生成并归档第一版 MVP 6 个敌人透明 PNG 立绘到 `game/assets/art/enemies/`，并更新 [[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]] 与 [[design/03_experience/01_visual_direction|视觉方向]]，将敌人 ID、战斗职责和美术资源建立稳定关联。
+- 归档行动牌、技能牌和终结牌三类卡牌模板到 `game/assets/art/cards/templates/`，并更新 [[design/01_core_gameplay/03_card_system|卡牌系统]] 与 [[design/03_experience/01_visual_direction|视觉方向]]，明确模板只承载卡框、色彩和安全区，正式文本与数值仍由 Godot UI 绘制。
+- 生成并归档第一版 MVP 战斗 VFX 到 `game/assets/art/vfx/`，覆盖普通斩击、重击、群体横扫、防御、连锁提升、3 / 5 / 8 层阈值达成、终结牌释放和敌人受击，并更新 [[design/03_experience/01_visual_direction|视觉方向]]、[[design/01_core_gameplay/02_combat_system|战斗系统]] 与 [[design/03_experience/02_audio_feedback|音频与反馈]] 建立反馈资源索引。
+- 生成并归档第一版 MVP UI 图标、普通遗物图标和三类卡牌包素材，分别放入 `game/assets/art/ui/icons/`、`game/assets/art/relics/` 与 `game/assets/art/cards/packs/`；更新 [[design/03_experience/00_ui_ux|界面与交互]]、[[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]、[[design/01_core_gameplay/03_card_system|卡牌系统]] 与 [[design/03_experience/01_visual_direction|视觉方向]]，建立图标、遗物、卡包与设计职责的稳定关联。
+
 ### 2026-06-05
 
 - 根据第一版 MVP 开发推进，新增 `game/src/Infrastructure/Content/` 内容加载层，将 `game/data/` 中卡牌、敌人、遭遇、奖励包、遗物、本地化和 MVP Run 序列加载为现有规则层模型，保持内容数据驱动，不把数值写死在 Godot 场景中。

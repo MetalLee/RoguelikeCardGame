@@ -33,6 +33,24 @@
 - 后续完整 Run 的阶段性 Boss 战斗额外提供 3 个特殊遗物候选，玩家选择 1 个获得；特殊遗物应能影响构筑、改变玩法或显著改变后续决策，而不是单纯数值增强。
 - 第一版 MVP 的终点 Boss 击败后直接胜利，不发放 Boss 战后特殊遗物或卡牌包奖励。
 
+## 第一版 MVP 遗物美术资源
+
+第一版 MVP 当前只有 1 个普通遗物，数据 ID 为 `relic_mvp_chain_spark`。该遗物用于精英战斗后固定获得，并在普通战斗 4 与 Boss 战中验证“每回合第一次使用行动牌时获得防御”的可感知收益。
+
+| 遗物 ID | 表现职责 | 美术资源 |
+| --- | --- | --- |
+| `relic_mvp_chain_spark` | 链环护符、中心火花与护盾轮廓，表达连锁 / 行动牌触发后获得防御。 | ![[game/assets/art/relics/relic_mvp_chain_spark.png|连锁火花遗物图标]] |
+
+## 第一版 MVP 卡牌包美术资源
+
+普通 / 精英战斗胜利后的外层奖励选择使用三类卡牌包。卡包美术只表达类型，不提前暴露包内具体卡牌，符合 [[design/01_core_gameplay/03_card_system|卡牌系统]] 的“不明牌选择包类型”规则。
+
+| 奖励包 ID | 类型 | 美术资源 |
+| --- | --- | --- |
+| `reward_pack_mvp_action` | 行动牌包，血红、斩击纹理、攻击性边框。 | ![[game/assets/art/cards/packs/reward_pack_mvp_action.png|行动牌包]] |
+| `reward_pack_mvp_skill` | 技能牌包，冷青 / 幽蓝、护盾、观察和抽牌感。 | ![[game/assets/art/cards/packs/reward_pack_mvp_skill.png|技能牌包]] |
+| `reward_pack_mvp_finisher` | 终结牌包，紫黑、链环、爆发和终结感。 | ![[game/assets/art/cards/packs/reward_pack_mvp_finisher.png|终结牌包]] |
+
 ## 奖励选择准则
 
 - 奖励应提供构筑强化、补短板和转向三类可能。
@@ -44,3 +62,5 @@
 
 - [[design/01_core_gameplay/04_resource_economy|资源与经济]]
 - [[design/04_balance_data/00_balance_principles|平衡原则]]
+- [[design/01_core_gameplay/03_card_system|卡牌系统]]
+- [[design/03_experience/00_ui_ux|界面与交互]]
