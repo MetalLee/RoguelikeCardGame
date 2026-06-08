@@ -8,7 +8,7 @@ namespace RoguelikeCardGame.Presentation.Cards;
 
 public static class CardPanel
 {
-	private static readonly Vector2 TemplateSize = new(992, 1586);
+	private static readonly Vector2 TemplateSize = new(1024, 1536);
 	private static readonly Color InkText = new(0.13f, 0.075f, 0.04f);
 	private static readonly Color PaperOutline = new(0.98f, 0.88f, 0.68f, 0.94f);
 	private static readonly Color ShadowInk = new(0.03f, 0.018f, 0.012f, 0.65f);
@@ -280,25 +280,25 @@ public static class CardPanel
 		return type switch
 		{
 			CardType.Action => new CardLayout(
-				ArtRect: new Rect2(87, 230, 839, 743),
-				CostRect: new Rect2(61, 92, 126, 126),
-				NameRect: new Rect2(274, 72, 612, 116),
-				RulesRect: new Rect2(128, 1060, 736, 332)),
+				ArtRect: new Rect2(88, 236, 842, 717),
+				CostRect: new Rect2(72, 82, 132, 132),
+				NameRect: new Rect2(286, 84, 640, 104),
+				RulesRect: new Rect2(126, 1032, 772, 300)),
 			CardType.Skill => new CardLayout(
-				ArtRect: new Rect2(83, 238, 834, 757),
+				ArtRect: new Rect2(93, 257, 839, 710),
 				CostRect: new Rect2(),
-				NameRect: new Rect2(116, 92, 760, 112),
-				RulesRect: new Rect2(128, 1064, 736, 330)),
+				NameRect: new Rect2(116, 86, 790, 112),
+				RulesRect: new Rect2(126, 1034, 772, 300)),
 			CardType.Finisher => new CardLayout(
-				ArtRect: new Rect2(78, 264, 849, 716),
-				CostRect: new Rect2(68, 86, 136, 136),
-				NameRect: new Rect2(284, 94, 600, 112),
-				RulesRect: new Rect2(128, 1060, 736, 332)),
+				ArtRect: new Rect2(91, 243, 842, 707),
+				CostRect: new Rect2(78, 78, 128, 128),
+				NameRect: new Rect2(310, 84, 592, 104),
+				RulesRect: new Rect2(126, 1034, 772, 300)),
 			_ => new CardLayout(
-				ArtRect: new Rect2(87, 238, 839, 743),
+				ArtRect: new Rect2(90, 244, 842, 710),
 				CostRect: new Rect2(),
-				NameRect: new Rect2(116, 92, 760, 112),
-				RulesRect: new Rect2(128, 1060, 736, 332))
+				NameRect: new Rect2(116, 86, 790, 112),
+				RulesRect: new Rect2(126, 1034, 772, 300))
 		};
 	}
 
