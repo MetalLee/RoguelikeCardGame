@@ -46,9 +46,4 @@ public sealed record RelicDefinition
     [JsonPropertyName("stack_rule")]
     public RelicStackRule StackRule { get; init; }
 
-    [JsonPropertyName("text_key")]
-    public required string TextKey { get; init; }
-
-    [JsonPropertyName("icon_key")]
-    public required string IconKey { get; init; }
 }

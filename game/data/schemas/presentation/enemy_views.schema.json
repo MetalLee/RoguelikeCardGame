@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "res://data/schemas/presentation/enemy_views.schema.json",
+  "title": "RoguelikeCardGame Enemy Views",
+  "type": "object",
+  "required": ["schema", "content_version", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "roguelike_card_game.enemy_views.v1" },
+    "content_version": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name_key", "stand_asset", "intent_text_keys"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "name_key": { "type": "string" },
+          "stand_asset": { "type": "string" },
+          "intent_text_keys": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -21,21 +21,19 @@ options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLow
 
 var strike = new CardDefinition
 {
-    Id = "card_basic_strike",
+    Id = "card.basic_strike",
     Type = CardType.Action,
     Cost = 1,
     DefaultChainChange = ChainChange.Gain(1),
     TargetRule = TargetRule.SingleEnemy,
     Effects = [new EffectDefinition { Type = "damage", Target = "selected_enemy", Value = 6 }],
     Rarity = CardRarity.Starter,
-    Tags = ["starter", "attack"],
-    TextKey = "card.basic_strike",
-    ArtKey = "art.card.placeholder.strike"
+    Tags = ["starter", "attack"]
 };
 
 var finisher = new CardDefinition
 {
-    Id = "card_burst_finish",
+    Id = "card.burst_finish",
     Type = CardType.Finisher,
     Cost = 0,
     MinChain = 3,
@@ -43,14 +41,12 @@ var finisher = new CardDefinition
     TargetRule = TargetRule.SingleEnemy,
     Effects = [new EffectDefinition { Type = "damage", Target = "selected_enemy", Value = 18 }],
     Rarity = CardRarity.Starter,
-    Tags = ["starter", "finisher"],
-    TextKey = "card.burst_finish",
-    ArtKey = "art.card.placeholder.burst_finish"
+    Tags = ["starter", "finisher"]
 };
 
 var guardSkill = new CardDefinition
 {
-    Id = "card_basic_guard",
+    Id = "card.basic_guard",
     Type = CardType.Skill,
     Cost = 0,
     DefaultChainChange = ChainChange.None,
@@ -61,42 +57,36 @@ var guardSkill = new CardDefinition
         new EffectDefinition { Type = "gain_action_points", Target = "self", Value = 1 }
     ],
     Rarity = CardRarity.Starter,
-    Tags = ["starter", "defense"],
-    TextKey = "card.basic_guard",
-    ArtKey = "art.card.placeholder.guard"
+    Tags = ["starter", "defense"]
 };
 
 var drawSkill = new CardDefinition
 {
-    Id = "card_focus_draw",
+    Id = "card.focus_draw",
     Type = CardType.Skill,
     Cost = 0,
     DefaultChainChange = ChainChange.None,
     TargetRule = TargetRule.Self,
     Effects = [new EffectDefinition { Type = "draw_cards", Target = "self", Value = 1 }],
     Rarity = CardRarity.Common,
-    Tags = ["skill", "draw"],
-    TextKey = "card.focus_draw",
-    ArtKey = "art.card.placeholder.focus_draw"
+    Tags = ["skill", "draw"]
 };
 
 var discountSkill = new CardDefinition
 {
-    Id = "card_setup_discount",
+    Id = "card.setup_discount",
     Type = CardType.Skill,
     Cost = 0,
     DefaultChainChange = ChainChange.None,
     TargetRule = TargetRule.Self,
     Effects = [new EffectDefinition { Type = "temporary_discount", Target = "hand", Value = 1 }],
     Rarity = CardRarity.Common,
-    Tags = ["skill", "discount"],
-    TextKey = "card.setup_discount",
-    ArtKey = "art.card.placeholder.setup_discount"
+    Tags = ["skill", "discount"]
 };
 
 var arcSweepFinisher = new CardDefinition
 {
-    Id = "card_arc_sweep_finish",
+    Id = "card.arc_sweep_finish",
     Type = CardType.Finisher,
     Cost = 0,
     MinChain = 3,
@@ -104,14 +94,12 @@ var arcSweepFinisher = new CardDefinition
     TargetRule = TargetRule.AllEnemies,
     Effects = [new EffectDefinition { Type = "damage", Target = "all_enemies", Value = 4 }],
     Rarity = CardRarity.Common,
-    Tags = ["finisher", "attack", "aoe"],
-    TextKey = "card.arc_sweep_finish",
-    ArtKey = "art.card.placeholder.arc_sweep_finish"
+    Tags = ["finisher", "attack", "aoe"]
 };
 
 var refundFinisher = new CardDefinition
 {
-    Id = "card_refund_finish",
+    Id = "card.refund_finish",
     Type = CardType.Finisher,
     Cost = 0,
     MinChain = 5,
@@ -123,135 +111,121 @@ var refundFinisher = new CardDefinition
         new EffectDefinition { Type = "gain_action_points", Target = "self", Value = 1 }
     ],
     Rarity = CardRarity.Uncommon,
-    Tags = ["finisher", "resource"],
-    TextKey = "card.refund_finish",
-    ArtKey = "art.card.placeholder.refund_finish"
+    Tags = ["finisher", "resource"]
 };
 
 var relic = new RelicDefinition
 {
-    Id = "relic_mvp_chain_spark",
+    Id = "relic.mvp_chain_spark",
     Rarity = RelicRarity.Common,
     Trigger = "first_action_card_each_turn",
     Conditions = [new RelicConditionDefinition { Type = "combat_turn", Value = "player_turn" }],
     Effects = [new EffectDefinition { Type = "gain_block", Target = "self", Value = 2 }],
-    StackRule = RelicStackRule.Unique,
-    TextKey = "relic.mvp_chain_spark",
-    IconKey = "icon.relic.placeholder.chain_spark"
+    StackRule = RelicStackRule.Unique
 };
 
 var enemy = new EnemyDefinition
 {
-    Id = "enemy_training_dummy",
+    Id = "enemy.training_dummy",
     MaxHp = 24,
     IntentSequence =
     [
         new EnemyIntentDefinition
         {
-            Id = "intent_dummy_attack",
+            Id = "intent.attack",
             IntentType = EnemyIntentType.Attack,
-            UiTextKey = "enemy.intent.training_dummy.attack",
             Effects = [new EffectDefinition { Type = "damage", Target = "player", Value = 5 }]
         }
     ],
-    Tags = ["normal", "teaching"],
-    ArtKey = "art.enemy.placeholder.training_dummy",
-    UiNameKey = "enemy.training_dummy"
+    Tags = ["normal", "teaching"]
 };
 
 var sequenceEnemy = new EnemyDefinition
 {
-    Id = "enemy_sequence_tester",
+    Id = "enemy.sequence_tester",
     MaxHp = 20,
     IntentSequence =
     [
         new EnemyIntentDefinition
         {
-            Id = "intent_sequence_attack",
+            Id = "intent.attack",
             IntentType = EnemyIntentType.Attack,
-            UiTextKey = "enemy.intent.sequence_tester.attack",
             Effects = [new EffectDefinition { Type = "damage", Target = "player", Value = 6 }]
         },
         new EnemyIntentDefinition
         {
-            Id = "intent_sequence_guard",
+            Id = "intent.guard",
             IntentType = EnemyIntentType.Defend,
-            UiTextKey = "enemy.intent.sequence_tester.guard",
             Effects = [new EffectDefinition { Type = "gain_block", Target = "self", Value = 4 }]
         }
     ],
-    Tags = ["test", "sequence"],
-    ArtKey = "art.enemy.placeholder.sequence_tester",
-    UiNameKey = "enemy.sequence_tester"
+    Tags = ["test", "sequence"]
 };
 
 var encounter = new EncounterDefinition
 {
-    Id = "encounter_mvp_normal_01",
+    Id = "encounter.mvp.normal_01",
     NodeType = EncounterNodeType.Normal,
     Enemies = [new EncounterEnemyDefinition { InstanceId = "enemy_01", EnemyId = enemy.Id }],
     RewardProfile = new EncounterRewardProfileDefinition
     {
-        CardPackIds = ["reward_pack_mvp_action", "reward_pack_mvp_skill", "reward_pack_mvp_finisher"],
+        CardPackIds = ["reward_pack.mvp.action", "reward_pack.mvp.skill", "reward_pack.mvp.finisher"],
         RelicId = null
     },
-    TeachingGoalKey = "encounter.mvp_normal_01.goal",
+    TeachingGoalKey = "encounter.mvp.normal_01.goal",
     DifficultyNote = "Smoke test encounter."
 };
 
 var rewardPack = new RewardPackDefinition
 {
-    Id = "reward_pack_mvp_action",
+    Id = "reward_pack.mvp.action",
     PackType = CardType.Action,
-    CandidateIds = ["card_basic_strike", "card_quick_jab", "card_heavy_strike"],
+    CandidateIds = [strike.Id, "card.quick_jab", "card.heavy_strike"],
     MinPick = 0,
     MaxPick = 3,
     GuaranteeRule = "fixed_three_candidates",
-    RepeatRule = RewardRepeatRule.Repeatable,
-    TextKey = "reward_pack.mvp_action"
+    RepeatRule = RewardRepeatRule.Repeatable
 };
 
 var skillRewardPack = new RewardPackDefinition
 {
-    Id = "reward_pack_mvp_skill",
+    Id = "reward_pack.mvp.skill",
     PackType = CardType.Skill,
     CandidateIds = [guardSkill.Id, drawSkill.Id, discountSkill.Id],
     MinPick = 0,
     MaxPick = 3,
     GuaranteeRule = "fixed_three_candidates",
-    RepeatRule = RewardRepeatRule.Repeatable,
-    TextKey = "reward_pack.mvp_skill"
+    RepeatRule = RewardRepeatRule.Repeatable
 };
 
 var finisherRewardPack = new RewardPackDefinition
 {
-    Id = "reward_pack_mvp_finisher",
+    Id = "reward_pack.mvp.finisher",
     PackType = CardType.Finisher,
     CandidateIds = [arcSweepFinisher.Id, refundFinisher.Id, finisher.Id],
     MinPick = 0,
     MaxPick = 3,
     GuaranteeRule = "fixed_three_candidates_with_aoe_finisher",
-    RepeatRule = RewardRepeatRule.Repeatable,
-    TextKey = "reward_pack.mvp_finisher"
+    RepeatRule = RewardRepeatRule.Repeatable
 };
 
 var eliteEncounter = new EncounterDefinition
 {
-    Id = "encounter_mvp_elite_01",
+    Id = "encounter.mvp.elite_01",
     NodeType = EncounterNodeType.Elite,
     Enemies = [new EncounterEnemyDefinition { InstanceId = "enemy_01", EnemyId = sequenceEnemy.Id }],
     RewardProfile = new EncounterRewardProfileDefinition
     {
-        CardPackIds = ["reward_pack_mvp_action", "reward_pack_mvp_skill", "reward_pack_mvp_finisher"],
+        CardPackIds = ["reward_pack.mvp.action", "reward_pack.mvp.skill", "reward_pack.mvp.finisher"],
         RelicId = relic.Id
     },
-    TeachingGoalKey = "encounter.mvp_elite_01.goal",
+    TeachingGoalKey = "encounter.mvp.elite_01.goal",
     DifficultyNote = "Smoke test elite encounter."
 };
 
 var bossEncounter = new EncounterDefinition
 {
-    Id = "encounter_mvp_boss_01",
+    Id = "encounter.mvp.boss_01",
     NodeType = EncounterNodeType.Boss,
     Enemies = [new EncounterEnemyDefinition { InstanceId = "enemy_01", EnemyId = sequenceEnemy.Id }],
     RewardProfile = new EncounterRewardProfileDefinition
@@ -259,7 +233,7 @@ var bossEncounter = new EncounterDefinition
         CardPackIds = [],
         RelicId = null
     },
-    TeachingGoalKey = "encounter.mvp_boss_01.goal",
+    TeachingGoalKey = "encounter.mvp.boss_01.goal",
     DifficultyNote = "Smoke test boss encounter."
 };
 
@@ -333,9 +307,8 @@ Assert(combat.Log.Any(item => item.EventType == CombatLogEventType.TurnStarted),
 
 var openingIntentViews = turnService.GetEnemyIntentViews(combat, enemiesById);
 AssertEqual(1, openingIntentViews.Count, "GetEnemyIntentViews returns one view per living enemy");
-AssertEqual("intent_dummy_attack", openingIntentViews[0].IntentId, "GetEnemyIntentViews exposes the current fixed intent id");
+AssertEqual("intent.attack", openingIntentViews[0].IntentId, "GetEnemyIntentViews exposes the current fixed intent id");
 AssertEqual(EnemyIntentType.Attack, openingIntentViews[0].IntentType, "GetEnemyIntentViews exposes intent type");
-AssertEqual("enemy.intent.training_dummy.attack", openingIntentViews[0].UiTextKey, "GetEnemyIntentViews exposes UI text key");
 AssertEqual(5, openingIntentViews[0].EffectPreviews[0].Value, "GetEnemyIntentViews exposes damage preview value");
 
 var endedTurn = turnService.EndPlayerTurn(combat with { ActionPoints = 2, Chain = 3, PlayerBlock = 7 });
@@ -462,12 +435,12 @@ var sequenceCombat = CreateEnemyTurnCombat(
     enemies: [CreateEnemyState("enemy_01", currentHp: 20, maxHp: 20, enemyId: sequenceEnemy.Id)],
     playerHp: 30);
 var sequenceViewBefore = turnService.GetEnemyIntentViews(sequenceCombat, enemiesById);
-AssertEqual("intent_sequence_attack", sequenceViewBefore[0].IntentId, "Fixed intent sequence starts at the first intent");
+AssertEqual("intent.attack", sequenceViewBefore[0].IntentId, "Fixed intent sequence starts at the first intent");
 var sequenceAfterAttack = turnService.ResolveEnemyTurn(sequenceCombat, enemiesById);
 AssertEqual(24, sequenceAfterAttack.PlayerHp, "Enemy attack damages player HP when block is absent");
 AssertEqual(1, sequenceAfterAttack.Enemies[0].IntentIndex, "Enemy attack advances to the next fixed intent");
 var sequenceViewAfterAttack = turnService.GetEnemyIntentViews(sequenceAfterAttack, enemiesById);
-AssertEqual("intent_sequence_guard", sequenceViewAfterAttack[0].IntentId, "Fixed intent sequence exposes the next intent after resolution");
+AssertEqual("intent.guard", sequenceViewAfterAttack[0].IntentId, "Fixed intent sequence exposes the next intent after resolution");
 var sequenceAfterGuard = turnService.ResolveEnemyTurn(sequenceAfterAttack, enemiesById);
 AssertEqual(4, sequenceAfterGuard.Enemies[0].Block, "Enemy defend intent grants enemy block");
 AssertEqual(2, sequenceAfterGuard.Enemies[0].IntentIndex, "Enemy defend intent advances sequence again");
@@ -522,9 +495,9 @@ Assert(openedActionPack.CandidateIds.All(cardId => rewardPack.CandidateIds.Conta
 var skippedRewardRun = rewardService.ClaimCards(run, openedActionPack, []);
 AssertEqual(run.MasterDeck.Count, skippedRewardRun.MasterDeck.Count, "Skipping reward cards leaves deck unchanged");
 
-var multiPickRun = rewardService.ClaimCards(run, openedActionPack, [strike.Id, "card_quick_jab"]);
+var multiPickRun = rewardService.ClaimCards(run, openedActionPack, [strike.Id, "card.quick_jab"]);
 AssertEqual(run.MasterDeck.Count + 2, multiPickRun.MasterDeck.Count, "Reward claim can add multiple cards");
-AssertEqual("card_quick_jab", multiPickRun.MasterDeck[^1], "Reward claim appends selected cards to the master deck");
+AssertEqual("card.quick_jab", multiPickRun.MasterDeck[^1], "Reward claim appends selected cards to the master deck");
 
 var duplicatePickRun = rewardService.ClaimCards(run, openedActionPack, [strike.Id, strike.Id]);
 AssertEqual(run.MasterDeck.Count + 2, duplicatePickRun.MasterDeck.Count, "Reward claim allows duplicate card ids when pack is repeatable");
@@ -651,7 +624,7 @@ var metricsReport = metricsService.BuildReport(
             RewardPackId = rewardPack.Id,
             RewardPackType = rewardPack.PackType.ToString(),
             PickedCount = 2,
-            CardIds = [strike.Id, "card_quick_jab"]
+            CardIds = [strike.Id, "card.quick_jab"]
         }
     ],
     [
@@ -779,7 +752,7 @@ static CombatEnemyState CreateEnemyState(
     int currentHp = 24,
     int maxHp = 24,
     int block = 0,
-    string enemyId = "enemy_training_dummy",
+    string enemyId = "enemy.training_dummy",
     int intentIndex = 0)
 {
     return new CombatEnemyState

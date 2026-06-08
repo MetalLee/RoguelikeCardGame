@@ -20,9 +20,6 @@ public sealed record EnemyIntentDefinition
     [JsonPropertyName("intent_type")]
     public EnemyIntentType IntentType { get; init; }
 
-    [JsonPropertyName("ui_text_key")]
-    public required string UiTextKey { get; init; }
-
     [JsonPropertyName("effects")]
     public List<EffectDefinition> Effects { get; init; } = new();
 }
@@ -44,9 +41,4 @@ public sealed record EnemyDefinition
     [JsonPropertyName("tags")]
     public List<string> Tags { get; init; } = new();
 
-    [JsonPropertyName("art_key")]
-    public required string ArtKey { get; init; }
-
-    [JsonPropertyName("ui_name_key")]
-    public required string UiNameKey { get; init; }
 }

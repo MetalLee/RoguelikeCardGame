@@ -20,9 +20,6 @@ public sealed record EnemyIntentView
     [JsonPropertyName("intent_type")]
     public EnemyIntentType IntentType { get; init; }
 
-    [JsonPropertyName("ui_text_key")]
-    public required string UiTextKey { get; init; }
-
     [JsonPropertyName("effect_previews")]
     public List<EnemyIntentEffectPreview> EffectPreviews { get; init; } = new();
 }

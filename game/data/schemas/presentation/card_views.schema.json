@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "res://data/schemas/presentation/card_views.schema.json",
+  "title": "RoguelikeCardGame Card Views",
+  "type": "object",
+  "required": ["schema", "content_version", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "roguelike_card_game.card_views.v1" },
+    "content_version": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name_key", "rules_key", "flavor_key", "template_asset", "art_asset"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "name_key": { "type": "string" },
+          "rules_key": { "type": "string" },
+          "flavor_key": { "type": "string" },
+          "template_asset": { "type": "string" },
+          "art_asset": { "type": "string" }
+        }
+      }
+    }
+  }
+}

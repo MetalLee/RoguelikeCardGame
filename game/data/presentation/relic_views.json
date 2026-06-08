@@ -1,0 +1,12 @@
+{
+  "schema": "roguelike_card_game.relic_views.v1",
+  "content_version": "mvp.0.2",
+  "items": [
+    {
+      "id": "relic.mvp_chain_spark",
+      "name_key": "relic.mvp_chain_spark.name",
+      "rules_key": "relic.mvp_chain_spark.rules",
+      "icon_asset": "asset.relic.mvp_chain_spark.icon"
+    }
+  ]
+}

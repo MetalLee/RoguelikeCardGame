@@ -15,6 +15,12 @@
 
 ## 日志
 
+### 2026-06-08
+
+- 重构第一版 MVP 内容数据结构：将卡牌、敌人、遗物、遭遇、奖励包和 Run 序列迁移到 `game/data/gameplay/`，将卡牌 / 敌人 / 遗物 / 奖励包 view 与 asset manifest 迁移到 `game/data/presentation/`，并把内容 ID 统一为 `card.*`、`enemy.*`、`relic.*`、`reward_pack.*`、`encounter.*` 命名空间格式；同步更新 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]，明确规则数据不得包含表现字段。
+- 将第一版 MVP 敌人与普通遗物的表现资源从 placeholder 迁移为 `asset.enemy.*.stand` / `asset.relic.*.icon` manifest 记录，并扩展 `game/tools/data_validator/validate_data.py`，要求表现 view 引用的 asset ID 必须存在且不能继续使用 placeholder；该变更补齐已归档美术资源与数据层表现索引的对应关系。
+- 将第一版 MVP 现有背景、主角、卡牌模板、卡面插画、卡牌包、敌人、遗物、UI 图标和结算 VFX 接入 Godot 主流程；主菜单、战斗、奖励选择和结算界面通过 `game/data/presentation/` 查询资源，不再停留在无美术资源的纯占位 UI。同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 与 [[design/03_experience/01_visual_direction|视觉方向]] 的运行时组合规则。
+
 ### 2026-06-06
 
 - 归档终结牌“爆裂终结”“弧光横扫”“回流终结”“壁垒终结”的卡面插画到 `game/assets/art/cards/artwork/`，更新对应卡牌 `art_key`，并同步 [[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]] 的卡面资源索引；至此第一版 MVP 已录入的行动牌、技能牌和终结牌均具备独立卡面插画。

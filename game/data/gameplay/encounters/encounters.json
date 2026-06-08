@@ -1,0 +1,85 @@
+{
+  "schema": "roguelike_card_game.encounters.v1",
+  "content_version": "mvp.0.2",
+  "items": [
+    {
+      "id": "encounter.mvp.normal_01",
+      "node_type": "normal",
+      "enemies": [
+        { "instance_id": "enemy_01", "enemy_id": "enemy.training_dummy" }
+      ],
+      "reward_profile": {
+        "card_pack_ids": ["reward_pack.mvp.action", "reward_pack.mvp.skill", "reward_pack.mvp.finisher"],
+        "relic_id": null
+      },
+      "teaching_goal_key": "encounter.mvp.normal_01.goal",
+      "difficulty_note": "Teaches action points, playing cards, and chain gain."
+    },
+    {
+      "id": "encounter.mvp.normal_02",
+      "node_type": "normal",
+      "enemies": [
+        { "instance_id": "enemy_01", "enemy_id": "enemy.intent_scout" }
+      ],
+      "reward_profile": {
+        "card_pack_ids": ["reward_pack.mvp.action", "reward_pack.mvp.skill", "reward_pack.mvp.finisher"],
+        "relic_id": null
+      },
+      "teaching_goal_key": "encounter.mvp.normal_02.goal",
+      "difficulty_note": "Teaches enemy intent and using block before enemy actions."
+    },
+    {
+      "id": "encounter.mvp.normal_03",
+      "node_type": "normal",
+      "enemies": [
+        { "instance_id": "enemy_01", "enemy_id": "enemy.splitling" },
+        { "instance_id": "enemy_02", "enemy_id": "enemy.splitling" }
+      ],
+      "reward_profile": {
+        "card_pack_ids": ["reward_pack.mvp.action", "reward_pack.mvp.skill", "reward_pack.mvp.finisher"],
+        "relic_id": null
+      },
+      "teaching_goal_key": "encounter.mvp.normal_03.goal",
+      "difficulty_note": "Teaches multiple enemies, target choice, and value of all-enemy finishers."
+    },
+    {
+      "id": "encounter.mvp.elite_01",
+      "node_type": "elite",
+      "enemies": [
+        { "instance_id": "enemy_01", "enemy_id": "enemy.elite_guardian" }
+      ],
+      "reward_profile": {
+        "card_pack_ids": ["reward_pack.mvp.action", "reward_pack.mvp.skill", "reward_pack.mvp.finisher"],
+        "relic_id": "relic.mvp_chain_spark"
+      },
+      "teaching_goal_key": "encounter.mvp.elite_01.goal",
+      "difficulty_note": "Checks attack and defense pacing before granting the fixed common relic."
+    },
+    {
+      "id": "encounter.mvp.normal_04",
+      "node_type": "normal",
+      "enemies": [
+        { "instance_id": "enemy_01", "enemy_id": "enemy.relic_tester" }
+      ],
+      "reward_profile": {
+        "card_pack_ids": ["reward_pack.mvp.action", "reward_pack.mvp.skill", "reward_pack.mvp.finisher"],
+        "relic_id": null
+      },
+      "teaching_goal_key": "encounter.mvp.normal_04.goal",
+      "difficulty_note": "Lets the player try the relic and new cards before the boss."
+    },
+    {
+      "id": "encounter.mvp.boss_01",
+      "node_type": "boss",
+      "enemies": [
+        { "instance_id": "enemy_01", "enemy_id": "enemy.chain_warden" }
+      ],
+      "reward_profile": {
+        "card_pack_ids": [],
+        "relic_id": null
+      },
+      "teaching_goal_key": "encounter.mvp.boss_01.goal",
+      "difficulty_note": "Final MVP check for action points, chain thresholds, finishers, defense, and deck growth."
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schema": "roguelike_card_game.enemy_views.v1",
+  "content_version": "mvp.0.2",
+  "items": [
+    {
+      "id": "enemy.training_dummy",
+      "name_key": "enemy.training_dummy.name",
+      "stand_asset": "asset.enemy.training_dummy.stand",
+      "intent_text_keys": {
+        "intent.attack": "enemy.training_dummy.intent.attack"
+      }
+    },
+    {
+      "id": "enemy.intent_scout",
+      "name_key": "enemy.intent_scout.name",
+      "stand_asset": "asset.enemy.intent_scout.stand",
+      "intent_text_keys": {
+        "intent.attack": "enemy.intent_scout.intent.attack",
+        "intent.guard": "enemy.intent_scout.intent.guard"
+      }
+    },
+    {
+      "id": "enemy.splitling",
+      "name_key": "enemy.splitling.name",
+      "stand_asset": "asset.enemy.splitling.stand",
+      "intent_text_keys": {
+        "intent.attack": "enemy.splitling.intent.attack"
+      }
+    },
+    {
+      "id": "enemy.elite_guardian",
+      "name_key": "enemy.elite_guardian.name",
+      "stand_asset": "asset.enemy.elite_guardian.stand",
+      "intent_text_keys": {
+        "intent.attack": "enemy.elite_guardian.intent.attack",
+        "intent.guard": "enemy.elite_guardian.intent.guard"
+      }
+    },
+    {
+      "id": "enemy.relic_tester",
+      "name_key": "enemy.relic_tester.name",
+      "stand_asset": "asset.enemy.relic_tester.stand",
+      "intent_text_keys": {
+        "intent.attack": "enemy.relic_tester.intent.attack"
+      }
+    },
+    {
+      "id": "enemy.chain_warden",
+      "name_key": "enemy.chain_warden.name",
+      "stand_asset": "asset.enemy.chain_warden.stand",
+      "intent_text_keys": {
+        "intent.attack": "enemy.chain_warden.intent.attack",
+        "intent.pressure": "enemy.chain_warden.intent.pressure"
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "roguelike_card_game.relics.v1",
+  "content_version": "mvp.0.2",
+  "items": [
+    {
+      "id": "relic.mvp_chain_spark",
+      "rarity": "common",
+      "trigger": "first_action_card_each_turn",
+      "conditions": [
+        { "op": "combat_phase_is", "value": "player_turn" }
+      ],
+      "effects": [
+        { "op": "gain_block", "target": { "ref": "self" }, "amount": 2 }
+      ],
+      "stack_rule": "unique",
+      "tags": ["mvp", "defense", "chain_support"]
+    }
+  ]
+}

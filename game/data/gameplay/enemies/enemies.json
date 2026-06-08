@@ -1,0 +1,151 @@
+{
+  "schema": "roguelike_card_game.enemies.v1",
+  "content_version": "mvp.0.2",
+  "items": [
+    {
+      "id": "enemy.training_dummy",
+      "rank": "normal",
+      "stats": { "max_hp": 24 },
+      "ai": {
+        "type": "fixed_sequence",
+        "loop": true,
+        "intents": [
+          {
+            "id": "intent.attack",
+            "preview": [{ "kind": "attack", "amount": 5 }],
+            "effects": [
+              { "op": "damage", "target": { "ref": "player" }, "amount": 5 }
+            ]
+          }
+        ]
+      },
+      "immunities": [],
+      "tags": ["teaching"]
+    },
+    {
+      "id": "enemy.intent_scout",
+      "rank": "normal",
+      "stats": { "max_hp": 30 },
+      "ai": {
+        "type": "fixed_sequence",
+        "loop": true,
+        "intents": [
+          {
+            "id": "intent.attack",
+            "preview": [{ "kind": "attack", "amount": 7 }],
+            "effects": [
+              { "op": "damage", "target": { "ref": "player" }, "amount": 7 }
+            ]
+          },
+          {
+            "id": "intent.guard",
+            "preview": [{ "kind": "block", "amount": 5 }],
+            "effects": [
+              { "op": "gain_block", "target": { "ref": "self" }, "amount": 5 }
+            ]
+          }
+        ]
+      },
+      "immunities": [],
+      "tags": ["intent_teaching"]
+    },
+    {
+      "id": "enemy.splitling",
+      "rank": "normal",
+      "stats": { "max_hp": 16 },
+      "ai": {
+        "type": "fixed_sequence",
+        "loop": true,
+        "intents": [
+          {
+            "id": "intent.attack",
+            "preview": [{ "kind": "attack", "amount": 4 }],
+            "effects": [
+              { "op": "damage", "target": { "ref": "player" }, "amount": 4 }
+            ]
+          }
+        ]
+      },
+      "immunities": [],
+      "tags": ["multi_enemy"]
+    },
+    {
+      "id": "enemy.elite_guardian",
+      "rank": "elite",
+      "stats": { "max_hp": 48 },
+      "ai": {
+        "type": "fixed_sequence",
+        "loop": true,
+        "intents": [
+          {
+            "id": "intent.attack",
+            "preview": [{ "kind": "attack", "amount": 11 }],
+            "effects": [
+              { "op": "damage", "target": { "ref": "player" }, "amount": 11 }
+            ]
+          },
+          {
+            "id": "intent.guard",
+            "preview": [{ "kind": "block", "amount": 7 }],
+            "effects": [
+              { "op": "gain_block", "target": { "ref": "self" }, "amount": 7 }
+            ]
+          }
+        ]
+      },
+      "immunities": [],
+      "tags": []
+    },
+    {
+      "id": "enemy.relic_tester",
+      "rank": "normal",
+      "stats": { "max_hp": 36 },
+      "ai": {
+        "type": "fixed_sequence",
+        "loop": true,
+        "intents": [
+          {
+            "id": "intent.attack",
+            "preview": [{ "kind": "attack", "amount": 9 }],
+            "effects": [
+              { "op": "damage", "target": { "ref": "player" }, "amount": 9 }
+            ]
+          }
+        ]
+      },
+      "immunities": [],
+      "tags": ["post_elite"]
+    },
+    {
+      "id": "enemy.chain_warden",
+      "rank": "boss",
+      "stats": { "max_hp": 84 },
+      "ai": {
+        "type": "fixed_sequence",
+        "loop": true,
+        "intents": [
+          {
+            "id": "intent.attack",
+            "preview": [{ "kind": "attack", "amount": 12 }],
+            "effects": [
+              { "op": "damage", "target": { "ref": "player" }, "amount": 12 }
+            ]
+          },
+          {
+            "id": "intent.pressure",
+            "preview": [
+              { "kind": "attack", "amount": 7 },
+              { "kind": "block", "amount": 5 }
+            ],
+            "effects": [
+              { "op": "damage", "target": { "ref": "player" }, "amount": 7 },
+              { "op": "gain_block", "target": { "ref": "self" }, "amount": 5 }
+            ]
+          }
+        ]
+      },
+      "immunities": [],
+      "tags": []
+    }
+  ]
+}

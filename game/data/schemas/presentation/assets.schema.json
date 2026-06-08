@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "res://data/schemas/presentation/assets.schema.json",
+  "title": "RoguelikeCardGame Assets",
+  "type": "object",
+  "required": ["schema", "content_version", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "roguelike_card_game.assets.v1" },
+    "content_version": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "path"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^asset\\.[a-z0-9_.]+$" },
+          "type": { "type": "string", "enum": ["image", "audio", "font", "shader"] },
+          "path": { "type": "string", "pattern": "^res://.+" }
+        }
+      }
+    }
+  }
+}

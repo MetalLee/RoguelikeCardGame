@@ -52,19 +52,19 @@
 
 | 卡牌   | 视觉职责                                                         | 资源                                                                   |
 | ---- | ------------------------------------------------------------ | -------------------------------------------------------------------- |
-| 基础斩击 | 血红速度线、剑客横向斩击和命中爆裂，用于支撑行动牌 `card_basic_strike` 的基础攻击与连锁启动反馈。  | ![[game/assets/art/cards/artwork/card_basic_strike.png\|基础斩击卡面]]     |
-| 迅捷刺击 | 极窄直线突刺、远距离命中点和高速残影，用于支撑 0 费行动牌 `card_quick_jab` 的轻快启动感。      | ![[game/assets/art/cards/artwork/card_quick_jab.png\|迅捷刺击卡面]]        |
+| 基础斩击 | 血红速度线、剑客横向斩击和命中爆裂，用于支撑行动牌 `card.basic_strike` 的基础攻击与连锁启动反馈。  | ![[game/assets/art/cards/artwork/card_basic_strike.png\|基础斩击卡面]]     |
+| 迅捷刺击 | 极窄直线突刺、远距离命中点和高速残影，用于支撑 0 费行动牌 `card.quick_jab` 的轻快启动感。      | ![[game/assets/art/cards/artwork/card_quick_jab.png\|迅捷刺击卡面]]        |
 | 重斩   | 自上而下的重击构图和大面积命中爆裂，用于支撑 2 费行动牌 `card_heavy_strike` 的高成本强打反馈。  | ![[game/assets/art/cards/artwork/card_heavy_strike.png\|重斩卡面]]       |
 | 连段切击 | 多个剑客动作残影和连续弧形斩击，用于支撑奖励行动牌 `card_chain_cut` 的连段推进感。           | ![[game/assets/art/cards/artwork/card_chain_cut.png\|连段切击卡面]]        |
 | 流步   | 低身位滑步、绕行动线和远端追击命中，用于支撑奖励行动牌 `card_flow_step` 的位移与低费连锁启动感。    | ![[game/assets/art/cards/artwork/card_flow_step.png\|流步卡面]]          |
 | 破防重击 | 剑光撞击盾牌并炸裂碎片，用于支撑奖励行动牌 `card_guard_break` 的破防和高压输出感。          | ![[game/assets/art/cards/artwork/card_guard_break.png\|破防重击卡面]]      |
-| 基础防御 | 剑客架刀形成蓝色护盾，用于支撑技能牌 `card_basic_guard` 的防御和当前回合行动点恢复反馈。       | ![[game/assets/art/cards/artwork/card_basic_guard.png\|基础防御卡面]]      |
+| 基础防御 | 剑客架刀形成蓝色护盾，用于支撑技能牌 `card.basic_guard` 的防御和当前回合行动点恢复反馈。       | ![[game/assets/art/cards/artwork/card_basic_guard.png\|基础防御卡面]]      |
 | 战术观察 | 分镜视线、目标锁定和路线规划，用于支撑技能牌 `card_tactical_read` 的观察、过牌和战术预判感。    | ![[game/assets/art/cards/artwork/card_tactical_read.png\|战术观察卡面]]    |
 | 回稳   | 剑客低身位稳住姿态并形成环形能量，用于支撑技能牌 `card_second_wind` 的防御 / 回费和节奏恢复感。  | ![[game/assets/art/cards/artwork/card_second_wind.png\|回稳卡面]]        |
 | 深度专注 | 静坐蓄势、环绕光刃和冷青能量场，用于支撑技能牌 `card_deep_focus` 的专注过牌与卡组运转感。       | ![[game/assets/art/cards/artwork/card_deep_focus.png\|深度专注卡面]]       |
 | 预备减费 | 多分镜准备动作、握剑和起势姿态，用于支撑技能牌 `card_setup_discount` 的预备、减费和后续连段铺垫。 | ![[game/assets/art/cards/artwork/card_setup_discount.png\|预备减费卡面]]   |
 | 爆裂终结 | 紫黑能量斩击贯穿单体目标并爆裂，用于支撑终结牌 `card_burst_finish` 的单体高伤害兑现。        | ![[game/assets/art/cards/artwork/card_burst_finish.png\|爆裂终结卡面]]     |
-| 弧光横扫 | 宽幅紫色弧光横扫多名敌人，用于支撑终结牌 `card_arc_sweep_finish` 的群体攻击和多目标爆发。    | ![[game/assets/art/cards/artwork/card_arc_sweep_finish.png\|弧光横扫卡面]] |
+| 弧光横扫 | 宽幅紫色弧光横扫多名敌人，用于支撑终结牌 `card.arc_sweep_finish` 的群体攻击和多目标爆发。    | ![[game/assets/art/cards/artwork/card_arc_sweep_finish.png\|弧光横扫卡面]] |
 | 回流终结 | 紫色能量斩击命中后形成回旋流线，用于支撑终结牌 `card_refund_finish` 的伤害与资源返还感。      | ![[game/assets/art/cards/artwork/card_refund_finish.png\|回流终结卡面]]    |
 | 壁垒终结 | 巨大紫黑晶体壁垒拔地而起，用于支撑终结牌 `card_bulwark_finish` 的高额防御和压迫感。        | ![[game/assets/art/cards/artwork/card_bulwark_finish.png\|壁垒终结卡面]]   |
 
@@ -84,6 +84,10 @@
 | 8 层阈值达成 | 高阈值反馈，提示成型爆发窗口。 | ![[game/assets/art/vfx/vfx_chain_threshold_8_burst.png\|8 层阈值大爆闪]] |
 | 终结牌释放 | 终结牌出手、连锁兑现和高爆发前摇 / 命中叠层。 | ![[game/assets/art/vfx/vfx_finisher_release_shockwave.png\|终结牌紫黑冲击波]] |
 | 敌人受击 | 敌人受到伤害时的命中爆点，可叠加伤害数字。 | ![[game/assets/art/vfx/vfx_enemy_hit_comic_burst.png\|敌人受击漫画爆点]] |
+
+## 运行时组合规则
+
+Godot 表现层应通过 `game/data/presentation/assets.json`、`card_views.json`、`enemy_views.json`、`relic_views.json` 和 `reward_pack_views.json` 组合视觉资源。卡牌在运行时由类型模板、卡面插画、规则文本和状态高亮叠加生成；敌人由遭遇实例和 `enemy_views` 的立绘资源生成；奖励包和遗物由对应 view 显示。新增美术资源只有进入 asset manifest 并被 view 引用后，才视为已接入游戏。
 
 ## 设计准则
 

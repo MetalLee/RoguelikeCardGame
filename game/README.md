@@ -126,7 +126,7 @@ var result = cardPlayService.PlayCard(
 - 当前是否为玩家回合。
 - 卡牌是否在手牌中。
 - 行动牌行动点是否足够。
-- 终结牌是否满足 `min_chain`。
+- 终结牌是否满足由 `requirements` 派生出的连锁要求。
 - 单体敌人牌是否有合法目标。
 
 如果失败，`PlayCardResult` 会返回：

@@ -1,11 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "res://data/schemas/encounters.schema.json",
-  "title": "RoguelikeCardGame Encounters",
+  "$id": "res://data/schemas/gameplay/encounters.schema.json",
+  "title": "RoguelikeCardGame Gameplay Encounters",
   "type": "object",
-  "required": ["content_version", "items"],
+  "required": ["schema", "content_version", "items"],
   "additionalProperties": false,
   "properties": {
+    "schema": { "const": "roguelike_card_game.encounters.v1" },
     "content_version": { "type": "string" },
     "items": {
       "type": "array",
@@ -14,11 +15,10 @@
         "required": ["id", "node_type", "enemies", "reward_profile", "teaching_goal_key", "difficulty_note"],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "id": { "type": "string", "pattern": "^encounter\\.[a-z0-9_.]+$" },
           "node_type": { "type": "string", "enum": ["normal", "elite", "boss"] },
           "enemies": {
             "type": "array",
-            "minItems": 1,
             "items": {
               "type": "object",
               "required": ["instance_id", "enemy_id"],

@@ -47,9 +47,9 @@
 
 | 奖励包 ID | 类型 | 美术资源 |
 | --- | --- | --- |
-| `reward_pack_mvp_action` | 行动牌包，血红、斩击纹理、攻击性边框。 | ![[game/assets/art/cards/packs/reward_pack_mvp_action.png|行动牌包]] |
-| `reward_pack_mvp_skill` | 技能牌包，冷青 / 幽蓝、护盾、观察和抽牌感。 | ![[game/assets/art/cards/packs/reward_pack_mvp_skill.png|技能牌包]] |
-| `reward_pack_mvp_finisher` | 终结牌包，紫黑、链环、爆发和终结感。 | ![[game/assets/art/cards/packs/reward_pack_mvp_finisher.png|终结牌包]] |
+| `reward_pack.mvp.action` | 行动牌包，血红、斩击纹理、攻击性边框。 | ![[game/assets/art/cards/packs/reward_pack_mvp_action.png|行动牌包]] |
+| `reward_pack.mvp.skill` | 技能牌包，冷青 / 幽蓝、护盾、观察和抽牌感。 | ![[game/assets/art/cards/packs/reward_pack_mvp_skill.png|技能牌包]] |
+| `reward_pack.mvp.finisher` | 终结牌包，紫黑、链环、爆发和终结感。 | ![[game/assets/art/cards/packs/reward_pack_mvp_finisher.png|终结牌包]] |
 
 ## 奖励选择准则
 

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "res://data/schemas/presentation/relic_views.schema.json",
+  "title": "RoguelikeCardGame Relic Views",
+  "type": "object",
+  "required": ["schema", "content_version", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "roguelike_card_game.relic_views.v1" },
+    "content_version": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name_key", "rules_key", "icon_asset"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "name_key": { "type": "string" },
+          "rules_key": { "type": "string" },
+          "icon_asset": { "type": "string" }
+        }
+      }
+    }
+  }
+}

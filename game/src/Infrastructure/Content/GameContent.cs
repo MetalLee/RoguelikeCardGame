@@ -9,6 +9,61 @@ using RoguelikeCardGame.Domain.Rewards;
 
 namespace RoguelikeCardGame.Infrastructure.Content;
 
+public sealed record CardViewDefinition
+{
+    public required string Id { get; init; }
+
+    public required string NameKey { get; init; }
+
+    public required string RulesKey { get; init; }
+
+    public required string FlavorKey { get; init; }
+
+    public required string TemplateAsset { get; init; }
+
+    public required string ArtAsset { get; init; }
+}
+
+public sealed record EnemyViewDefinition
+{
+    public required string Id { get; init; }
+
+    public required string NameKey { get; init; }
+
+    public required string StandAsset { get; init; }
+
+    public Dictionary<string, string> IntentTextKeys { get; init; } = new(StringComparer.Ordinal);
+}
+
+public sealed record RelicViewDefinition
+{
+    public required string Id { get; init; }
+
+    public required string NameKey { get; init; }
+
+    public required string RulesKey { get; init; }
+
+    public required string IconAsset { get; init; }
+}
+
+public sealed record RewardPackViewDefinition
+{
+    public required string Id { get; init; }
+
+    public required string NameKey { get; init; }
+
+    public required string IconAsset { get; init; }
+}
+
+public sealed record AssetDefinition
+{
+    public required string Id { get; init; }
+
+    public required string Type { get; init; }
+
+    public required string Path { get; init; }
+}
+
 public sealed class GameContent
 {
     public IReadOnlyDictionary<string, CardDefinition> CardsById { get; private init; } =
@@ -26,6 +81,21 @@ public sealed class GameContent
     public IReadOnlyDictionary<string, RelicDefinition> RelicsById { get; private init; } =
         new Dictionary<string, RelicDefinition>();
 
+    public IReadOnlyDictionary<string, CardViewDefinition> CardViewsById { get; private init; } =
+        new Dictionary<string, CardViewDefinition>();
+
+    public IReadOnlyDictionary<string, EnemyViewDefinition> EnemyViewsById { get; private init; } =
+        new Dictionary<string, EnemyViewDefinition>();
+
+    public IReadOnlyDictionary<string, RelicViewDefinition> RelicViewsById { get; private init; } =
+        new Dictionary<string, RelicViewDefinition>();
+
+    public IReadOnlyDictionary<string, RewardPackViewDefinition> RewardPackViewsById { get; private init; } =
+        new Dictionary<string, RewardPackViewDefinition>();
+
+    public IReadOnlyDictionary<string, AssetDefinition> AssetsById { get; private init; } =
+        new Dictionary<string, AssetDefinition>();
+
     public IReadOnlyDictionary<string, string> Text { get; private init; } =
         new Dictionary<string, string>();
 
@@ -33,16 +103,48 @@ public sealed class GameContent
 
     public string T(string key) => Text.TryGetValue(key, out var value) ? value : key;
 
+    public string CardName(string cardId) => T(CardViewsById[cardId].NameKey);
+
+    public string CardRules(string cardId) => T(CardViewsById[cardId].RulesKey);
+
+    public string CardLabel(string cardId) => $"{CardName(cardId)}\n{CardRules(cardId)}";
+
+    public string EnemyName(string enemyId) => T(EnemyViewsById[enemyId].NameKey);
+
+    public string EnemyIntentText(string enemyId, string intentId)
+    {
+        return EnemyViewsById.TryGetValue(enemyId, out var view) &&
+               view.IntentTextKeys.TryGetValue(intentId, out var key)
+            ? T(key)
+            : intentId;
+    }
+
+    public string RelicName(string relicId) => T(RelicViewsById[relicId].NameKey);
+
+    public string RelicRules(string relicId) => T(RelicViewsById[relicId].RulesKey);
+
+    public string RewardPackName(string packId) => T(RewardPackViewsById[packId].NameKey);
+
     public static GameContent LoadFromProject()
     {
         var root = ProjectSettings.GlobalizePath("res://data");
-        var cards = ReadItems(Path.Combine(root, "cards", "cards.json"), ParseCard);
-        var enemies = ReadItems(Path.Combine(root, "enemies", "enemies.json"), ParseEnemy);
-        var encounters = ReadItems(Path.Combine(root, "encounters", "encounters.json"), ParseEncounter);
-        var rewardPacks = ReadItems(Path.Combine(root, "rewards", "reward_packs.json"), ParseRewardPack);
-        var relics = ReadItems(Path.Combine(root, "relics", "relics.json"), ParseRelic);
+        var gameplay = Path.Combine(root, "gameplay");
+        var presentation = Path.Combine(root, "presentation");
+
+        var cards = ReadItems(Path.Combine(gameplay, "cards", "cards.json"), ParseCard);
+        var enemies = ReadItems(Path.Combine(gameplay, "enemies", "enemies.json"), ParseEnemy);
+        var encounters = ReadItems(Path.Combine(gameplay, "encounters", "encounters.json"), ParseEncounter);
+        var rewardPacks = ReadItems(Path.Combine(gameplay, "rewards", "reward_packs.json"), ParseRewardPack);
+        var relics = ReadItems(Path.Combine(gameplay, "relics", "relics.json"), ParseRelic);
+
+        var cardViews = ReadItems(Path.Combine(presentation, "card_views.json"), ParseCardView);
+        var enemyViews = ReadItems(Path.Combine(presentation, "enemy_views.json"), ParseEnemyView);
+        var relicViews = ReadItems(Path.Combine(presentation, "relic_views.json"), ParseRelicView);
+        var rewardPackViews = ReadItems(Path.Combine(presentation, "reward_pack_views.json"), ParseRewardPackView);
+        var assets = ReadItems(Path.Combine(presentation, "assets.json"), ParseAsset);
+
         var text = ReadLocalization(Path.Combine(root, "localization", "zh_hans.json"));
-        var run = ReadRunSequence(Path.Combine(root, "run_sequence", "mvp_run.json"));
+        var run = ReadRunSequence(Path.Combine(gameplay, "runs", "mvp_run.json"));
 
         return new GameContent
         {
@@ -51,6 +153,11 @@ public sealed class GameContent
             EncountersById = encounters.ToDictionary(encounter => encounter.Id, StringComparer.Ordinal),
             RewardPacksById = rewardPacks.ToDictionary(pack => pack.Id, StringComparer.Ordinal),
             RelicsById = relics.ToDictionary(relic => relic.Id, StringComparer.Ordinal),
+            CardViewsById = cardViews.ToDictionary(view => view.Id, StringComparer.Ordinal),
+            EnemyViewsById = enemyViews.ToDictionary(view => view.Id, StringComparer.Ordinal),
+            RelicViewsById = relicViews.ToDictionary(view => view.Id, StringComparer.Ordinal),
+            RewardPackViewsById = rewardPackViews.ToDictionary(view => view.Id, StringComparer.Ordinal),
+            AssetsById = assets.ToDictionary(asset => asset.Id, StringComparer.Ordinal),
             Text = text,
             MvpRun = run
         };
@@ -108,45 +215,79 @@ public sealed class GameContent
 
     private static CardDefinition ParseCard(JsonElement item)
     {
+        var effects = item.GetProperty("effects").EnumerateArray().ToList();
         return new CardDefinition
         {
             Id = item.GetProperty("id").GetStringRequired("id"),
-            Type = ParseCardType(item.GetProperty("type").GetStringRequired("type")),
-            Cost = item.GetProperty("cost").GetInt32(),
-            MinChain = item.TryGetProperty("min_chain", out var minChain) ? minChain.GetInt32() : null,
-            DefaultChainChange = ParseChainChange(item.GetProperty("default_chain_delta")),
-            TargetRule = ParseTargetRule(item.GetProperty("target_rule").GetStringRequired("target_rule")),
-            Effects = item.GetProperty("effects").EnumerateArray().Select(ParseEffect).ToList(),
+            Type = ParseCardType(item.GetProperty("card_type").GetStringRequired("card_type")),
+            Cost = ParseActionPointCost(item),
+            MinChain = ParseMinChain(item),
+            DefaultChainChange = ParseDefaultChainChange(effects),
+            TargetRule = ParseTargetRule(item.GetProperty("targeting")),
+            Effects = effects.SelectMany(ParseCardEffect).ToList(),
             Rarity = ParseCardRarity(item.GetProperty("rarity").GetStringRequired("rarity")),
-            Tags = ReadStringList(item, "tags"),
-            TextKey = item.GetProperty("text_key").GetStringRequired("text_key"),
-            ArtKey = item.GetProperty("art_key").GetStringRequired("art_key")
+            Tags = ReadStringList(item, "tags")
         };
     }
 
-    private static EffectDefinition ParseEffect(JsonElement item)
+    private static IEnumerable<EffectDefinition> ParseCardEffect(JsonElement item)
     {
-        return new EffectDefinition
+        var op = item.GetProperty("op").GetStringRequired("op");
+        if (op == "gain_resource" && item.GetProperty("resource").GetString() == "chain")
         {
-            Type = item.GetProperty("type").GetStringRequired("type"),
-            Target = item.TryGetProperty("target", out var target) ? target.GetString() : null,
-            Value = item.TryGetProperty("value", out var value) ? value.GetInt32() : null,
-            Threshold = item.TryGetProperty("threshold", out var threshold) ? threshold.GetInt32() : null,
-            Effect = item.TryGetProperty("effect", out var nested) ? ParseEffect(nested) : null
-        };
+            return [];
+        }
+
+        if (op == "set_resource" && item.GetProperty("resource").GetString() == "chain")
+        {
+            return [];
+        }
+
+        if (op == "gain_resource" && item.GetProperty("resource").GetString() == "action_point")
+        {
+            return [new EffectDefinition
+            {
+                Type = "gain_action_points",
+                Target = "self",
+                Value = item.GetProperty("amount").GetInt32()
+            }];
+        }
+
+        if (op == "conditional")
+        {
+            var condition = item.GetProperty("if");
+            var threshold = condition.GetProperty("amount").GetInt32();
+            var nested = item.GetProperty("then").EnumerateArray().SelectMany(ParseCardEffect).FirstOrDefault();
+            return nested is null
+                ? []
+                : [new EffectDefinition { Type = "chain_threshold_bonus", Threshold = threshold, Effect = nested }];
+        }
+
+        return [new EffectDefinition
+        {
+            Type = op switch
+            {
+                "gain_block" => "block",
+                _ => op
+            },
+            Target = ParseTargetRef(item),
+            Value = item.TryGetProperty("amount", out var amount) ? amount.GetInt32() : null
+        }];
     }
 
     private static EnemyDefinition ParseEnemy(JsonElement item)
     {
+        var rank = item.GetProperty("rank").GetStringRequired("rank");
+        var tags = new List<string> { rank };
+        tags.AddRange(ReadStringList(item, "tags"));
+
         return new EnemyDefinition
         {
             Id = item.GetProperty("id").GetStringRequired("id"),
-            MaxHp = item.GetProperty("max_hp").GetInt32(),
-            IntentSequence = item.GetProperty("intent_sequence").EnumerateArray().Select(ParseEnemyIntent).ToList(),
-            StatusImmunities = ReadStringList(item, "status_immunities"),
-            Tags = ReadStringList(item, "tags"),
-            ArtKey = item.GetProperty("art_key").GetStringRequired("art_key"),
-            UiNameKey = item.GetProperty("ui_name_key").GetStringRequired("ui_name_key")
+            MaxHp = item.GetProperty("stats").GetProperty("max_hp").GetInt32(),
+            IntentSequence = item.GetProperty("ai").GetProperty("intents").EnumerateArray().Select(ParseEnemyIntent).ToList(),
+            StatusImmunities = ReadStringList(item, "immunities"),
+            Tags = tags.Distinct(StringComparer.Ordinal).ToList()
         };
     }
 
@@ -155,9 +296,23 @@ public sealed class GameContent
         return new EnemyIntentDefinition
         {
             Id = item.GetProperty("id").GetStringRequired("id"),
-            IntentType = ParseEnemyIntentType(item.GetProperty("intent_type").GetStringRequired("intent_type")),
-            UiTextKey = item.GetProperty("ui_text_key").GetStringRequired("ui_text_key"),
-            Effects = item.GetProperty("effects").EnumerateArray().Select(ParseEffect).ToList()
+            IntentType = ParseEnemyIntentType(item.GetProperty("preview")),
+            Effects = item.GetProperty("effects").EnumerateArray().Select(ParseEnemyEffect).ToList()
+        };
+    }
+
+    private static EffectDefinition ParseEnemyEffect(JsonElement item)
+    {
+        var op = item.GetProperty("op").GetStringRequired("op");
+        return new EffectDefinition
+        {
+            Type = op switch
+            {
+                "gain_block" => "gain_block",
+                _ => op
+            },
+            Target = ParseTargetRef(item),
+            Value = item.GetProperty("amount").GetInt32()
         };
     }
 
@@ -189,16 +344,16 @@ public sealed class GameContent
 
     private static RewardPackDefinition ParseRewardPack(JsonElement item)
     {
+        var pick = item.GetProperty("pick");
         return new RewardPackDefinition
         {
             Id = item.GetProperty("id").GetStringRequired("id"),
             PackType = ParseCardType(item.GetProperty("pack_type").GetStringRequired("pack_type")),
             CandidateIds = ReadStringList(item, "candidate_ids"),
-            MinPick = item.GetProperty("min_pick").GetInt32(),
-            MaxPick = item.GetProperty("max_pick").GetInt32(),
+            MinPick = pick.GetProperty("min").GetInt32(),
+            MaxPick = pick.GetProperty("max").GetInt32(),
             GuaranteeRule = item.GetProperty("guarantee_rule").GetStringRequired("guarantee_rule"),
-            RepeatRule = ParseRepeatRule(item.GetProperty("repeat_rule").GetStringRequired("repeat_rule")),
-            TextKey = item.GetProperty("text_key").GetStringRequired("text_key")
+            RepeatRule = ParseRepeatRule(item.GetProperty("repeat_rule").GetStringRequired("repeat_rule"))
         };
     }
 
@@ -212,22 +367,152 @@ public sealed class GameContent
             Conditions = item.GetProperty("conditions").EnumerateArray()
                 .Select(condition => new RelicConditionDefinition
                 {
-                    Type = condition.GetProperty("type").GetStringRequired("type"),
+                    Type = condition.GetProperty("op").GetStringRequired("op"),
                     Value = condition.TryGetProperty("value", out var value) ? value.GetString() : null
                 })
                 .ToList(),
-            Effects = item.GetProperty("effects").EnumerateArray().Select(ParseEffect).ToList(),
-            StackRule = ParseRelicStackRule(item.GetProperty("stack_rule").GetStringRequired("stack_rule")),
-            TextKey = item.GetProperty("text_key").GetStringRequired("text_key"),
-            IconKey = item.GetProperty("icon_key").GetStringRequired("icon_key")
+            Effects = item.GetProperty("effects").EnumerateArray().Select(ParseRelicEffect).ToList(),
+            StackRule = ParseRelicStackRule(item.GetProperty("stack_rule").GetStringRequired("stack_rule"))
         };
     }
 
-    private static ChainChange ParseChainChange(JsonElement value)
+    private static EffectDefinition ParseRelicEffect(JsonElement item)
     {
-        return value.ValueKind == JsonValueKind.String && value.GetString() == "consume_all"
-            ? ChainChange.ConsumeAll
-            : ChainChange.Gain(value.GetInt32());
+        var op = item.GetProperty("op").GetStringRequired("op");
+        return new EffectDefinition
+        {
+            Type = op,
+            Target = ParseTargetRef(item),
+            Value = item.GetProperty("amount").GetInt32()
+        };
+    }
+
+    private static CardViewDefinition ParseCardView(JsonElement item)
+    {
+        return new CardViewDefinition
+        {
+            Id = item.GetProperty("id").GetStringRequired("id"),
+            NameKey = item.GetProperty("name_key").GetStringRequired("name_key"),
+            RulesKey = item.GetProperty("rules_key").GetStringRequired("rules_key"),
+            FlavorKey = item.GetProperty("flavor_key").GetStringRequired("flavor_key"),
+            TemplateAsset = item.GetProperty("template_asset").GetStringRequired("template_asset"),
+            ArtAsset = item.GetProperty("art_asset").GetStringRequired("art_asset")
+        };
+    }
+
+    private static EnemyViewDefinition ParseEnemyView(JsonElement item)
+    {
+        return new EnemyViewDefinition
+        {
+            Id = item.GetProperty("id").GetStringRequired("id"),
+            NameKey = item.GetProperty("name_key").GetStringRequired("name_key"),
+            StandAsset = item.GetProperty("stand_asset").GetStringRequired("stand_asset"),
+            IntentTextKeys = item.GetProperty("intent_text_keys")
+                .EnumerateObject()
+                .ToDictionary(entry => entry.Name, entry => entry.Value.GetStringRequired(entry.Name), StringComparer.Ordinal)
+        };
+    }
+
+    private static RelicViewDefinition ParseRelicView(JsonElement item)
+    {
+        return new RelicViewDefinition
+        {
+            Id = item.GetProperty("id").GetStringRequired("id"),
+            NameKey = item.GetProperty("name_key").GetStringRequired("name_key"),
+            RulesKey = item.GetProperty("rules_key").GetStringRequired("rules_key"),
+            IconAsset = item.GetProperty("icon_asset").GetStringRequired("icon_asset")
+        };
+    }
+
+    private static RewardPackViewDefinition ParseRewardPackView(JsonElement item)
+    {
+        return new RewardPackViewDefinition
+        {
+            Id = item.GetProperty("id").GetStringRequired("id"),
+            NameKey = item.GetProperty("name_key").GetStringRequired("name_key"),
+            IconAsset = item.GetProperty("icon_asset").GetStringRequired("icon_asset")
+        };
+    }
+
+    private static AssetDefinition ParseAsset(JsonElement item)
+    {
+        return new AssetDefinition
+        {
+            Id = item.GetProperty("id").GetStringRequired("id"),
+            Type = item.GetProperty("type").GetStringRequired("type"),
+            Path = item.GetProperty("path").GetStringRequired("path")
+        };
+    }
+
+    private static int ParseActionPointCost(JsonElement item)
+    {
+        foreach (var cost in item.GetProperty("costs").EnumerateArray())
+        {
+            if (cost.GetProperty("resource").GetString() == "action_point")
+            {
+                return cost.GetProperty("amount").GetInt32();
+            }
+        }
+
+        return 0;
+    }
+
+    private static int? ParseMinChain(JsonElement item)
+    {
+        foreach (var requirement in item.GetProperty("requirements").EnumerateArray())
+        {
+            if (requirement.GetProperty("op").GetString() == "resource_at_least" &&
+                requirement.GetProperty("resource").GetString() == "chain")
+            {
+                return requirement.GetProperty("amount").GetInt32();
+            }
+        }
+
+        return null;
+    }
+
+    private static ChainChange ParseDefaultChainChange(IReadOnlyList<JsonElement> effects)
+    {
+        foreach (var effect in effects)
+        {
+            var op = effect.GetProperty("op").GetString();
+            if (op == "set_resource" &&
+                effect.GetProperty("resource").GetString() == "chain" &&
+                effect.GetProperty("amount").GetInt32() == 0)
+            {
+                return ChainChange.ConsumeAll;
+            }
+        }
+
+        foreach (var effect in effects)
+        {
+            var op = effect.GetProperty("op").GetString();
+            if (op == "gain_resource" && effect.GetProperty("resource").GetString() == "chain")
+            {
+                return ChainChange.Gain(effect.GetProperty("amount").GetInt32());
+            }
+        }
+
+        return ChainChange.None;
+    }
+
+    private static string? ParseTargetRef(JsonElement item)
+    {
+        if (!item.TryGetProperty("target", out var target) || target.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var targetRef = target.GetProperty("ref").GetString();
+        return targetRef switch
+        {
+            "all_enemies" => "all_enemies",
+            "selected_target" => "selected_enemy",
+            "self" => "self",
+            "player" => "player",
+            "hand_action_cards" => "hand_action_cards",
+            _ => targetRef
+        };
     }
 
     private static List<string> ReadStringList(JsonElement item, string propertyName)
@@ -254,22 +539,42 @@ public sealed class GameContent
         _ => throw new InvalidOperationException($"Unknown card rarity '{value}'.")
     };
 
-    private static TargetRule ParseTargetRule(string value) => value switch
+    private static TargetRule ParseTargetRule(JsonElement targeting)
     {
-        "single_enemy" => TargetRule.SingleEnemy,
-        "all_enemies" => TargetRule.AllEnemies,
-        "self" => TargetRule.Self,
-        "none" => TargetRule.None,
-        _ => throw new InvalidOperationException($"Unknown target rule '{value}'.")
-    };
+        var mode = targeting.GetProperty("mode").GetStringRequired("targeting.mode");
+        var side = targeting.GetProperty("side").GetStringRequired("targeting.side");
+        return (mode, side) switch
+        {
+            ("single", "enemy") => TargetRule.SingleEnemy,
+            ("all", "enemy") => TargetRule.AllEnemies,
+            ("self", "player") => TargetRule.Self,
+            ("none", _) => TargetRule.None,
+            _ => throw new InvalidOperationException($"Unknown targeting rule '{mode}/{side}'.")
+        };
+    }
 
-    private static EnemyIntentType ParseEnemyIntentType(string value) => value switch
+    private static EnemyIntentType ParseEnemyIntentType(JsonElement previews)
     {
-        "attack" => EnemyIntentType.Attack,
-        "defend" => EnemyIntentType.Defend,
-        "mixed" => EnemyIntentType.Mixed,
-        _ => throw new InvalidOperationException($"Unknown enemy intent type '{value}'.")
-    };
+        var kinds = previews.EnumerateArray()
+            .Select(preview => preview.GetProperty("kind").GetString())
+            .Where(kind => !string.IsNullOrWhiteSpace(kind))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (kinds.Count > 1)
+        {
+            return EnemyIntentType.Mixed;
+        }
+
+        return kinds.FirstOrDefault() switch
+        {
+            "attack" => EnemyIntentType.Attack,
+            "block" => EnemyIntentType.Defend,
+            "buff" => EnemyIntentType.Buff,
+            "debuff" => EnemyIntentType.Debuff,
+            _ => EnemyIntentType.Mixed
+        };
+    }
 
     private static EncounterNodeType ParseEncounterNodeType(string value) => value switch
     {

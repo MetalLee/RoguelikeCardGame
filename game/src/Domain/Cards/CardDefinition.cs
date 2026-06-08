@@ -76,9 +76,4 @@ public sealed record CardDefinition
     [JsonPropertyName("tags")]
     public List<string> Tags { get; init; } = new();
 
-    [JsonPropertyName("text_key")]
-    public required string TextKey { get; init; }
-
-    [JsonPropertyName("art_key")]
-    public required string ArtKey { get; init; }
 }

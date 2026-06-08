@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "res://data/schemas/presentation/reward_pack_views.schema.json",
+  "title": "RoguelikeCardGame Reward Pack Views",
+  "type": "object",
+  "required": ["schema", "content_version", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "roguelike_card_game.reward_pack_views.v1" },
+    "content_version": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name_key", "icon_asset"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "name_key": { "type": "string" },
+          "icon_asset": { "type": "string" }
+        }
+      }
+    }
+  }
+}

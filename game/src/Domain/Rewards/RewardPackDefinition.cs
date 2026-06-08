@@ -32,6 +32,4 @@ public sealed record RewardPackDefinition
     [JsonPropertyName("repeat_rule")]
     public RewardRepeatRule RepeatRule { get; init; }
 
-    [JsonPropertyName("text_key")]
-    public required string TextKey { get; init; }
 }

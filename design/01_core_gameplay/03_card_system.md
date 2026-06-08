@@ -48,23 +48,23 @@
 
 卡面资源是卡牌插画层，不包含卡框、卡牌名、费用、连锁需求或规则文本。Godot 表现层应按 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]] 中的卡牌视觉素材组合约定，将卡面资源与对应类型模板、数据文本和状态叠层动态组合成卡牌实例。
 
-| 卡牌 ID | 卡牌名 | 类型 | art_key | 卡面资源 | 用途说明 |
+| 卡牌 ID | 卡牌名 | 类型 | art asset | 卡面资源 | 用途说明 |
 | --- | --- | --- | --- | --- | --- |
-| `card_basic_strike` | 基础斩击 | 行动牌 | `art.card.basic_strike` | ![[game/assets/art/cards/artwork/card_basic_strike.png\|基础斩击卡面]] | 初始牌组 1 费普通攻击，用于表达基础出牌、伤害和 +1 连锁的教学职责。 |
-| `card_quick_jab` | 迅捷刺击 | 行动牌 | `art.card.quick_jab` | ![[game/assets/art/cards/artwork/card_quick_jab.png\|迅捷刺击卡面]] | 初始牌组 0 费弱攻击，用于表达低成本启动、补足连锁和轻击节奏。 |
-| `card_heavy_strike` | 重斩 | 行动牌 | `art.card.heavy_strike` | ![[game/assets/art/cards/artwork/card_heavy_strike.png\|重斩卡面]] | 初始牌组 2 费强攻击，用于表达高行动点成本对应更强伤害和重击反馈。 |
-| `card_chain_cut` | 连段切击 | 行动牌 | `art.card.chain_cut` | ![[game/assets/art/cards/artwork/card_chain_cut.png\|连段切击卡面]] | 行动牌奖励池中的稳定输出牌，用于表现连续斩击和连锁推进。 |
-| `card_flow_step` | 流步 | 行动牌 | `art.card.flow_step` | ![[game/assets/art/cards/artwork/card_flow_step.png\|流步卡面]] | 行动牌奖励池中的低费连锁牌，用于表现位移、追击和快速启动。 |
-| `card_guard_break` | 破防重击 | 行动牌 | `art.card.guard_break` | ![[game/assets/art/cards/artwork/card_guard_break.png\|破防重击卡面]] | 行动牌奖励池中的高费强打牌，用于表现破盾、强命中和高压输出。 |
-| `card_basic_guard` | 基础防御 | 技能牌 | `art.card.basic_guard` | ![[game/assets/art/cards/artwork/card_basic_guard.png\|基础防御卡面]] | 初始牌组基础防御技能，用于表达防御架势、护盾反馈和回费辅助。 |
-| `card_tactical_read` | 战术观察 | 技能牌 | `art.card.tactical_read` | ![[game/assets/art/cards/artwork/card_tactical_read.png\|战术观察卡面]] | 初始牌组过牌技能，用于表达观察、预判和寻找后续行动牌。 |
-| `card_second_wind` | 回稳 | 技能牌 | `art.card.second_wind` | ![[game/assets/art/cards/artwork/card_second_wind.png\|回稳卡面]] | 技能牌奖励池中的防御 / 回费牌，用于表达重新站稳、恢复节奏和防守转进。 |
-| `card_deep_focus` | 深度专注 | 技能牌 | `art.card.deep_focus` | ![[game/assets/art/cards/artwork/card_deep_focus.png\|深度专注卡面]] | 技能牌奖励池中的过牌牌，用于表达专注蓄势、沉静观察和卡组运转。 |
-| `card_setup_discount` | 预备减费 | 技能牌 | `art.card.setup_discount` | ![[game/assets/art/cards/artwork/card_setup_discount.png\|预备减费卡面]] | 技能牌奖励池中的减费占位牌，用于表达准备姿态、资源调整和下步连段铺垫。 |
-| `card_burst_finish` | 爆裂终结 | 终结牌 | `art.card.burst_finish` | ![[game/assets/art/cards/artwork/card_burst_finish.png\|爆裂终结卡面]] | 初始牌组单体爆发终结牌，用于表达连锁兑现后的强力单体伤害。 |
-| `card_arc_sweep_finish` | 弧光横扫 | 终结牌 | `art.card.arc_sweep_finish` | ![[game/assets/art/cards/artwork/card_arc_sweep_finish.png\|弧光横扫卡面]] | 终结牌奖励池中的群体攻击牌，用于支撑多敌人教学和范围爆发。 |
-| `card_refund_finish` | 回流终结 | 终结牌 | `art.card.refund_finish` | ![[game/assets/art/cards/artwork/card_refund_finish.png\|回流终结卡面]] | 终结牌奖励池中的资源返还牌，用于表达释放后回流行动点和继续操作空间。 |
-| `card_bulwark_finish` | 壁垒终结 | 终结牌 | `art.card.bulwark_finish` | ![[game/assets/art/cards/artwork/card_bulwark_finish.png\|壁垒终结卡面]] | 终结牌奖励池中的防御终结牌，用于表达高连锁后转化为坚固壁垒。 |
+| `card.basic_strike` | 基础斩击 | 行动牌 | `asset.card.basic_strike.art` | ![[game/assets/art/cards/artwork/card_basic_strike.png\|基础斩击卡面]] | 初始牌组 1 费普通攻击，用于表达基础出牌、伤害和 +1 连锁的教学职责。 |
+| `card.quick_jab` | 迅捷刺击 | 行动牌 | `asset.card.quick_jab.art` | ![[game/assets/art/cards/artwork/card_quick_jab.png\|迅捷刺击卡面]] | 初始牌组 0 费弱攻击，用于表达低成本启动、补足连锁和轻击节奏。 |
+| `card.heavy_strike` | 重斩 | 行动牌 | `asset.card.heavy_strike.art` | ![[game/assets/art/cards/artwork/card_heavy_strike.png\|重斩卡面]] | 初始牌组 2 费强攻击，用于表达高行动点成本对应更强伤害和重击反馈。 |
+| `card.chain_cut` | 连段切击 | 行动牌 | `asset.card.chain_cut.art` | ![[game/assets/art/cards/artwork/card_chain_cut.png\|连段切击卡面]] | 行动牌奖励池中的稳定输出牌，用于表现连续斩击和连锁推进。 |
+| `card.flow_step` | 流步 | 行动牌 | `asset.card.flow_step.art` | ![[game/assets/art/cards/artwork/card_flow_step.png\|流步卡面]] | 行动牌奖励池中的低费连锁牌，用于表现位移、追击和快速启动。 |
+| `card.guard_break` | 破防重击 | 行动牌 | `asset.card.guard_break.art` | ![[game/assets/art/cards/artwork/card_guard_break.png\|破防重击卡面]] | 行动牌奖励池中的高费强打牌，用于表现破盾、强命中和高压输出。 |
+| `card.basic_guard` | 基础防御 | 技能牌 | `asset.card.basic_guard.art` | ![[game/assets/art/cards/artwork/card_basic_guard.png\|基础防御卡面]] | 初始牌组基础防御技能，用于表达防御架势、护盾反馈和回费辅助。 |
+| `card.tactical_read` | 战术观察 | 技能牌 | `asset.card.tactical_read.art` | ![[game/assets/art/cards/artwork/card_tactical_read.png\|战术观察卡面]] | 初始牌组过牌技能，用于表达观察、预判和寻找后续行动牌。 |
+| `card.second_wind` | 回稳 | 技能牌 | `asset.card.second_wind.art` | ![[game/assets/art/cards/artwork/card_second_wind.png\|回稳卡面]] | 技能牌奖励池中的防御 / 回费牌，用于表达重新站稳、恢复节奏和防守转进。 |
+| `card.deep_focus` | 深度专注 | 技能牌 | `asset.card.deep_focus.art` | ![[game/assets/art/cards/artwork/card_deep_focus.png\|深度专注卡面]] | 技能牌奖励池中的过牌牌，用于表达专注蓄势、沉静观察和卡组运转。 |
+| `card.setup_discount` | 预备减费 | 技能牌 | `asset.card.setup_discount.art` | ![[game/assets/art/cards/artwork/card_setup_discount.png\|预备减费卡面]] | 技能牌奖励池中的减费占位牌，用于表达准备姿态、资源调整和下步连段铺垫。 |
+| `card.burst_finish` | 爆裂终结 | 终结牌 | `asset.card.burst_finish.art` | ![[game/assets/art/cards/artwork/card_burst_finish.png\|爆裂终结卡面]] | 初始牌组单体爆发终结牌，用于表达连锁兑现后的强力单体伤害。 |
+| `card.arc_sweep_finish` | 弧光横扫 | 终结牌 | `asset.card.arc_sweep_finish.art` | ![[game/assets/art/cards/artwork/card_arc_sweep_finish.png\|弧光横扫卡面]] | 终结牌奖励池中的群体攻击牌，用于支撑多敌人教学和范围爆发。 |
+| `card.refund_finish` | 回流终结 | 终结牌 | `asset.card.refund_finish.art` | ![[game/assets/art/cards/artwork/card_refund_finish.png\|回流终结卡面]] | 终结牌奖励池中的资源返还牌，用于表达释放后回流行动点和继续操作空间。 |
+| `card.bulwark_finish` | 壁垒终结 | 终结牌 | `asset.card.bulwark_finish.art` | ![[game/assets/art/cards/artwork/card_bulwark_finish.png\|壁垒终结卡面]] | 终结牌奖励池中的防御终结牌，用于表达高连锁后转化为坚固壁垒。 |
 
 ## 初始牌组基准
 
@@ -143,9 +143,9 @@
 
 | 奖励包 ID | 包类型 | 美术资源 |
 | --- | --- | --- |
-| `reward_pack_mvp_action` | 行动牌包 | ![[game/assets/art/cards/packs/reward_pack_mvp_action.png\|行动牌包]] |
-| `reward_pack_mvp_skill` | 技能牌包 | ![[game/assets/art/cards/packs/reward_pack_mvp_skill.png\|技能牌包]] |
-| `reward_pack_mvp_finisher` | 终结牌包 | ![[game/assets/art/cards/packs/reward_pack_mvp_finisher.png\|终结牌包]] |
+| `reward_pack.mvp.action` | 行动牌包 | ![[game/assets/art/cards/packs/reward_pack_mvp_action.png\|行动牌包]] |
+| `reward_pack.mvp.skill` | 技能牌包 | ![[game/assets/art/cards/packs/reward_pack_mvp_skill.png\|技能牌包]] |
+| `reward_pack.mvp.finisher` | 终结牌包 | ![[game/assets/art/cards/packs/reward_pack_mvp_finisher.png\|终结牌包]] |
 
 ## 卡牌设计准则
 

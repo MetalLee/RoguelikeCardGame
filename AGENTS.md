@@ -592,8 +592,40 @@ game/logs/
 - `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
 - `dotnet build game\RoguelikeCardGame.csproj`：通过，0 个警告、0 个错误。
 - `.\game\tools\data_validator\validate_data.ps1`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
-- `.\game\tools\debug_mvp\debug_mvp.ps1 -EncounterId encounter_mvp_normal_03 -Seed 424242 -AddCard card_arc_sweep_finish -RewardPackId reward_pack_mvp_finisher`：通过，并在 `game/logs/` 下生成调试会话、战斗日志骨架和试玩指标骨架。
+- `.\game\tools\debug_mvp\debug_mvp.ps1 -EncounterId encounter.mvp.normal_03 -Seed 424242 -AddCard card.arc_sweep_finish -RewardPackId reward_pack.mvp.finisher`：通过，并在 `game/logs/` 下生成调试会话、战斗日志骨架和试玩指标骨架。
 - 当前 Codex 沙箱中直接运行 `dotnet` 仍可能因写入 `obj` / `.godot\mono\temp\obj` 缓存受限而失败；已按权限规则重跑并验证通过。
+
+### 2026-06-08 数据结构重构完成记录
+
+已完成：
+- 已将第一版 MVP 内容数据迁移为分层结构：`game/data/gameplay/` 保存可结算规则数据，`game/data/presentation/` 保存 view 与 asset manifest，`game/data/localization/` 保存文本。
+- 已将内容 ID 统一为命名空间格式，例如 `card.basic_strike`、`enemy.chain_warden`、`relic.mvp_chain_spark`、`reward_pack.mvp.finisher`、`encounter.mvp.normal_03`。
+- 已将卡牌 `cost`、`min_chain`、`default_chain_delta`、`target_rule` 等旧扁平字段迁移为 `costs`、`requirements`、`targeting` 与显式 `effects` DSL；行动牌加连锁、终结牌清空连锁和阈值奖励都在规则 DSL 中表达。
+- 已将敌人 `intent_sequence` 迁移为 `ai.fixed_sequence.intents`，并将 UI `preview` 与真实 `effects` 分离。
+- 已从规则层 Domain 模型中移除卡牌 / 敌人 / 遗物 / 奖励包的展示字段，Godot 表现层通过 `GameContent` 查询 card / enemy / relic / reward pack view。
+- 已删除旧路径下的内容 JSON 与旧 schema，避免后续开发误用旧结构。
+- 已更新 `game/tools/data_validator/validate_data.py`，校验 12 个数据文件和 12 个 schema，并检查 gameplay / presentation / localization / asset manifest 之间的交叉引用。
+
+验证结果：
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过。
+
+### 2026-06-08 UI 资源接入完成记录
+
+已完成：
+- 已盘点当前 `game/assets/art/` 下可用于第一版 MVP 的背景、主角、卡牌模板、卡面插画、卡牌包、敌人、遗物、UI 图标和 VFX 资源；当前主要缺口不是 PNG 文件缺失，而是这些资源尚未接入 Godot 运行界面。
+- 已扩展 `game/data/presentation/assets.json`，补齐背景、主角、UI 图标和 VFX 的 asset manifest 记录，使表现层可以通过稳定 asset ID 读取资源。
+- 已更新 `game/src/Presentation/Menus/MainMenu.cs`，让主菜单、战斗、奖励选择和结算流程读取 `GameContent` 中的 presentation view：背景图、剑客立绘、敌人立绘、卡牌模板、卡面插画、卡牌包图、遗物图标、状态图标和结算 VFX 均已接入当前真实游戏程序。
+- 已将 PNG 加载改为直接读取图片字节并创建 `ImageTexture`，避免依赖本地 `.import` 缓存导致新环境打开项目时资源不显示。
+- 已更新 [[design/03_experience/00_ui_ux|界面与交互]]、[[design/03_experience/01_visual_direction|视觉方向]] 和 [[design/08_governance/01_change_log|变更日志]]，明确新增美术资源必须进入 asset manifest 并被 view 引用后才视为已接入游戏。
+- 本轮仍未拆分正式 `BattleScreen` / `RewardScreen` 场景组件，也未实现完整动画时间轴；当前目标是把已生成的场景与 UI 资源先接入可玩的 MVP 主流程。
+
+验证结果：
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `godot-mono --headless --path game --quit`：通过，项目可加载，且不再输出 PNG resource loader 错误。
 
 ### 任务 12：MVP 体验打磨与验收
 

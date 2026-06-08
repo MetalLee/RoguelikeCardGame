@@ -1,0 +1,243 @@
+{
+  "schema": "roguelike_card_game.cards.v1",
+  "content_version": "mvp.0.2",
+  "items": [
+    {
+      "id": "card.basic_strike",
+      "card_type": "action",
+      "rarity": "starter",
+      "costs": [{ "resource": "action_point", "amount": 1 }],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "effects": [
+        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 6 },
+        { "op": "gain_resource", "resource": "chain", "amount": 1 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["starter", "attack", "chain_builder"],
+      "balance": { "role": "basic_attack", "tier": 0 }
+    },
+    {
+      "id": "card.quick_jab",
+      "card_type": "action",
+      "rarity": "starter",
+      "costs": [],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "effects": [
+        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 3 },
+        { "op": "gain_resource", "resource": "chain", "amount": 1 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["starter", "attack", "low_cost", "chain_builder"],
+      "balance": { "role": "low_cost_starter", "tier": 0 }
+    },
+    {
+      "id": "card.heavy_strike",
+      "card_type": "action",
+      "rarity": "starter",
+      "costs": [{ "resource": "action_point", "amount": 2 }],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "effects": [
+        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 13 },
+        { "op": "gain_resource", "resource": "chain", "amount": 1 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["starter", "attack", "high_cost", "chain_builder"],
+      "balance": { "role": "heavy_starter_attack", "tier": 0 }
+    },
+    {
+      "id": "card.chain_cut",
+      "card_type": "action",
+      "rarity": "common",
+      "costs": [{ "resource": "action_point", "amount": 1 }],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "effects": [
+        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 7 },
+        { "op": "gain_resource", "resource": "chain", "amount": 1 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["reward", "attack", "chain_builder"],
+      "balance": { "role": "common_attack", "tier": 1 }
+    },
+    {
+      "id": "card.flow_step",
+      "card_type": "action",
+      "rarity": "common",
+      "costs": [],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "effects": [
+        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 4 },
+        { "op": "gain_resource", "resource": "chain", "amount": 1 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["reward", "attack", "low_cost", "chain_builder"],
+      "balance": { "role": "low_cost_chain", "tier": 1 }
+    },
+    {
+      "id": "card.guard_break",
+      "card_type": "action",
+      "rarity": "uncommon",
+      "costs": [{ "resource": "action_point", "amount": 2 }],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "effects": [
+        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 15 },
+        { "op": "gain_resource", "resource": "chain", "amount": 1 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["reward", "attack", "high_cost", "chain_builder"],
+      "balance": { "role": "high_cost_attack", "tier": 2 }
+    },
+    {
+      "id": "card.basic_guard",
+      "card_type": "skill",
+      "rarity": "starter",
+      "costs": [],
+      "requirements": [],
+      "targeting": { "mode": "self", "side": "player", "required": false },
+      "effects": [
+        { "op": "gain_block", "target": { "ref": "self" }, "amount": 6 },
+        { "op": "gain_resource", "resource": "action_point", "amount": 1 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["starter", "defense", "resource"],
+      "balance": { "role": "basic_defense", "tier": 0 }
+    },
+    {
+      "id": "card.tactical_read",
+      "card_type": "skill",
+      "rarity": "starter",
+      "costs": [],
+      "requirements": [],
+      "targeting": { "mode": "self", "side": "player", "required": false },
+      "effects": [
+        { "op": "draw_cards", "target": { "ref": "self" }, "amount": 2 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["starter", "draw"],
+      "balance": { "role": "starter_draw", "tier": 0 }
+    },
+    {
+      "id": "card.second_wind",
+      "card_type": "skill",
+      "rarity": "common",
+      "costs": [],
+      "requirements": [],
+      "targeting": { "mode": "self", "side": "player", "required": false },
+      "effects": [
+        { "op": "gain_block", "target": { "ref": "self" }, "amount": 4 },
+        { "op": "gain_resource", "resource": "action_point", "amount": 1 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["reward", "defense", "resource"],
+      "balance": { "role": "defense_refund", "tier": 1 }
+    },
+    {
+      "id": "card.deep_focus",
+      "card_type": "skill",
+      "rarity": "common",
+      "costs": [],
+      "requirements": [],
+      "targeting": { "mode": "self", "side": "player", "required": false },
+      "effects": [
+        { "op": "draw_cards", "target": { "ref": "self" }, "amount": 2 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["reward", "draw"],
+      "balance": { "role": "common_draw", "tier": 1 }
+    },
+    {
+      "id": "card.setup_discount",
+      "card_type": "skill",
+      "rarity": "uncommon",
+      "costs": [],
+      "requirements": [],
+      "targeting": { "mode": "self", "side": "player", "required": false },
+      "effects": [
+        { "op": "temporary_discount", "target": { "ref": "hand_action_cards" }, "amount": 1 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["reward", "discount"],
+      "balance": { "role": "discount_setup", "tier": 2 }
+    },
+    {
+      "id": "card.burst_finish",
+      "card_type": "finisher",
+      "rarity": "starter",
+      "costs": [],
+      "requirements": [{ "op": "resource_at_least", "resource": "chain", "amount": 3 }],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "effects": [
+        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 18 },
+        {
+          "op": "conditional",
+          "if": { "op": "resource_at_least", "resource": "chain", "amount": 5 },
+          "then": [
+            { "op": "damage", "target": { "ref": "selected_target" }, "amount": 18 }
+          ]
+        },
+        { "op": "set_resource", "resource": "chain", "amount": 0 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["starter", "finisher", "single_target"],
+      "balance": { "role": "single_target_burst", "tier": 0 }
+    },
+    {
+      "id": "card.arc_sweep_finish",
+      "card_type": "finisher",
+      "rarity": "common",
+      "costs": [],
+      "requirements": [{ "op": "resource_at_least", "resource": "chain", "amount": 3 }],
+      "targeting": { "mode": "all", "side": "enemy", "required": false },
+      "effects": [
+        { "op": "damage", "target": { "ref": "all_enemies" }, "amount": 10 },
+        {
+          "op": "conditional",
+          "if": { "op": "resource_at_least", "resource": "chain", "amount": 5 },
+          "then": [
+            { "op": "damage", "target": { "ref": "all_enemies" }, "amount": 6 }
+          ]
+        },
+        { "op": "set_resource", "resource": "chain", "amount": 0 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["reward", "finisher", "aoe"],
+      "balance": { "role": "aoe_finisher", "tier": 1 }
+    },
+    {
+      "id": "card.refund_finish",
+      "card_type": "finisher",
+      "rarity": "uncommon",
+      "costs": [],
+      "requirements": [{ "op": "resource_at_least", "resource": "chain", "amount": 5 }],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "effects": [
+        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 14 },
+        { "op": "gain_resource", "resource": "action_point", "amount": 1 },
+        { "op": "set_resource", "resource": "chain", "amount": 0 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["reward", "finisher", "resource"],
+      "balance": { "role": "resource_finisher", "tier": 2 }
+    },
+    {
+      "id": "card.bulwark_finish",
+      "card_type": "finisher",
+      "rarity": "uncommon",
+      "costs": [],
+      "requirements": [{ "op": "resource_at_least", "resource": "chain", "amount": 3 }],
+      "targeting": { "mode": "self", "side": "player", "required": false },
+      "effects": [
+        { "op": "gain_block", "target": { "ref": "self" }, "amount": 16 },
+        { "op": "set_resource", "resource": "chain", "amount": 0 }
+      ],
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["reward", "finisher", "defense"],
+      "balance": { "role": "defense_finisher", "tier": 2 }
+    }
+  ]
+}

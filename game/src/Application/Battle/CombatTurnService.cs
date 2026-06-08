@@ -113,7 +113,6 @@ public sealed class CombatTurnService
                     IntentIndex = enemy.IntentIndex,
                     IntentId = intent.Id,
                     IntentType = intent.IntentType,
-                    UiTextKey = intent.UiTextKey,
                     EffectPreviews = intent.Effects.Select(effect => new EnemyIntentEffectPreview
                     {
                         Type = effect.Type,
@@ -413,7 +412,7 @@ public sealed class CombatTurnService
             TurnNumber = combat.TurnNumber,
             SourceId = enemyInstanceId,
             TargetIds = targetIds.ToList(),
-            MessageKey = intent.UiTextKey,
+            MessageKey = intent.Id,
             NumericChanges = numericChanges,
             Metadata = new Dictionary<string, string>
             {

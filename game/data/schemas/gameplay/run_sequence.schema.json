@@ -1,13 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "res://data/schemas/run_sequence.schema.json",
-  "title": "RoguelikeCardGame Run Sequence",
+  "$id": "res://data/schemas/gameplay/run_sequence.schema.json",
+  "title": "RoguelikeCardGame Gameplay Run Sequence",
   "type": "object",
-  "required": ["content_version", "id", "player", "starter_deck", "nodes", "completion"],
+  "required": ["schema", "content_version", "id", "player", "starter_deck", "nodes", "completion"],
   "additionalProperties": false,
   "properties": {
+    "schema": { "const": "roguelike_card_game.run_sequence.v1" },
     "content_version": { "type": "string" },
-    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "id": { "type": "string", "pattern": "^run\\.[a-z0-9_.]+$" },
     "player": {
       "type": "object",
       "required": ["max_hp", "base_action_points", "cards_per_turn"],

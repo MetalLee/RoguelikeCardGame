@@ -57,10 +57,11 @@ def main() -> int:
     data_root = repo_root / "game" / "data"
     output_dir = args.output_dir or repo_root / "game" / "logs"
 
-    cards_by_id = index_items(load_json(data_root / "cards" / "cards.json"))
-    encounters_by_id = index_items(load_json(data_root / "encounters" / "encounters.json"))
-    rewards_by_id = index_items(load_json(data_root / "rewards" / "reward_packs.json"))
-    run_sequence = load_json(data_root / "run_sequence" / "mvp_run.json")
+    gameplay_root = data_root / "gameplay"
+    cards_by_id = index_items(load_json(gameplay_root / "cards" / "cards.json"))
+    encounters_by_id = index_items(load_json(gameplay_root / "encounters" / "encounters.json"))
+    rewards_by_id = index_items(load_json(gameplay_root / "rewards" / "reward_packs.json"))
+    run_sequence = load_json(gameplay_root / "runs" / "mvp_run.json")
 
     node_order = [
         node["encounter_id"]

@@ -3,9 +3,10 @@
   "$id": "res://data/schemas/localization.schema.json",
   "title": "RoguelikeCardGame Localization",
   "type": "object",
-  "required": ["content_version", "locale", "entries"],
+  "required": ["schema", "content_version", "locale", "entries"],
   "additionalProperties": false,
   "properties": {
+    "schema": { "const": "roguelike_card_game.localization.v1" },
     "content_version": { "type": "string" },
     "locale": { "type": "string" },
     "entries": {

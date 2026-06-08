@@ -1,0 +1,21 @@
+{
+  "schema": "roguelike_card_game.reward_pack_views.v1",
+  "content_version": "mvp.0.2",
+  "items": [
+    {
+      "id": "reward_pack.mvp.action",
+      "name_key": "reward_pack.mvp.action.name",
+      "icon_asset": "asset.reward_pack.mvp.action.icon"
+    },
+    {
+      "id": "reward_pack.mvp.skill",
+      "name_key": "reward_pack.mvp.skill.name",
+      "icon_asset": "asset.reward_pack.mvp.skill.icon"
+    },
+    {
+      "id": "reward_pack.mvp.finisher",
+      "name_key": "reward_pack.mvp.finisher.name",
+      "icon_asset": "asset.reward_pack.mvp.finisher.icon"
+    }
+  ]
+}
