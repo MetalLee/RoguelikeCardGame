@@ -2,8 +2,10 @@
   "schema": "roguelike_card_game.assets.v1",
   "content_version": "mvp.0.2",
   "items": [
-    { "id": "asset.background.mvp_battle", "type": "image", "path": "res://assets/art/backgrounds/mvp_battle_comic_ui_background.png" },
-    { "id": "asset.background.mvp_battle.hd", "type": "image", "path": "res://assets/art/backgrounds/mvp_battle_comic_ui_background_3840x2160.png" },
+    { "id": "asset.background.mvp_battle", "type": "image", "path": "res://assets/art/backgrounds/mvp_battle_desert_background_no_ui.png" },
+    { "id": "asset.background.mvp_battle.hd", "type": "image", "path": "res://assets/art/backgrounds/mvp_battle_desert_background_no_ui.png" },
+    { "id": "asset.font.source_han_sans_sc.heavy", "type": "font", "path": "res://assets/fonts/source_han_sans_sc/SourceHanSansSC-Heavy.otf" },
+    { "id": "asset.font.source_han_sans_sc.medium", "type": "font", "path": "res://assets/fonts/source_han_sans_sc/SourceHanSansSC-Medium.otf" },
     { "id": "asset.character.swordsman.battle", "type": "image", "path": "res://assets/art/characters/swordsman/swordsman_battle_common.png" },
     { "id": "asset.card.template.action", "type": "image", "path": "res://assets/art/cards/templates/action_card_template.png" },
     { "id": "asset.card.template.skill", "type": "image", "path": "res://assets/art/cards/templates/skill_card_template.png" },

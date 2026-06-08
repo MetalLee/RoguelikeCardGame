@@ -645,3 +645,47 @@ game/logs/
 
 请列出发现的问题，优先修复阻碍 MVP 闭环的问题；数值平衡只做必要调整，不扩展首版范围外系统。
 ```
+
+#### 任务 12 阶段完成记录：UI 场景解耦
+
+完成日期：2026-06-09
+
+已完成：
+- 已将原本集中在 `game/src/Presentation/Menus/MainMenu.cs` 中的开始界面、战斗界面、奖励界面和结算界面拆分为独立表现层脚本与 Godot 场景。
+- `MainMenu.cs` 已调整为 MVP 流程协调器，只负责加载内容、持有 Run / Combat / Reward 流程状态、调用 Application 服务，并在各个界面之间切换。
+- 已新增开始界面 `game/src/Presentation/Menus/StartMenuScreen.cs` 与 `game/scenes/menus/StartMenuScreen.tscn`。
+- 已新增战斗界面 `game/src/Presentation/Battle/BattleScreen.cs` 与 `game/scenes/battle/BattleScreen.tscn`，负责战斗 HUD、玩家 / 敌人 / 手牌布局、目标选择、出牌请求、结束回合请求等表现层交互。
+- 已新增奖励界面 `game/src/Presentation/Rewards/RewardScreen.cs` 与 `game/scenes/rewards/RewardScreen.tscn`，负责卡牌包选择、打开卡牌包、候选牌选择和确认奖励的表现层交互。
+- 已新增结算界面 `game/src/Presentation/Menus/RunResultScreen.cs` 与 `game/scenes/menus/RunResultScreen.tscn`，负责 MVP 通关 / 失败结算和重开入口。
+- 已新增共享表现层基类 `game/src/Presentation/Shared/ComicScreen.cs`，集中管理漫画风背景、图片加载、图标按钮、面板、标签、卡牌/状态控件等共用 UI helper。
+- 三类核心场景通过事件向 `MainMenu.cs` 汇报交互请求，表现层不自行结算伤害、抽牌、连锁、费用、防御、奖励领取或 Run 推进，仍由 Application / Domain 规则层负责。
+- 本次只做表现层职责解耦与场景文件落地，未扩展路线图、商店、事件、休息节点、长期成长或首版范围外系统。
+
+验证结果：
+- `dotnet build game\RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- Godot 4.6.3 .NET headless 加载 `game/project.godot`：通过，项目可加载。
+- 当前 Codex 沙箱中 `dotnet` 和 Godot headless 可能因写入 `.godot\mono\temp\obj`、`obj` 或 `user://` 日志缓存受限而失败；已按权限规则重跑并验证通过。
+
+#### 任务 12 阶段完成记录：统一卡牌 Panel 实例化
+
+完成日期：2026-06-09
+
+已完成：
+- 已先核对 `game/assets/art/cards/templates/` 下行动牌、技能牌、终结牌模板资源，以及 [[design/03_experience/01_visual_direction|视觉方向]] 中关于卡牌组件尺寸、卡面插图、费用、卡牌名和效果文本运行时组合的要求。
+- 已新增统一卡牌组件工厂 `game/src/Presentation/Cards/CardPanel.cs`，集中负责根据 `CardDefinition`、`card_views.json` 和 `assets.json` 组合卡牌显示。
+- `CardPanel` 会根据卡牌类型选择对应模板：行动牌使用 `action_card_template.png`，技能牌使用 `skill_card_template.png`，终结牌使用 `finisher_card_template.png`。
+- `CardPanel` 会根据卡牌 ID 从 `CardViewsById` 读取卡面插图资源，并将插图按比例缩放、居中放入模板透明画框内，避免拉伸变形。
+- `CardPanel` 会将费用 / 连锁需求、卡牌名称和效果文本绘制到模板对应区域，模板作为上层覆盖，保留卡框、画框边缘、标题栏和效果文本区。
+- `CardPanel` 暴露目标宽度参数，卡牌实例最终按等比例缩放到战斗手牌或奖励候选所需大小，三类卡牌共用同一组件比例和布局逻辑。
+- 已更新 `game/src/Presentation/Battle/BattleScreen.cs`，战斗手牌不再手写模板 / 插图 / 文本拼装，改为调用 `CardPanel.Create(...)`，并保留无法出牌灰显、tooltip 和点击出牌热区。
+- 已更新 `game/src/Presentation/Rewards/RewardScreen.cs`，奖励候选牌不再维护独立卡牌显示实现，改为调用同一个 `CardPanel.Create(...)`，并保留选择 / 取消选择热区与选中标记。
+- 本次只统一表现层卡牌实例化方式，未改动规则层卡牌效果、费用、连锁需求、奖励逻辑或内容数据。
+
+验证结果：
+- `dotnet build game\RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- Godot 4.6.3 .NET headless 加载 `game/project.godot`：通过，项目可加载。
+- 当前 Codex 沙箱中 `dotnet` 和 Godot headless 可能因写入 `.godot\mono\temp\obj`、`obj` 或 `user://` 日志缓存受限而失败；已按权限规则重跑并验证通过。
