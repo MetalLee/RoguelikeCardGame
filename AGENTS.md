@@ -706,6 +706,23 @@ game/logs/
 - `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
 - `godot-mono --headless --path game --quit`：通过，项目可加载。
 
+#### 任务 12 阶段修复记录：敌人黑底与站位调整
+
+完成日期：2026-06-09
+
+已完成：
+- 已核查 `game/assets/art/enemies/*.png`，敌人 PNG 为 RGBA 且四角透明；截图中明显黑底主要来自战斗 UI 的敌人黑色面板容器。
+- 已更新 `game/src/Presentation/Battle/BattleScreen.cs`，敌人控件不再使用大面积黑色 `PanelContainer`，改为透明舞台层直接显示敌人立绘。
+- 已保留轻量纸质状态条显示敌人名称、生命和防御，避免状态信息混入立绘黑底。
+- 已将敌人组整体向右移动，改善玩家左侧、敌人右侧的战斗构图。
+- 已更新 [[design/03_experience/00_ui_ux|界面与交互]] 和 [[design/08_governance/01_change_log|变更日志]]，明确敌人立绘应融入战斗背景，不应包在黑色卡片容器中。
+
+验证结果：
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `godot-mono --headless --path game --quit`：通过，项目可加载。
+
 #### 任务 12 阶段完成记录：统一卡牌 Panel 实例化
 
 完成日期：2026-06-09

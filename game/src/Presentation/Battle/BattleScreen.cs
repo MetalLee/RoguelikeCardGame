@@ -88,15 +88,15 @@ public partial class BattleScreen : ComicScreen
         }
 
         var enemyCount = combat.Enemies.Count;
-        var enemyWidth = enemyCount <= 1 ? 300 : 245;
-        var spacing = enemyCount <= 1 ? 0 : 34;
+        var enemyWidth = enemyCount <= 1 ? 360 : 280;
+        var spacing = enemyCount <= 1 ? 0 : 28;
         var totalWidth = enemyCount * enemyWidth + Math.Max(0, enemyCount - 1) * spacing;
-        var startX = 1190 - totalWidth / 2f;
+        var startX = 1375 - totalWidth / 2f;
         for (var i = 0; i < combat.Enemies.Count; i++)
         {
-            var enemyControl = CreateEnemyButton(combat.Enemies[i]);
+            var enemyControl = CreateEnemyButton(combat.Enemies[i], enemyWidth);
             enemyNodes[combat.Enemies[i].InstanceId] = enemyControl;
-            AddAt(root, enemyControl, new Vector2(startX + i * (enemyWidth + spacing), 405), new Vector2(enemyWidth, 330));
+            AddAt(root, enemyControl, new Vector2(startX + i * (enemyWidth + spacing), 370), new Vector2(enemyWidth, 360));
         }
 
         var hand = new HBoxContainer();
@@ -161,32 +161,39 @@ public partial class BattleScreen : ComicScreen
         return row;
     }
 
-    private Control CreateEnemyButton(CombatEnemyState enemyState)
+    private Control CreateEnemyButton(CombatEnemyState enemyState, float displayWidth)
     {
         var content = RequireContent();
         var intent = turnService.GetEnemyIntentViews(combat!, content.EnemiesById)
             .FirstOrDefault(view => view.EnemyInstanceId == enemyState.InstanceId);
         var hpText = enemyState.CurrentHp <= 0 ? "击败" : $"HP {enemyState.CurrentHp}/{enemyState.MaxHp}";
         var border = enemyState.InstanceId == selectedEnemyInstanceId ? GoldLine : new Color(0.25f, 0.20f, 0.18f);
-        var panel = CreateFramedPanel(new Vector2(230, 300), border);
-        var box = new VBoxContainer();
-        box.AddThemeConstantOverride("separation", 5);
-        panel.AddChild(box);
+        var panel = new Control
+        {
+            CustomMinimumSize = new Vector2(displayWidth, 345),
+            Size = new Vector2(displayWidth, 345),
+            ClipContents = false,
+            MouseFilter = MouseFilterEnum.Pass
+        };
 
         var enemyView = content.EnemyViewsById[enemyState.EnemyId];
-        var portrait = CreateImage(enemyView.StandAsset, new Vector2(210, 235), TextureRect.StretchModeEnum.KeepAspectCentered);
+        var portrait = CreateImage(enemyView.StandAsset, new Vector2(displayWidth, 272), TextureRect.StretchModeEnum.KeepAspectCentered);
+        portrait.Position = new Vector2(0, 0);
+        portrait.Size = new Vector2(displayWidth, 272);
         portrait.Modulate = enemyState.CurrentHp <= 0 ? new Color(0.32f, 0.32f, 0.32f, 0.75f) : Colors.White;
-        box.AddChild(portrait);
+        panel.AddChild(portrait);
 
-        var name = CreateSmallLabel($"{content.EnemyName(enemyState.EnemyId)}  {hpText}  防御 {enemyState.Block}");
-        name.HorizontalAlignment = HorizontalAlignment.Center;
-        name.AddThemeFontSizeOverride("font_size", 15);
-        box.AddChild(name);
+        var statusWidth = Math.Min(displayWidth, 290);
+        var status = CreateEnemyStatusPill($"{content.EnemyName(enemyState.EnemyId)}  {hpText}  防御 {enemyState.Block}", border);
+        status.Position = new Vector2((displayWidth - statusWidth) * 0.5f, 276);
+        status.Size = new Vector2(statusWidth, 42);
+        status.CustomMinimumSize = new Vector2(statusWidth, 42);
+        panel.AddChild(status);
 
         if (intent is not null)
         {
             var intentIcon = CreateImage(IntentIconAsset(intent.IntentType), new Vector2(34, 34), TextureRect.StretchModeEnum.KeepAspectCentered);
-            intentIcon.Position = new Vector2(188, 14);
+            intentIcon.Position = new Vector2(displayWidth - 46, 22);
             intentIcon.TooltipText = content.EnemyIntentText(enemyState.EnemyId, intent.IntentId);
             panel.AddChild(intentIcon);
         }
@@ -204,15 +211,44 @@ public partial class BattleScreen : ComicScreen
 
         if (enemyState.InstanceId == selectedEnemyInstanceId && enemyState.CurrentHp > 0)
         {
-            var targetIcon = CreateImage("asset.ui.icon.target_selected", new Vector2(24, 24), TextureRect.StretchModeEnum.KeepAspectCentered);
-            targetIcon.SetAnchorsPreset(LayoutPreset.Center);
-            targetIcon.OffsetLeft = -12;
-            targetIcon.OffsetTop = -12;
-            targetIcon.OffsetRight = 12;
-            targetIcon.OffsetBottom = 12;
+            var targetIcon = CreateImage("asset.ui.icon.target_selected", new Vector2(34, 34), TextureRect.StretchModeEnum.KeepAspectCentered);
+            targetIcon.Position = new Vector2(displayWidth * 0.5f - 17, 232);
             panel.AddChild(targetIcon);
         }
 
+        return panel;
+    }
+
+    private PanelContainer CreateEnemyStatusPill(string text, Color borderColor)
+    {
+        var panel = new PanelContainer
+        {
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.82f, 0.68f, 0.46f, 0.72f),
+            BorderColor = borderColor,
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+            BorderWidthTop = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4,
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            ContentMarginLeft = 8,
+            ContentMarginRight = 8,
+            ContentMarginTop = 3,
+            ContentMarginBottom = 3
+        });
+
+        var name = CreateSmallLabel(text);
+        name.HorizontalAlignment = HorizontalAlignment.Center;
+        name.VerticalAlignment = VerticalAlignment.Center;
+        name.AddThemeFontSizeOverride("font_size", 15);
+        name.AddThemeColorOverride("font_color", new Color(0.16f, 0.09f, 0.04f));
+        panel.AddChild(name);
         return panel;
     }
 
