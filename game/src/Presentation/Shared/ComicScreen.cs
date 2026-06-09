@@ -374,6 +374,107 @@ public abstract partial class ComicScreen : Control
         parent.AddChild(veil);
     }
 
+    protected static Control CreateFxLayer(string name)
+    {
+        return new Control
+        {
+            Name = name,
+            Size = BaseLayoutSize,
+            CustomMinimumSize = BaseLayoutSize,
+            MouseFilter = MouseFilterEnum.Ignore,
+            ZIndex = 100
+        };
+    }
+
+    protected async Task PulseNodeAsync(Control? node, float peakScale, double duration)
+    {
+        if (node is null)
+        {
+            return;
+        }
+
+        var originalScale = node.Scale;
+        node.PivotOffset = node.Size * 0.5f;
+        var tween = CreateTween();
+        tween.SetTrans(Tween.TransitionType.Cubic);
+        tween.SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(node, "scale", originalScale * peakScale, duration);
+        tween.TweenProperty(node, "scale", originalScale, duration);
+        await ToSignal(tween, "finished");
+    }
+
+    protected async Task ShakeNodeAsync(Control? node, float distance, double duration)
+    {
+        if (node is null)
+        {
+            return;
+        }
+
+        var originalPosition = node.Position;
+        var step = duration / 4.0;
+        var tween = CreateTween();
+        tween.SetTrans(Tween.TransitionType.Sine);
+        tween.TweenProperty(node, "position", originalPosition + new Vector2(distance, 0), step);
+        tween.TweenProperty(node, "position", originalPosition + new Vector2(-distance * 0.7f, 0), step);
+        tween.TweenProperty(node, "position", originalPosition + new Vector2(distance * 0.35f, 0), step);
+        tween.TweenProperty(node, "position", originalPosition, step);
+        await ToSignal(tween, "finished");
+    }
+
+    protected async Task LungeNodeAsync(Control? node, Vector2 offset, double duration)
+    {
+        if (node is null)
+        {
+            return;
+        }
+
+        var originalPosition = node.Position;
+        var tween = CreateTween();
+        tween.SetTrans(Tween.TransitionType.Cubic);
+        tween.SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(node, "position", originalPosition + offset, duration);
+        tween.TweenProperty(node, "position", originalPosition, duration);
+        await ToSignal(tween, "finished");
+    }
+
+    protected async Task SpawnVfxAsync(Control? fxLayer, string assetId, Vector2 center, Vector2 size, Color tint, double duration)
+    {
+        if (fxLayer is null)
+        {
+            return;
+        }
+
+        var vfx = CreateImage(assetId, size, TextureRect.StretchModeEnum.KeepAspectCentered);
+        vfx.Position = center - size * 0.5f;
+        vfx.Size = size;
+        vfx.CustomMinimumSize = size;
+        vfx.Modulate = new Color(tint.R, tint.G, tint.B, 0f);
+        vfx.PivotOffset = size * 0.5f;
+        vfx.Scale = new Vector2(0.78f, 0.78f);
+        vfx.ZIndex = 110;
+        fxLayer.AddChild(vfx);
+
+        var tween = CreateTween();
+        tween.SetParallel(true);
+        tween.TweenProperty(vfx, "modulate", tint, duration * 0.35);
+        tween.TweenProperty(vfx, "scale", new Vector2(1.12f, 1.12f), duration);
+        tween.Chain().TweenProperty(vfx, "modulate", new Color(tint.R, tint.G, tint.B, 0f), duration * 0.45);
+        await ToSignal(tween, "finished");
+        vfx.QueueFree();
+    }
+
+    protected async Task WaitAsync(double seconds)
+    {
+        await ToSignal(GetTree().CreateTimer(seconds), "timeout");
+    }
+
+    protected static Vector2 CenterOf(Control? node)
+    {
+        return node is null
+            ? new Vector2(960, 540)
+            : node.Position + node.Size * 0.5f;
+    }
+
     protected void ClearChildren()
     {
         activeCanvasRoot = null;

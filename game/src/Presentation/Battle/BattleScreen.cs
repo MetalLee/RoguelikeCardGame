@@ -29,6 +29,8 @@ public partial class BattleScreen : ComicScreen
     private Control? drawPilePanel;
     private Control? discardPilePanel;
     private Control? fxLayer;
+    private bool showBattleLog;
+    private string? currentMessage;
 
     public event Action<string>? EnemySelected;
     public event Action<string, int>? CardRequested;
@@ -46,6 +48,7 @@ public partial class BattleScreen : ComicScreen
         run = runState;
         encounter = encounterDefinition;
         selectedEnemyInstanceId = selectedEnemy;
+        currentMessage = message;
         enemyNodes.Clear();
         cardNodes.Clear();
         cardNodesByHandIndex.Clear();
@@ -133,17 +136,30 @@ public partial class BattleScreen : ComicScreen
             AddAt(root, CreateMessagePanel(message), new Vector2(650, 104), new Vector2(620, 44));
         }
 
-        AddAt(root, CreateLogPreview(), new Vector2(1365, 96), new Vector2(390, 166));
-
-        fxLayer = new Control
+        if (showBattleLog)
         {
-            Name = "FxLayer",
-            Size = new Vector2(1920, 1080),
-            CustomMinimumSize = new Vector2(1920, 1080),
-            MouseFilter = MouseFilterEnum.Ignore,
-            ZIndex = 100
-        };
+            AddAt(root, CreateLogPreview(), new Vector2(1365, 96), new Vector2(390, 166));
+        }
+
+        fxLayer = CreateFxLayer("FxLayer");
         root.AddChild(fxLayer);
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is not InputEventKey { Pressed: true, Echo: false } keyEvent ||
+            keyEvent.Keycode != Key.F12)
+        {
+            return;
+        }
+
+        showBattleLog = !showBattleLog;
+        if (combat is not null && run is not null && encounter is not null)
+        {
+            Render(combat, run, encounter, selectedEnemyInstanceId, currentMessage);
+        }
+
+        GetViewport().SetInputAsHandled();
     }
 
     private Control CreateRelicStrip()
@@ -399,7 +415,7 @@ public partial class BattleScreen : ComicScreen
 
         if (playedCard?.Type == CardType.Finisher)
         {
-            await SpawnVfxAsync("asset.vfx.finisher_release_shockwave", new Vector2(960, 430), new Vector2(560, 260), new Color(1f, 1f, 1f, 0.95f), 0.28f);
+            await SpawnVfxAsync(fxLayer, "asset.vfx.finisher_release_shockwave", new Vector2(960, 430), new Vector2(560, 260), new Color(1f, 1f, 1f, 0.95f), 0.28f);
             await WaitAsync(0.05);
         }
     }
@@ -459,8 +475,8 @@ public partial class BattleScreen : ComicScreen
                 continue;
             }
 
-            await SpawnVfxAsync(asset, CenterOf(enemyNode), new Vector2(250, 150), new Color(1f, 1f, 1f, 0.94f), 0.20f);
-            await SpawnVfxAsync("asset.vfx.enemy_hit_comic_burst", CenterOf(enemyNode), new Vector2(180, 130), new Color(1f, 0.85f, 0.72f, 0.92f), 0.18f);
+            await SpawnVfxAsync(fxLayer, asset, CenterOf(enemyNode), new Vector2(250, 150), new Color(1f, 1f, 1f, 0.94f), 0.20f);
+            await SpawnVfxAsync(fxLayer, "asset.vfx.enemy_hit_comic_burst", CenterOf(enemyNode), new Vector2(180, 130), new Color(1f, 0.85f, 0.72f, 0.92f), 0.18f);
             await ShakeNodeAsync(enemyNode, 18f, 0.16f);
         }
     }
@@ -471,7 +487,7 @@ public partial class BattleScreen : ComicScreen
             ? playerNode
             : item.TargetIds.Select(id => enemyNodes.TryGetValue(id, out var enemyNode) ? enemyNode : null).FirstOrDefault(node => node is not null);
         var center = target is null ? new Vector2(300, 590) : CenterOf(target);
-        await SpawnVfxAsync("asset.vfx.defense_shield_flash", center, new Vector2(260, 180), new Color(0.75f, 0.95f, 1f, 0.9f), 0.22f);
+        await SpawnVfxAsync(fxLayer, "asset.vfx.defense_shield_flash", center, new Vector2(260, 180), new Color(0.75f, 0.95f, 1f, 0.9f), 0.22f);
         await PulseNodeAsync(target ?? blockPanel, 1.05f, 0.10f);
         await PulseNodeAsync(blockPanel, 1.2f, 0.10f);
     }
@@ -480,13 +496,13 @@ public partial class BattleScreen : ComicScreen
     {
         if (after > before)
         {
-            await SpawnVfxAsync("asset.vfx.chain_gain_spark", new Vector2(160, 174), new Vector2(180, 120), new Color(1f, 1f, 1f, 0.95f), 0.20f);
+            await SpawnVfxAsync(fxLayer, "asset.vfx.chain_gain_spark", new Vector2(160, 174), new Vector2(180, 120), new Color(1f, 1f, 1f, 0.95f), 0.20f);
             await PulseNodeAsync(chainPanel, 1.18f, 0.11f);
             foreach (var threshold in new[] { 3, 5, 8 })
             {
                 if (before < threshold && after >= threshold)
                 {
-                    await SpawnVfxAsync($"asset.vfx.chain_threshold_{threshold}_burst", new Vector2(190, 178), new Vector2(250, 160), new Color(1f, 1f, 1f, 0.98f), 0.24f);
+                    await SpawnVfxAsync(fxLayer, $"asset.vfx.chain_threshold_{threshold}_burst", new Vector2(190, 178), new Vector2(250, 160), new Color(1f, 1f, 1f, 0.98f), 0.24f);
                 }
             }
             return;
@@ -508,7 +524,7 @@ public partial class BattleScreen : ComicScreen
         if (effectType == "damage")
         {
             await LungeNodeAsync(sourceEnemy, new Vector2(-38, 0), 0.12f);
-            await SpawnVfxAsync("asset.vfx.enemy_hit_comic_burst", CenterOf(playerNode), new Vector2(210, 150), new Color(1f, 0.74f, 0.62f, 0.9f), 0.18f);
+            await SpawnVfxAsync(fxLayer, "asset.vfx.enemy_hit_comic_burst", CenterOf(playerNode), new Vector2(210, 150), new Color(1f, 0.74f, 0.62f, 0.9f), 0.18f);
             await ShakeNodeAsync(playerNode, 14f, 0.15f);
             return;
         }
@@ -516,7 +532,7 @@ public partial class BattleScreen : ComicScreen
         if (effectType == "block" || effectType == "gain_block")
         {
             var center = sourceEnemy is null ? new Vector2(1250, 520) : CenterOf(sourceEnemy);
-            await SpawnVfxAsync("asset.vfx.defense_shield_flash", center, new Vector2(220, 160), new Color(0.72f, 0.95f, 1f, 0.88f), 0.22f);
+            await SpawnVfxAsync(fxLayer, "asset.vfx.defense_shield_flash", center, new Vector2(220, 160), new Color(0.72f, 0.95f, 1f, 0.88f), 0.22f);
             await PulseNodeAsync(sourceEnemy, 1.05f, 0.10f);
         }
     }
@@ -539,92 +555,4 @@ public partial class BattleScreen : ComicScreen
         }
     }
 
-    private async Task PulseNodeAsync(Control? node, float peakScale, double duration)
-    {
-        if (node is null)
-        {
-            return;
-        }
-
-        var originalScale = node.Scale;
-        node.PivotOffset = node.Size * 0.5f;
-        var tween = CreateTween();
-        tween.SetTrans(Tween.TransitionType.Cubic);
-        tween.SetEase(Tween.EaseType.Out);
-        tween.TweenProperty(node, "scale", originalScale * peakScale, duration);
-        tween.TweenProperty(node, "scale", originalScale, duration);
-        await ToSignal(tween, "finished");
-    }
-
-    private async Task ShakeNodeAsync(Control? node, float distance, double duration)
-    {
-        if (node is null)
-        {
-            return;
-        }
-
-        var originalPosition = node.Position;
-        var step = duration / 4.0;
-        var tween = CreateTween();
-        tween.SetTrans(Tween.TransitionType.Sine);
-        tween.TweenProperty(node, "position", originalPosition + new Vector2(distance, 0), step);
-        tween.TweenProperty(node, "position", originalPosition + new Vector2(-distance * 0.7f, 0), step);
-        tween.TweenProperty(node, "position", originalPosition + new Vector2(distance * 0.35f, 0), step);
-        tween.TweenProperty(node, "position", originalPosition, step);
-        await ToSignal(tween, "finished");
-    }
-
-    private async Task LungeNodeAsync(Control? node, Vector2 offset, double duration)
-    {
-        if (node is null)
-        {
-            return;
-        }
-
-        var originalPosition = node.Position;
-        var tween = CreateTween();
-        tween.SetTrans(Tween.TransitionType.Cubic);
-        tween.SetEase(Tween.EaseType.Out);
-        tween.TweenProperty(node, "position", originalPosition + offset, duration);
-        tween.TweenProperty(node, "position", originalPosition, duration);
-        await ToSignal(tween, "finished");
-    }
-
-    private async Task SpawnVfxAsync(string assetId, Vector2 center, Vector2 size, Color tint, double duration)
-    {
-        if (fxLayer is null)
-        {
-            return;
-        }
-
-        var vfx = CreateImage(assetId, size, TextureRect.StretchModeEnum.KeepAspectCentered);
-        vfx.Position = center - size * 0.5f;
-        vfx.Size = size;
-        vfx.CustomMinimumSize = size;
-        vfx.Modulate = new Color(tint.R, tint.G, tint.B, 0f);
-        vfx.PivotOffset = size * 0.5f;
-        vfx.Scale = new Vector2(0.78f, 0.78f);
-        vfx.ZIndex = 110;
-        fxLayer.AddChild(vfx);
-
-        var tween = CreateTween();
-        tween.SetParallel(true);
-        tween.TweenProperty(vfx, "modulate", tint, duration * 0.35);
-        tween.TweenProperty(vfx, "scale", new Vector2(1.12f, 1.12f), duration);
-        tween.Chain().TweenProperty(vfx, "modulate", new Color(tint.R, tint.G, tint.B, 0f), duration * 0.45);
-        await ToSignal(tween, "finished");
-        vfx.QueueFree();
-    }
-
-    private async Task WaitAsync(double seconds)
-    {
-        await ToSignal(GetTree().CreateTimer(seconds), "timeout");
-    }
-
-    private static Vector2 CenterOf(Control? node)
-    {
-        return node is null
-            ? new Vector2(960, 540)
-            : node.Position + node.Size * 0.5f;
-    }
 }

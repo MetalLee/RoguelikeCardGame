@@ -744,3 +744,25 @@ game/logs/
 - `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
 - Godot 4.6.3 .NET headless 加载 `game/project.godot`：通过，项目可加载。
 - 当前 Codex 沙箱中 `dotnet` 和 Godot headless 可能因写入 `.godot\mono\temp\obj`、`obj` 或 `user://` 日志缓存受限而失败；已按权限规则重跑并验证通过。
+
+#### 任务 12 阶段完成记录：表现层流程与特效重构
+
+完成日期：2026-06-09
+
+已完成：
+- 已分析 `game/src/Presentation/Battle/BattleScreen.cs` 中由轻量动效提交新增的渲染前引用清理逻辑：`enemyNodes`、`cardNodes`、`cardNodesByHandIndex`、`playerNode`、状态面板和 `fxLayer` 会在每次 `Render(...)` 前重置，避免后续动画拿到上一轮重建 UI 后的旧节点引用。
+- 已将 `game/src/Presentation/Menus/MainMenu.cs` 从“大型入口脚本”收窄为 Godot 主入口：只负责加载 `GameContent`、创建场景宿主与 MVP 流程控制器，并提供启动失败兜底显示。
+- 已新增 `game/src/Presentation/Flow/MvpRunFlowController.cs`，承接 MVP Run 表现层流程编排：开始 Run、进入当前遭遇、战斗出牌与结束回合、战斗胜负、奖励包选择、确认奖励、精英遗物发放、下一战推进、Boss 通关 / 失败结算和重开。
+- 已新增 `game/src/Presentation/Shared/SceneScreenHost.cs`，集中处理 Godot 场景加载、当前 screen 清理、`ComicScreen` 初始化、纹理 / 字体缓存复用和 fatal error 界面显示。
+- `StartMenuScreen`、`BattleScreen`、`RewardScreen`、`RunResultScreen` 继续通过事件向流程控制器汇报用户交互；伤害、费用、连锁、抽弃牌、防御、奖励领取和 Run 推进仍由 Application / Domain 层结算，表现层不自行改写规则结果。
+- 已将 `game/src/Presentation/Battle/BattleScreen.cs` 中通用 Tween / VFX helper 抽取到 `game/src/Presentation/Shared/ComicScreen.cs`，包括 `CreateFxLayer`、`PulseNodeAsync`、`ShakeNodeAsync`、`LungeNodeAsync`、`SpawnVfxAsync`、`WaitAsync` 和 `CenterOf`。
+- 已同步更新 `game/src/Presentation/Rewards/RewardScreen.cs`，删除其本地重复的 pulse / VFX / wait / center 实现，改为复用 `ComicScreen` 中的公共特效方法。
+- `BattleScreen.cs` 现在主要保留战斗 HUD、敌人 / 手牌显示、目标选择、出牌请求、战斗日志事件到具体动效的映射；奖励界面也只保留奖励包与候选卡交互及其场景特有动效。
+- 本次重构只调整表现层职责边界和公共特效复用方式，未改动规则层战斗结算、卡牌效果、敌人意图、奖励逻辑、内容数据或第一版 MVP 范围。
+
+验证结果：
+- `dotnet build game\RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- Godot 4.6.3 .NET headless 加载 `game/project.godot`：通过，项目可加载。
+- 当前 Codex 沙箱中 Godot headless 可能因写入 `user://logs` 被拦截并崩溃；已按权限规则重跑并验证通过。

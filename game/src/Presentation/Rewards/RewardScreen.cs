@@ -149,7 +149,7 @@ public partial class RewardScreen : ComicScreen
         if (rewardPackNodes.TryGetValue(packId, out var packNode))
         {
             await PulseNodeAsync(packNode, 1.08f, 0.12f);
-            await SpawnVfxAsync("asset.vfx.chain_gain_spark", CenterOf(packNode), new Vector2(230, 150), new Color(1f, 0.88f, 0.48f, 0.95f), 0.22f);
+            await SpawnVfxAsync(fxLayer, "asset.vfx.chain_gain_spark", CenterOf(packNode), new Vector2(230, 150), new Color(1f, 0.88f, 0.48f, 0.95f), 0.22f);
         }
     }
 
@@ -187,73 +187,13 @@ public partial class RewardScreen : ComicScreen
         await PulseNodeAsync(cardNode, picked ? 1.07f : 0.96f, 0.10f);
         if (picked)
         {
-            await SpawnVfxAsync("asset.ui.icon.target_selected", CenterOf(cardNode), new Vector2(80, 80), new Color(1f, 0.92f, 0.44f, 0.95f), 0.18f);
+            await SpawnVfxAsync(fxLayer, "asset.ui.icon.target_selected", CenterOf(cardNode), new Vector2(80, 80), new Color(1f, 0.92f, 0.44f, 0.95f), 0.18f);
         }
     }
 
     private void AddFxLayer(Control root)
     {
-        fxLayer = new Control
-        {
-            Name = "RewardFxLayer",
-            Size = new Vector2(1920, 1080),
-            CustomMinimumSize = new Vector2(1920, 1080),
-            MouseFilter = MouseFilterEnum.Ignore,
-            ZIndex = 100
-        };
+        fxLayer = CreateFxLayer("RewardFxLayer");
         root.AddChild(fxLayer);
-    }
-
-    private async Task PulseNodeAsync(Control? node, float peakScale, double duration)
-    {
-        if (node is null)
-        {
-            return;
-        }
-
-        var originalScale = node.Scale;
-        node.PivotOffset = node.Size * 0.5f;
-        var tween = CreateTween();
-        tween.SetTrans(Tween.TransitionType.Cubic);
-        tween.SetEase(Tween.EaseType.Out);
-        tween.TweenProperty(node, "scale", originalScale * peakScale, duration);
-        tween.TweenProperty(node, "scale", originalScale, duration);
-        await ToSignal(tween, "finished");
-    }
-
-    private async Task SpawnVfxAsync(string assetId, Vector2 center, Vector2 size, Color tint, double duration)
-    {
-        if (fxLayer is null)
-        {
-            return;
-        }
-
-        var vfx = CreateImage(assetId, size, TextureRect.StretchModeEnum.KeepAspectCentered);
-        vfx.Position = center - size * 0.5f;
-        vfx.Size = size;
-        vfx.CustomMinimumSize = size;
-        vfx.Modulate = new Color(tint.R, tint.G, tint.B, 0f);
-        vfx.PivotOffset = size * 0.5f;
-        vfx.Scale = new Vector2(0.78f, 0.78f);
-        vfx.ZIndex = 110;
-        fxLayer.AddChild(vfx);
-
-        var tween = CreateTween();
-        tween.SetParallel(true);
-        tween.TweenProperty(vfx, "modulate", tint, duration * 0.35);
-        tween.TweenProperty(vfx, "scale", new Vector2(1.12f, 1.12f), duration);
-        tween.Chain().TweenProperty(vfx, "modulate", new Color(tint.R, tint.G, tint.B, 0f), duration * 0.45);
-        await ToSignal(tween, "finished");
-        vfx.QueueFree();
-    }
-
-    private async Task WaitAsync(double seconds)
-    {
-        await ToSignal(GetTree().CreateTimer(seconds), "timeout");
-    }
-
-    private static Vector2 CenterOf(Control node)
-    {
-        return node.Position + node.Size * 0.5f;
     }
 }
