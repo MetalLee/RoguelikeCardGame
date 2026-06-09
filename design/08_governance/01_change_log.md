@@ -17,6 +17,7 @@
 
 ### 2026-06-09
 
+- 确认 `design/03_experience/assets/battle_ui_effect_concept_2026-06-09_v2.png` 为第一版 MVP 战斗场景设计标准，并同步更新 [[design/03_experience/00_ui_ux|界面与交互]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/00_technical_requirements|技术需求]]；明确战斗界面采用明亮手绘漫画书气氛、无头像顶部 HUD、预留更大角色 / 敌人垂直舞台空间、底部扇形手牌，以及 `8` 格连锁点进度。
 - 接入第一版 MVP 轻量动效：战斗界面根据 `CombatLogEvent` 播放出牌、伤害、防御、连锁提升、阈值达成、终结牌、敌人行动、抽弃牌和死亡反馈；奖励界面新增卡包打开、候选卡入场和选卡确认动效。该变更同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 与 [[design/03_experience/01_visual_direction|视觉方向]]，明确当前阶段使用 Tween / VFX 方案，不扩展完整角色动作或动画时间轴。
 - 调整战斗界面敌人呈现：敌人立绘不再包裹在大面积黑色面板中，改为透明舞台层叠加轻量状态条，并将敌人组整体右移以改善敌我构图；同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 的敌人立绘承载规则。
 
