@@ -70,6 +70,7 @@ public static class CardPanel
 			CustomMinimumSize = artSize,
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 			StretchMode = TextureRect.StretchModeEnum.Scale,
+			TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
 		artWindow.AddChild(art);
@@ -82,6 +83,7 @@ public static class CardPanel
 			CustomMinimumSize = TemplateSize,
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 			StretchMode = TextureRect.StretchModeEnum.Scale,
+			TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
 		canvas.AddChild(template);

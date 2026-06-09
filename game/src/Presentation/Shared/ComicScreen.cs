@@ -296,6 +296,7 @@ public abstract partial class ComicScreen : Control
             CustomMinimumSize = minSize,
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = stretchMode,
+            TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
             MouseFilter = MouseFilterEnum.Ignore
         };
     }
@@ -320,6 +321,11 @@ public abstract partial class ComicScreen : Control
             if (image.LoadPngFromBuffer(bytes) != Error.Ok)
             {
                 return null;
+            }
+
+            if (image.GetWidth() > 1 && image.GetHeight() > 1)
+            {
+                image.GenerateMipmaps();
             }
 
             var pngTexture = ImageTexture.CreateFromImage(image);
