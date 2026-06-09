@@ -766,3 +766,48 @@ game/logs/
 - `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
 - Godot 4.6.3 .NET headless 加载 `game/project.godot`：通过，项目可加载。
 - 当前 Codex 沙箱中 Godot headless 可能因写入 `user://logs` 被拦截并崩溃；已按权限规则重跑并验证通过。
+
+#### 任务 12 阶段完成记录：战斗 UI 标准图布局接入
+
+完成日期：2026-06-10
+
+已完成：
+- 已根据 [[design/03_experience/assets/battle_ui_effect_concept_2026-06-09_v2.png|第一版 MVP 战斗场景设计标准]] 调整 `game/src/Presentation/Battle/BattleScreen.cs` 的战斗界面布局和气质。
+- 已移除战斗界面顶部常驻的“第 X/6 战”和教学文案显示，把中上方稳定区域改为连锁 HUD。
+- 已使用 `chain_meter_8_slots` 与 `chain_point_red` 运行时组合 8 槽连锁条，并由 Godot Label 动态绘制 `连锁 X/8`；当连锁超过 8 层时显示 `连锁 X/8+`。
+- 已将玩家 HUD 固定到左上，只使用拆分 alpha 组件 `player_health_bar` 与 `player_block_bar`，分别动态绘制 HP 与 Defense，不显示头像或第三行状态栏。
+- 已将敌人 HUD 固定到右上，只使用拆分 alpha 组件 `enemy_name_bar`、`enemy_health_bar` 与 `enemy_block_bar`，分别动态绘制敌人名称、HP 与 Defense；敌人意图改为右上 HUD 下方的动态 Label / 图标组合。
+- 已将敌人舞台控件改为只承载透明立绘、目标点击热区和目标选中标记，敌人名称、生命、防御不再显示在敌人脚下。
+- 已将 AP 徽章与抽牌堆固定到左下，将弃牌堆与结束回合按钮固定到右下，并使用对应拆分 alpha PNG 作为底图，所有数字和中文标签仍由 Godot 动态绘制。
+- 已将战斗手牌从横向 HBox 改为底部中间紧凑扇形叠放，保留 `handIndex` 点击出牌、无法出牌 tooltip、灰显和动画节点引用。
+- 已调整主角与敌人舞台站位，使双方脚底基线更接近同一水平线，并为更高 Boss 预留垂直空间。
+- 已将连锁提升和 3 / 5 / 8 阈值 VFX 坐标迁移到中上方连锁条区域。
+- 已将 `battle_ui_gpt_components_v2/` 中本轮使用的背景迁移并覆盖到 `game/assets/art/backgrounds/mvp_battle_desert_background_no_ui.png`，并将 alpha UI 组件复制到 `game/assets/art/ui/`。
+- 已更新 `game/data/presentation/assets.json`，新增 `asset.ui.battle.*` 资源 ID，使表现层通过 asset manifest 读取组件，不在场景中散落素材路径。
+- 本次未改动规则层战斗结算、卡牌效果、敌人意图、奖励逻辑或内容数据；表现层仍只读取 `CombatState`、`RunState`、`DeckZones`、`CombatLogEvent` 和 presentation view。
+
+新增 / 接入资源：
+- `game/assets/art/backgrounds/mvp_battle_desert_background_no_ui.png`
+- `game/assets/art/ui/ui_player_health_bar.png`
+- `game/assets/art/ui/ui_player_block_bar.png`
+- `game/assets/art/ui/ui_enemy_name_bar.png`
+- `game/assets/art/ui/ui_enemy_health_bar.png`
+- `game/assets/art/ui/ui_enemy_block_bar.png`
+- `game/assets/art/ui/ui_chain_meter_8_slots.png`
+- `game/assets/art/ui/ui_chain_point_red.png`
+- `game/assets/art/ui/ui_action_point_badge.png`
+- `game/assets/art/ui/ui_draw_pile_panel.png`
+- `game/assets/art/ui/ui_discard_pile_panel.png`
+- `game/assets/art/ui/ui_end_turn_button.png`
+
+验证结果：
+- `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `dotnet build game\RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- Godot 4.6.3 .NET headless 启动 `--path game --quit-after 3`：通过，项目与主场景可启动。
+- 当前 Codex 沙箱中 `dotnet` 与 Godot headless 可能因写入 `.godot\mono\temp\obj`、`obj` 或 `user://logs` 被拦截；已按权限规则重跑并验证通过。
+
+仍需后续视觉验收 / 美术替换：
+- 当前 UI PNG 为 gpt-image-2 风格生成组件，虽已作为真实 alpha PNG 接入，但不是最终手工切图。
+- 连锁红点槽位、HUD 文本落点、Boss 大体型站位和手牌 hover / selected 抬升仍需要基于实际运行截图继续微调。
+- 后续若有正式手绘 UI 资源，应继续放入 `game/assets/art/ui/` 并通过 `game/data/presentation/assets.json` 以稳定 `asset.ui.battle.*` ID 接入。

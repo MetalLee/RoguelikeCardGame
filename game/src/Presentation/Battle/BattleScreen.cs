@@ -61,55 +61,65 @@ public partial class BattleScreen : ComicScreen
         discardPilePanel = null;
         fxLayer = null;
 
-        var content = RequireContent();
         var root = CreateCanvas();
 
-        AddLabelAt(root, $"第 {run.CurrentEncounterIndex + 1}/6 战", new Vector2(790, 24), new Vector2(340, 32), 22, new Color(0.18f, 0.12f, 0.07f), HorizontalAlignment.Center);
-        AddLabelAt(root, content.T(encounter.TeachingGoalKey), new Vector2(610, 58), new Vector2(700, 30), 16, new Color(0.35f, 0.23f, 0.12f), HorizontalAlignment.Center);
+        RenderPlayerHud(root);
+        RenderChainHud(root);
+        RenderEnemyHud(root);
 
-        AddAt(root, CreateInfoPanel($"{combat.PlayerHp}/{combat.PlayerMaxHp}", BloodLine, "asset.ui.icon.life"), new Vector2(52, 42), new Vector2(150, 48));
-        blockPanel = CreateInfoPanel($"{combat.PlayerBlock}", SkillLine, "asset.ui.icon.player_block");
-        AddAt(root, blockPanel, new Vector2(52, 98), new Vector2(112, 44));
-        actionPointPanel = CreateInfoPanel($"{combat.ActionPoints}", GoldLine, "asset.ui.icon.action_point");
-        AddAt(root, actionPointPanel, new Vector2(174, 98), new Vector2(92, 44));
-        chainPanel = CreateInfoPanel($"{combat.Chain}  /  3  5  8", FinisherLine, "asset.ui.icon.chain_count");
-        AddAt(root, chainPanel, new Vector2(52, 152), new Vector2(214, 44));
-        drawPilePanel = CreateInfoPanel($"{combat.DeckZones.DrawPileCount}", new Color(0.32f, 0.36f, 0.36f), "asset.ui.icon.draw_pile");
-        AddAt(root, drawPilePanel, new Vector2(1488, 888), new Vector2(92, 44));
-        discardPilePanel = CreateInfoPanel($"{combat.DeckZones.DiscardPileCount}", new Color(0.32f, 0.36f, 0.36f), "asset.ui.icon.discard_pile");
-        AddAt(root, discardPilePanel, new Vector2(1590, 888), new Vector2(92, 44));
-        AddAt(root, CreateInfoPanel($"{run.MasterDeck.Count}", new Color(0.32f, 0.36f, 0.36f), "asset.ui.icon.deck_library"), new Vector2(1692, 888), new Vector2(104, 44));
+        actionPointPanel = CreateActionPointBadge();
+        AddAt(root, actionPointPanel, new Vector2(70, 760), new Vector2(156, 156));
+        drawPilePanel = CreatePilePanel("asset.ui.battle.draw_pile_panel", "抽牌", combat.DeckZones.DrawPileCount);
+        AddAt(root, drawPilePanel, new Vector2(70, 910), new Vector2(272, 138));
+        discardPilePanel = CreatePilePanel("asset.ui.battle.discard_pile_panel", "弃牌", combat.DeckZones.DiscardPileCount);
+        AddAt(root, discardPilePanel, new Vector2(1578, 910), new Vector2(272, 138));
 
-        playerNode = CreateImage("asset.character.swordsman.battle", new Vector2(455, 585), TextureRect.StretchModeEnum.KeepAspectCentered);
+        playerNode = CreateImage("asset.character.swordsman.battle", new Vector2(510, 510), TextureRect.StretchModeEnum.KeepAspectCentered);
         playerNode.Name = "PlayerStand";
-        AddAt(root, playerNode, new Vector2(120, 330), new Vector2(455, 585));
-        AddLabelAt(root, $"剑客  防御 {combat.PlayerBlock}", new Vector2(175, 814), new Vector2(330, 28), 16, new Color(0.18f, 0.11f, 0.07f), HorizontalAlignment.Center);
+        AddAt(root, playerNode, new Vector2(120, 255), new Vector2(510, 510));
 
         if (run.RelicIds.Count > 0)
         {
-            AddAt(root, CreateRelicStrip(), new Vector2(300, 42), new Vector2(350, 48));
+            AddAt(root, CreateRelicStrip(), new Vector2(50, 152), new Vector2(350, 48));
         }
 
         var enemyCount = combat.Enemies.Count;
-        var enemyWidth = enemyCount <= 1 ? 360 : 280;
+        var isBoss = encounter.NodeType == EncounterNodeType.Boss;
+        var enemyWidth = isBoss ? 500 : enemyCount <= 1 ? 360 : 280;
+        var enemyHeight = isBoss ? 540 : 390;
         var spacing = enemyCount <= 1 ? 0 : 28;
         var totalWidth = enemyCount * enemyWidth + Math.Max(0, enemyCount - 1) * spacing;
-        var startX = 1375 - totalWidth / 2f;
+        var startX = 1395 - totalWidth / 2f;
+        var enemyY = 742 - enemyHeight;
         for (var i = 0; i < combat.Enemies.Count; i++)
         {
-            var enemyControl = CreateEnemyButton(combat.Enemies[i], enemyWidth);
+            var enemyControl = CreateEnemyButton(combat.Enemies[i], enemyWidth, enemyHeight);
             enemyNodes[combat.Enemies[i].InstanceId] = enemyControl;
-            AddAt(root, enemyControl, new Vector2(startX + i * (enemyWidth + spacing), 370), new Vector2(enemyWidth, 360));
+            AddAt(root, enemyControl, new Vector2(startX + i * (enemyWidth + spacing), enemyY), new Vector2(enemyWidth, enemyHeight));
         }
 
-        var hand = new HBoxContainer();
+        var hand = new Control
+        {
+            ClipContents = false
+        };
         handNode = hand;
-        hand.AddThemeConstantOverride("separation", 10);
-        hand.Alignment = BoxContainer.AlignmentMode.Center;
+        var handCount = combat.DeckZones.Hand.Count;
+        var cardWidth = handCount <= 5 ? 210f : 188f;
+        var cardSize = CardPanel.SizeForWidth(cardWidth);
+        var step = handCount <= 1 ? 0f : Math.Min(142f, (900f - cardWidth) / Math.Max(1, handCount - 1));
+        var totalHandWidth = cardWidth + step * Math.Max(0, handCount - 1);
+        var startHandX = (950f - totalHandWidth) * 0.5f;
         for (var handIndex = 0; handIndex < combat.DeckZones.Hand.Count; handIndex++)
         {
             var cardId = combat.DeckZones.Hand[handIndex];
             var cardControl = CreateCardButton(cardId, handIndex);
+            var normalized = handCount <= 1 ? 0f : (handIndex / (float)(handCount - 1) - 0.5f) * 2f;
+            var arcLift = (1f - Math.Abs(normalized)) * 26f;
+            cardControl.Position = new Vector2(startHandX + step * handIndex, 36f - arcLift);
+            cardControl.Size = cardSize;
+            cardControl.CustomMinimumSize = cardSize;
+            cardControl.PivotOffset = cardSize * 0.5f;
+            cardControl.RotationDegrees = normalized * 8f;
             cardNodesByHandIndex[handIndex] = cardControl;
             if (!cardNodes.TryGetValue(cardId, out var controls))
             {
@@ -121,24 +131,24 @@ public partial class BattleScreen : ComicScreen
             hand.AddChild(cardControl);
         }
 
-        AddAt(root, hand, new Vector2(505, 742), new Vector2(890, 300));
+        AddAt(root, hand, new Vector2(475, 705), new Vector2(950, 360));
 
-        var endTurn = CreateArtButton("结束回合", "asset.ui.icon.end_turn", new Vector2(164, 62), GoldLine);
+        var endTurn = CreateEndTurnButton();
         endTurn.Pressed += () => EndTurnRequested?.Invoke();
-        AddAt(root, endTurn, new Vector2(1580, 782), new Vector2(164, 62));
+        AddAt(root, endTurn, new Vector2(1530, 790), new Vector2(318, 92));
 
         var restart = CreateArtButton("重开", "asset.ui.icon.deck_library", new Vector2(122, 48), new Color(0.36f, 0.31f, 0.26f));
         restart.Pressed += () => RestartRequested?.Invoke();
-        AddAt(root, restart, new Vector2(52, 888), new Vector2(122, 48));
+        AddAt(root, restart, new Vector2(44, 214), new Vector2(122, 48));
 
         if (!string.IsNullOrWhiteSpace(message))
         {
-            AddAt(root, CreateMessagePanel(message), new Vector2(650, 104), new Vector2(620, 44));
+            AddAt(root, CreateMessagePanel(message), new Vector2(650, 150), new Vector2(620, 44));
         }
 
         if (showBattleLog)
         {
-            AddAt(root, CreateLogPreview(), new Vector2(1365, 96), new Vector2(390, 166));
+            AddAt(root, CreateLogPreview(), new Vector2(1365, 230), new Vector2(390, 166));
         }
 
         fxLayer = CreateFxLayer("FxLayer");
@@ -162,6 +172,215 @@ public partial class BattleScreen : ComicScreen
         GetViewport().SetInputAsHandled();
     }
 
+    private void RenderPlayerHud(Control root)
+    {
+        var healthBar = CreateHudImagePanel("asset.ui.battle.player_health_bar", $"{combat!.PlayerHp}/{combat.PlayerMaxHp}", new Vector2(344, 54), new Rect2(86, 4, 230, 46), 28);
+        AddAt(root, healthBar, new Vector2(42, 42), new Vector2(344, 54));
+
+        blockPanel = CreateHudImagePanel("asset.ui.battle.player_block_bar", combat.PlayerBlock.ToString(), new Vector2(288, 50), new Rect2(82, 3, 160, 42), 27);
+        AddAt(root, blockPanel, new Vector2(42, 96), new Vector2(288, 50));
+    }
+
+    private void RenderEnemyHud(Control root)
+    {
+        var content = RequireContent();
+        var focus = combat!.Enemies.FirstOrDefault(enemy => enemy.InstanceId == selectedEnemyInstanceId && enemy.CurrentHp > 0)
+            ?? combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)
+            ?? combat.Enemies.FirstOrDefault();
+        if (focus is null)
+        {
+            return;
+        }
+
+        var intent = turnService.GetEnemyIntentViews(combat, content.EnemiesById)
+            .FirstOrDefault(view => view.EnemyInstanceId == focus.InstanceId);
+
+        var nameBar = CreateHudImagePanel("asset.ui.battle.enemy_name_bar", content.EnemyName(focus.EnemyId), new Vector2(382, 62), new Rect2(48, 5, 286, 46), 27);
+        AddAt(root, nameBar, new Vector2(1490, 42), new Vector2(382, 62));
+
+        var hpText = focus.CurrentHp <= 0 ? "击败" : $"{focus.CurrentHp}/{focus.MaxHp}";
+        var healthBar = CreateHudImagePanel("asset.ui.battle.enemy_health_bar", hpText, new Vector2(328, 50), new Rect2(80, 3, 194, 42), 26);
+        AddAt(root, healthBar, new Vector2(1538, 102), new Vector2(328, 50));
+
+        var blockBar = CreateHudImagePanel("asset.ui.battle.enemy_block_bar", focus.Block.ToString(), new Vector2(294, 48), new Rect2(76, 3, 160, 40), 25);
+        AddAt(root, blockBar, new Vector2(1572, 154), new Vector2(294, 48));
+
+        if (intent is null)
+        {
+            return;
+        }
+
+        var intentRoot = new Control();
+        var icon = CreateImage(IntentIconAsset(intent.IntentType), new Vector2(38, 38), TextureRect.StretchModeEnum.KeepAspectCentered);
+        icon.Position = new Vector2(0, 1);
+        intentRoot.AddChild(icon);
+
+        var label = CreateHudLabel(content.EnemyIntentText(focus.EnemyId, intent.IntentId), 22, new Color(0.96f, 0.88f, 0.68f), heavy: false);
+        label.Position = new Vector2(44, 0);
+        label.Size = new Vector2(250, 40);
+        label.CustomMinimumSize = label.Size;
+        label.HorizontalAlignment = HorizontalAlignment.Left;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        intentRoot.AddChild(label);
+        AddAt(root, intentRoot, new Vector2(1570, 204), new Vector2(300, 42));
+    }
+
+    private void RenderChainHud(Control root)
+    {
+        var chain = combat!.Chain;
+        var chainText = chain > 8 ? $"连锁 {chain}/8+" : $"连锁 {chain}/8";
+        var title = CreateHudLabel(chainText, 31, new Color(0.10f, 0.06f, 0.035f), heavy: true, outlineColor: new Color(0.98f, 0.84f, 0.55f, 0.70f));
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        AddAt(root, title, new Vector2(790, 22), new Vector2(340, 42));
+
+        chainPanel = new Control();
+        var meterPosition = new Vector2(0, 18);
+        var meterSize = new Vector2(640, 68);
+        var meter = CreateImage("asset.ui.battle.chain_meter_8_slots", meterSize, TextureRect.StretchModeEnum.Scale);
+        meter.Position = meterPosition;
+        meter.Size = meterSize;
+        chainPanel.AddChild(meter);
+
+        var pointSize = new Vector2(44, 44);
+        var firstCenterX = 31f;
+        var slotStep = 82.7f;
+        for (var i = 0; i < Math.Min(chain, 8); i++)
+        {
+            var point = CreateImage("asset.ui.battle.chain_point_red", pointSize, TextureRect.StretchModeEnum.Scale);
+            point.Position = meterPosition + new Vector2(firstCenterX + slotStep * i - pointSize.X * 0.5f, 34f - pointSize.Y * 0.5f);
+            point.Size = pointSize;
+            point.CustomMinimumSize = pointSize;
+            chainPanel.AddChild(point);
+        }
+
+        foreach (var (threshold, index) in new[] { (3, 2), (5, 4), (8, 7) })
+        {
+            var hint = CreateHudLabel(threshold.ToString(), 14, chain >= threshold ? new Color(0.82f, 0.18f, 0.12f) : new Color(0.35f, 0.28f, 0.18f), heavy: false, outlineSize: 2);
+            hint.HorizontalAlignment = HorizontalAlignment.Center;
+            hint.Position = meterPosition + new Vector2(firstCenterX + slotStep * index - 16f, 77f);
+            hint.Size = new Vector2(32, 20);
+            chainPanel.AddChild(hint);
+        }
+
+        AddAt(root, chainPanel, new Vector2(640, 64), new Vector2(640, 104));
+    }
+
+    private Control CreateHudImagePanel(string assetId, string text, Vector2 size, Rect2 textRect, int fontSize)
+    {
+        var root = new Control
+        {
+            ClipContents = false
+        };
+        var image = CreateImage(assetId, size, TextureRect.StretchModeEnum.Scale);
+        image.Size = size;
+        root.AddChild(image);
+
+        var label = CreateHudLabel(text, fontSize, new Color(1.0f, 0.92f, 0.74f), heavy: true);
+        label.Position = textRect.Position;
+        label.Size = textRect.Size;
+        label.CustomMinimumSize = textRect.Size;
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        root.AddChild(label);
+        return root;
+    }
+
+    private Control CreateActionPointBadge()
+    {
+        var root = new Control();
+        var badge = CreateImage("asset.ui.battle.action_point_badge", new Vector2(156, 156), TextureRect.StretchModeEnum.Scale);
+        badge.Size = new Vector2(156, 156);
+        root.AddChild(badge);
+
+        var value = CreateHudLabel(combat!.ActionPoints.ToString(), 58, new Color(1.0f, 0.92f, 0.75f), heavy: true);
+        value.HorizontalAlignment = HorizontalAlignment.Center;
+        value.VerticalAlignment = VerticalAlignment.Center;
+        value.Position = new Vector2(32, 34);
+        value.Size = new Vector2(92, 62);
+        root.AddChild(value);
+
+        var ap = CreateHudLabel("AP", 22, new Color(1.0f, 0.85f, 0.54f), heavy: true);
+        ap.HorizontalAlignment = HorizontalAlignment.Center;
+        ap.VerticalAlignment = VerticalAlignment.Center;
+        ap.Position = new Vector2(45, 92);
+        ap.Size = new Vector2(68, 30);
+        root.AddChild(ap);
+        return root;
+    }
+
+    private Control CreatePilePanel(string assetId, string labelText, int count)
+    {
+        var root = new Control();
+        var panel = CreateImage(assetId, new Vector2(272, 138), TextureRect.StretchModeEnum.Scale);
+        panel.Size = new Vector2(272, 138);
+        root.AddChild(panel);
+
+        var label = CreateHudLabel(labelText, 24, new Color(1.0f, 0.89f, 0.66f), heavy: true);
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.Position = new Vector2(116, 28);
+        label.Size = new Vector2(118, 32);
+        root.AddChild(label);
+
+        var value = CreateHudLabel(count.ToString(), 34, new Color(1.0f, 0.92f, 0.74f), heavy: true);
+        value.HorizontalAlignment = HorizontalAlignment.Center;
+        value.Position = new Vector2(118, 64);
+        value.Size = new Vector2(112, 44);
+        root.AddChild(value);
+        return root;
+    }
+
+    private Button CreateEndTurnButton()
+    {
+        var button = new Button
+        {
+            Text = "",
+            TooltipText = "结束当前玩家回合"
+        };
+        MakeTransparentButton(button);
+
+        var image = CreateImage("asset.ui.battle.end_turn_button", new Vector2(318, 92), TextureRect.StretchModeEnum.Scale);
+        image.SetAnchorsPreset(LayoutPreset.FullRect);
+        button.AddChild(image);
+
+        var label = CreateHudLabel("结束回合", 35, new Color(1.0f, 0.88f, 0.64f), heavy: true);
+        label.SetAnchorsPreset(LayoutPreset.FullRect);
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        button.AddChild(label);
+        return button;
+    }
+
+    private Label CreateHudLabel(
+        string text,
+        int fontSize,
+        Color color,
+        bool heavy,
+        int outlineSize = 4,
+        Color? outlineColor = null)
+    {
+        var label = new Label
+        {
+            Text = text,
+            AutowrapMode = TextServer.AutowrapMode.Off,
+            ClipText = true,
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        label.AddThemeFontSizeOverride("font_size", fontSize);
+        label.AddThemeColorOverride("font_color", color);
+        label.AddThemeColorOverride("font_outline_color", outlineColor ?? new Color(0.05f, 0.025f, 0.01f, 0.82f));
+        label.AddThemeColorOverride("font_shadow_color", new Color(0.02f, 0.012f, 0.006f, 0.55f));
+        label.AddThemeConstantOverride("outline_size", outlineSize);
+        label.AddThemeConstantOverride("shadow_offset_x", 2);
+        label.AddThemeConstantOverride("shadow_offset_y", 3);
+        var font = LoadFont(heavy ? "asset.font.source_han_sans_sc.heavy" : "asset.font.source_han_sans_sc.medium");
+        if (font is not null)
+        {
+            label.AddThemeFontOverride("font", font);
+        }
+
+        return label;
+    }
+
     private Control CreateRelicStrip()
     {
         var content = RequireContent();
@@ -177,42 +396,24 @@ public partial class BattleScreen : ComicScreen
         return row;
     }
 
-    private Control CreateEnemyButton(CombatEnemyState enemyState, float displayWidth)
+    private Control CreateEnemyButton(CombatEnemyState enemyState, float displayWidth, float displayHeight)
     {
         var content = RequireContent();
-        var intent = turnService.GetEnemyIntentViews(combat!, content.EnemiesById)
-            .FirstOrDefault(view => view.EnemyInstanceId == enemyState.InstanceId);
-        var hpText = enemyState.CurrentHp <= 0 ? "击败" : $"HP {enemyState.CurrentHp}/{enemyState.MaxHp}";
-        var border = enemyState.InstanceId == selectedEnemyInstanceId ? GoldLine : new Color(0.25f, 0.20f, 0.18f);
         var panel = new Control
         {
-            CustomMinimumSize = new Vector2(displayWidth, 345),
-            Size = new Vector2(displayWidth, 345),
+            CustomMinimumSize = new Vector2(displayWidth, displayHeight),
+            Size = new Vector2(displayWidth, displayHeight),
             ClipContents = false,
             MouseFilter = MouseFilterEnum.Pass
         };
 
         var enemyView = content.EnemyViewsById[enemyState.EnemyId];
-        var portrait = CreateImage(enemyView.StandAsset, new Vector2(displayWidth, 272), TextureRect.StretchModeEnum.KeepAspectCentered);
+        var portraitHeight = displayHeight - 16;
+        var portrait = CreateImage(enemyView.StandAsset, new Vector2(displayWidth, portraitHeight), TextureRect.StretchModeEnum.KeepAspectCentered);
         portrait.Position = new Vector2(0, 0);
-        portrait.Size = new Vector2(displayWidth, 272);
+        portrait.Size = new Vector2(displayWidth, portraitHeight);
         portrait.Modulate = enemyState.CurrentHp <= 0 ? new Color(0.32f, 0.32f, 0.32f, 0.75f) : Colors.White;
         panel.AddChild(portrait);
-
-        var statusWidth = Math.Min(displayWidth, 290);
-        var status = CreateEnemyStatusPill($"{content.EnemyName(enemyState.EnemyId)}  {hpText}  防御 {enemyState.Block}", border);
-        status.Position = new Vector2((displayWidth - statusWidth) * 0.5f, 276);
-        status.Size = new Vector2(statusWidth, 42);
-        status.CustomMinimumSize = new Vector2(statusWidth, 42);
-        panel.AddChild(status);
-
-        if (intent is not null)
-        {
-            var intentIcon = CreateImage(IntentIconAsset(intent.IntentType), new Vector2(34, 34), TextureRect.StretchModeEnum.KeepAspectCentered);
-            intentIcon.Position = new Vector2(displayWidth - 46, 22);
-            intentIcon.TooltipText = content.EnemyIntentText(enemyState.EnemyId, intent.IntentId);
-            panel.AddChild(intentIcon);
-        }
 
         var button = new Button
         {
@@ -227,8 +428,8 @@ public partial class BattleScreen : ComicScreen
 
         if (enemyState.InstanceId == selectedEnemyInstanceId && enemyState.CurrentHp > 0)
         {
-            var targetIcon = CreateImage("asset.ui.icon.target_selected", new Vector2(34, 34), TextureRect.StretchModeEnum.KeepAspectCentered);
-            targetIcon.Position = new Vector2(displayWidth * 0.5f - 17, 232);
+            var targetIcon = CreateImage("asset.ui.icon.target_selected", new Vector2(46, 46), TextureRect.StretchModeEnum.KeepAspectCentered);
+            targetIcon.Position = new Vector2(displayWidth * 0.5f - 23, displayHeight - 66);
             panel.AddChild(targetIcon);
         }
 
@@ -496,13 +697,13 @@ public partial class BattleScreen : ComicScreen
     {
         if (after > before)
         {
-            await SpawnVfxAsync(fxLayer, "asset.vfx.chain_gain_spark", new Vector2(160, 174), new Vector2(180, 120), new Color(1f, 1f, 1f, 0.95f), 0.20f);
+            await SpawnVfxAsync(fxLayer, "asset.vfx.chain_gain_spark", new Vector2(960, 118), new Vector2(220, 130), new Color(1f, 1f, 1f, 0.95f), 0.20f);
             await PulseNodeAsync(chainPanel, 1.18f, 0.11f);
             foreach (var threshold in new[] { 3, 5, 8 })
             {
                 if (before < threshold && after >= threshold)
                 {
-                    await SpawnVfxAsync(fxLayer, $"asset.vfx.chain_threshold_{threshold}_burst", new Vector2(190, 178), new Vector2(250, 160), new Color(1f, 1f, 1f, 0.98f), 0.24f);
+                    await SpawnVfxAsync(fxLayer, $"asset.vfx.chain_threshold_{threshold}_burst", new Vector2(960, 118), new Vector2(300, 180), new Color(1f, 1f, 1f, 0.98f), 0.24f);
                 }
             }
             return;
