@@ -374,6 +374,15 @@ AssertEqual(strike.Id, playableAction.Combat.DeckZones.DiscardPile.Single(), "Pl
 Assert(playableAction.Events.Any(item => item.EventType == CombatLogEventType.CardPlayed), "Successful card play emits a card-play log event");
 Assert(playableAction.Events.Any(item => item.Metadata.TryGetValue("effect_type", out var effectType) && effectType == "damage"), "Successful card play emits an effect log event");
 
+var duplicateSlotResult = cardPlayService.PlayCard(CreatePlayableCombat([strike.Id, guardSkill.Id, strike.Id], actionPoints: 1), strike, "enemy_01", handIndex: 2);
+Assert(duplicateSlotResult.Succeeded, "Duplicate card can be played from a specific hand slot");
+AssertEqual(strike.Id, duplicateSlotResult.Combat.DeckZones.Hand[0], "Playing duplicate slot keeps earlier same-id card in hand");
+AssertEqual(guardSkill.Id, duplicateSlotResult.Combat.DeckZones.Hand[1], "Playing duplicate slot removes the clicked slot");
+Assert(duplicateSlotResult.Events.Any(item =>
+	item.EventType == CombatLogEventType.CardPlayed &&
+	item.NumericChanges.TryGetValue("hand_index", out var handIndex) &&
+	handIndex == 2), "Card play log records clicked hand slot for presentation animations");
+
 var costFailure = cardPlayService.PlayCard(CreatePlayableCombat([strike.Id], actionPoints: 0), strike, "enemy_01");
 Assert(!costFailure.Succeeded, "Action card cannot be played without enough action points");
 AssertEqual(PlayCardFailureReason.InsufficientActionPoints, costFailure.FailureReason, "Cost failure exposes UI-readable reason");

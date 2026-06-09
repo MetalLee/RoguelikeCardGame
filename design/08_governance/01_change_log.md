@@ -15,6 +15,10 @@
 
 ## 日志
 
+### 2026-06-09
+
+- 接入第一版 MVP 轻量动效：战斗界面根据 `CombatLogEvent` 播放出牌、伤害、防御、连锁提升、阈值达成、终结牌、敌人行动、抽弃牌和死亡反馈；奖励界面新增卡包打开、候选卡入场和选卡确认动效。该变更同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 与 [[design/03_experience/01_visual_direction|视觉方向]]，明确当前阶段使用 Tween / VFX 方案，不扩展完整角色动作或动画时间轴。
+
 ### 2026-06-08
 
 - 重构第一版 MVP 内容数据结构：将卡牌、敌人、遗物、遭遇、奖励包和 Run 序列迁移到 `game/data/gameplay/`，将卡牌 / 敌人 / 遗物 / 奖励包 view 与 asset manifest 迁移到 `game/data/presentation/`，并把内容 ID 统一为 `card.*`、`enemy.*`、`relic.*`、`reward_pack.*`、`encounter.*` 命名空间格式；同步更新 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]，明确规则数据不得包含表现字段。

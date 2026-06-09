@@ -668,6 +668,44 @@ game/logs/
 - Godot 4.6.3 .NET headless 加载 `game/project.godot`：通过，项目可加载。
 - 当前 Codex 沙箱中 `dotnet` 和 Godot headless 可能因写入 `.godot\mono\temp\obj`、`obj` 或 `user://` 日志缓存受限而失败；已按权限规则重跑并验证通过。
 
+#### 任务 12 阶段完成记录：第一版轻量动效接入
+
+完成日期：2026-06-09
+
+已完成：
+- 已在 `game/src/Presentation/Battle/BattleScreen.cs` 中接入第一版事件驱动 Tween / VFX 动效。
+- 战斗动效由规则层 `CombatLogEvent` 触发，覆盖卡牌出手、伤害命中、敌人抖动、玩家受击、获得防御、连锁提升、3 / 5 / 8 阈值达成、终结牌冲击波、敌人行动、抽牌、弃牌、重洗和敌人死亡淡出。
+- 已在 `game/src/Presentation/Menus/MainMenu.cs` 中将出牌和结束回合改为异步表现流程：规则层先完成结算并产生日志，当前战斗屏幕播放新增日志事件，随后刷新到结算后的新 UI 状态。
+- 已在 `game/src/Presentation/Rewards/RewardScreen.cs` 中接入奖励界面动效，覆盖卡牌包打开、候选卡依次弹出和选卡确认反馈。
+- 已增加交互防抖：动画播放期间忽略新的出牌、结束回合、开包和选卡请求，避免重复触发造成状态错乱。
+- 已更新 [[design/03_experience/00_ui_ux|界面与交互]]、[[design/03_experience/01_visual_direction|视觉方向]] 和 [[design/08_governance/01_change_log|变更日志]]，明确当前阶段是轻量 Tween / VFX 方案，不扩展完整角色逐帧动作、骨骼动画或镜头时间轴。
+- 本次未改动规则层战斗结算、卡牌效果、敌人意图、奖励逻辑或内容数据。
+
+验证结果：
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `godot-mono --headless --path game --quit`：通过，项目可加载。
+
+#### 任务 12 阶段修复记录：重复手牌动画目标错误
+
+完成日期：2026-06-09
+
+已完成：
+- 修复“点击任意同名手牌时总是第一张卡牌抖动”的问题。
+- 原因是战斗界面出牌事件只传递 `cardId`，动画层在同名牌列表中只能选择第一张对应节点；初始牌组包含多张同名行动牌，因此视觉反馈会落到第一张同名牌上。
+- 已将 `BattleScreen.CardRequested` 调整为传递 `cardId` 与 `handIndex`。
+- 已将 `MainMenu.cs` 的出牌流程改为把 `handIndex` 传给规则层和动画层。
+- 已扩展 `CardPlayService`，支持可选 hand slot 出牌；当传入 `handIndex` 时，会校验对应槽位确实是该卡牌，并从该槽位移除手牌。
+- 已在 `CardPlayed` 日志的 `numeric_changes.hand_index` 中记录实际出牌槽位，供表现层动画和后续调试使用。
+- 已补充规则层回归测试，覆盖重复同名牌按指定槽位出牌时，不会错误移除前面的同名牌。
+
+验证结果：
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `godot-mono --headless --path game --quit`：通过，项目可加载。
+
 #### 任务 12 阶段完成记录：统一卡牌 Panel 实例化
 
 完成日期：2026-06-09

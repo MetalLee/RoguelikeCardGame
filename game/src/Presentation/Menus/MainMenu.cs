@@ -39,6 +39,7 @@ public partial class MainMenu : Control
     private int actionCardsPlayedThisTurn;
     private RewardPackDefinition? openedRewardPack;
     private Control? activeScreen;
+    private bool isAnimating;
 
     public override void _Ready()
     {
@@ -126,38 +127,61 @@ public partial class MainMenu : Control
         ShowBattle();
     }
 
-    private void PlayCard(string cardId)
+    private async void PlayCard(string cardId, int handIndex)
     {
-        RequireContent();
-        if (combat is null)
+        if (isAnimating)
         {
             return;
         }
 
-        var card = content!.CardsById[cardId];
-        var result = cardPlayService.PlayCard(combat, card, ResolveTargetFor(card));
-        combat = result.Combat;
-
-        if (!result.Succeeded)
+        isAnimating = true;
+        try
         {
-            ShowBattle(BattleScreen.FailureText(result));
-            return;
-        }
+            RequireContent();
+            if (combat is null)
+            {
+                return;
+            }
 
-        if (card.Type == CardType.Action)
+            var animationScreen = activeScreen as BattleScreen;
+            var card = content!.CardsById[cardId];
+            var result = cardPlayService.PlayCard(combat, card, ResolveTargetFor(card), handIndex);
+            combat = result.Combat;
+            var eventsToAnimate = result.Events.ToList();
+
+            if (!result.Succeeded)
+            {
+                ShowBattle(BattleScreen.FailureText(result));
+                return;
+            }
+
+            if (card.Type == CardType.Action)
+            {
+                var beforeRelicLogCount = combat.Log.Count;
+                ApplyFirstActionRelicIfNeeded(card.Id);
+                eventsToAnimate.AddRange(combat.Log.Skip(beforeRelicLogCount));
+                actionCardsPlayedThisTurn++;
+            }
+
+            await PlayBattleAnimationsAsync(animationScreen, eventsToAnimate, card, handIndex);
+
+            selectedEnemyInstanceId = combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
+            if (combat.Status == CombatStatus.Victory)
+            {
+                ResolveCombatVictory();
+                return;
+            }
+
+            ShowBattle();
+        }
+        catch (Exception ex)
         {
-            ApplyFirstActionRelicIfNeeded(card.Id);
-            actionCardsPlayedThisTurn++;
+            ShowFatalError(ex);
         }
-
-        selectedEnemyInstanceId = combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
-        if (combat.Status == CombatStatus.Victory)
+        finally
         {
-            ResolveCombatVictory();
-            return;
+            isAnimating = false;
         }
-
-        ShowBattle();
     }
 
     private void ApplyFirstActionRelicIfNeeded(string cardId)
@@ -200,28 +224,53 @@ public partial class MainMenu : Control
         };
     }
 
-    private void EndTurn()
+    private async void EndTurn()
     {
-        RequireContent();
-        if (combat is null || combat.Status != CombatStatus.PlayerTurn)
+        if (isAnimating)
         {
             return;
         }
 
-        combat = turnService.EndPlayerTurn(combat);
-        combat = turnService.ResolveEnemyTurn(combat, content!.EnemiesById);
-
-        if (combat.Status == CombatStatus.Defeat)
+        isAnimating = true;
+        try
         {
-            run = runProgressService.ApplyCombatResult(run!, combat, encounter);
-            ShowRunResult();
-            return;
-        }
+            RequireContent();
+            if (combat is null || combat.Status != CombatStatus.PlayerTurn)
+            {
+                return;
+            }
 
-        combat = turnService.PrepareNextPlayerTurn(combat);
-        selectedEnemyInstanceId = combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
-        actionCardsPlayedThisTurn = 0;
-        ShowBattle("敌人行动已结算，新回合开始。");
+            var animationScreen = activeScreen as BattleScreen;
+            var startLogCount = combat.Log.Count;
+
+            combat = turnService.EndPlayerTurn(combat);
+            combat = turnService.ResolveEnemyTurn(combat, content!.EnemiesById);
+
+            if (combat.Status == CombatStatus.Defeat)
+            {
+                var defeatEvents = combat.Log.Skip(startLogCount).ToList();
+                await PlayBattleAnimationsAsync(animationScreen, defeatEvents, null, null);
+                run = runProgressService.ApplyCombatResult(run!, combat, encounter);
+                ShowRunResult();
+                return;
+            }
+
+            combat = turnService.PrepareNextPlayerTurn(combat);
+            var eventsToAnimate = combat.Log.Skip(startLogCount).ToList();
+            await PlayBattleAnimationsAsync(animationScreen, eventsToAnimate, null, null);
+
+            selectedEnemyInstanceId = combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
+            actionCardsPlayedThisTurn = 0;
+            ShowBattle("敌人行动已结算，新回合开始。");
+        }
+        catch (Exception ex)
+        {
+            ShowFatalError(ex);
+        }
+        finally
+        {
+            isAnimating = false;
+        }
     }
 
     private void ResolveCombatVictory()
@@ -250,12 +299,38 @@ public partial class MainMenu : Control
         screen.RenderPackSelection(encounter);
     }
 
-    private void OpenRewardPack(string packId)
+    private async void OpenRewardPack(string packId)
     {
-        RequireContent();
-        openedRewardPack = rewardService.OpenRewardPack(packId, content!.RewardPacksById);
-        selectedRewardCards.Clear();
-        RenderOpenedRewardPack();
+        if (isAnimating)
+        {
+            return;
+        }
+
+        isAnimating = true;
+        try
+        {
+            RequireContent();
+            if (activeScreen is RewardScreen rewardScreen)
+            {
+                await rewardScreen.PlayPackOpenAsync(packId);
+            }
+
+            openedRewardPack = rewardService.OpenRewardPack(packId, content!.RewardPacksById);
+            selectedRewardCards.Clear();
+            RenderOpenedRewardPack();
+            if (activeScreen is RewardScreen openedScreen)
+            {
+                await openedScreen.PlayOpenedCardsEntranceAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowFatalError(ex);
+        }
+        finally
+        {
+            isAnimating = false;
+        }
     }
 
     private void RenderOpenedRewardPack()
@@ -270,14 +345,36 @@ public partial class MainMenu : Control
         screen.RenderOpenedPack(openedRewardPack, selectedRewardCards);
     }
 
-    private void ToggleRewardCard(string cardId)
+    private async void ToggleRewardCard(string cardId)
     {
-        if (!selectedRewardCards.Add(cardId))
+        if (isAnimating)
         {
-            selectedRewardCards.Remove(cardId);
+            return;
         }
 
-        RenderOpenedRewardPack();
+        isAnimating = true;
+        try
+        {
+            var picked = selectedRewardCards.Add(cardId);
+            if (!picked)
+            {
+                selectedRewardCards.Remove(cardId);
+            }
+
+            RenderOpenedRewardPack();
+            if (activeScreen is RewardScreen rewardScreen)
+            {
+                await rewardScreen.PlayRewardCardToggleAsync(cardId, picked);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowFatalError(ex);
+        }
+        finally
+        {
+            isAnimating = false;
+        }
     }
 
     private void ConfirmReward()
@@ -324,6 +421,20 @@ public partial class MainMenu : Control
         var selected = combat.Enemies.FirstOrDefault(enemy =>
             enemy.InstanceId == selectedEnemyInstanceId && enemy.CurrentHp > 0);
         return selected?.InstanceId ?? combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
+    }
+
+    private static async Task PlayBattleAnimationsAsync(
+        BattleScreen? screen,
+        IReadOnlyList<CombatLogEvent> eventsToAnimate,
+        CardDefinition? playedCard,
+        int? playedHandIndex)
+    {
+        if (screen is null || eventsToAnimate.Count == 0)
+        {
+            return;
+        }
+
+        await screen.PlayLogAnimationsAsync(eventsToAnimate, playedCard, playedHandIndex);
     }
 
     private T ShowScreen<T>(string scenePath)

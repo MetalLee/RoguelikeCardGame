@@ -89,6 +89,8 @@
 
 Godot 表现层应通过 `game/data/presentation/assets.json`、`card_views.json`、`enemy_views.json`、`relic_views.json` 和 `reward_pack_views.json` 组合视觉资源。卡牌在运行时由类型模板、卡面插画、规则文本和状态高亮叠加生成；敌人由遭遇实例和 `enemy_views` 的立绘资源生成；奖励包和遗物由对应 view 显示。新增美术资源只有进入 asset manifest 并被 view 引用后，才视为已接入游戏。
 
+第一版动画优先复用现有 PNG 与 VFX 资源，通过 Godot Tween 完成缩放、位移、抖动、淡入淡出和短暂停顿。动画必须由规则层日志事件触发，并保持核心 HUD、敌人意图、手牌和目标选择区域稳定；不能为了演出移动或遮挡玩家下一步决策所需的信息。
+
 ## 设计准则
 
 - 漫画书感不能压低可读性；卡牌文本、敌人意图、状态图标、伤害数字和连锁层数必须保持清楚。

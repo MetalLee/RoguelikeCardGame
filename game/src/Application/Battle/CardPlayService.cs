@@ -77,6 +77,11 @@ public sealed class CardPlayService
 
 	public PlayCardResult CanPlayCard(CombatState combat, CardDefinition card, string? targetEnemyInstanceId = null)
 	{
+		return CanPlayCard(combat, card, targetEnemyInstanceId, handIndex: null);
+	}
+
+	public PlayCardResult CanPlayCard(CombatState combat, CardDefinition card, string? targetEnemyInstanceId, int? handIndex)
+	{
 		ArgumentNullException.ThrowIfNull(combat);
 		ArgumentNullException.ThrowIfNull(card);
 
@@ -85,7 +90,7 @@ public sealed class CardPlayService
 			return PlayCardResult.Failure(combat, PlayCardFailureReason.NotPlayerTurn, "ui.play_card.not_player_turn");
 		}
 
-		if (!combat.DeckZones.Hand.Contains(card.Id))
+		if (!IsCardInHandSlot(combat, card, handIndex))
 		{
 			return PlayCardResult.Failure(combat, PlayCardFailureReason.CardNotInHand, "ui.play_card.card_not_in_hand");
 		}
@@ -128,7 +133,12 @@ public sealed class CardPlayService
 
 	public PlayCardResult PlayCard(CombatState combat, CardDefinition card, string? targetEnemyInstanceId = null)
 	{
-		var canPlay = CanPlayCard(combat, card, targetEnemyInstanceId);
+		return PlayCard(combat, card, targetEnemyInstanceId, handIndex: null);
+	}
+
+	public PlayCardResult PlayCard(CombatState combat, CardDefinition card, string? targetEnemyInstanceId, int? handIndex)
+	{
+		var canPlay = CanPlayCard(combat, card, targetEnemyInstanceId, handIndex);
 		if (!canPlay.Succeeded)
 		{
 			return canPlay with { Events = [CreateRejectedEvent(combat, card, canPlay)] };
@@ -137,7 +147,8 @@ public sealed class CardPlayService
 		var logStartIndex = combat.Log.Count;
 		var chainBeforePlay = combat.Chain;
 		var hand = combat.DeckZones.Hand.ToList();
-		hand.Remove(card.Id);
+		var resolvedHandIndex = ResolveHandIndex(hand, card.Id, handIndex);
+		hand.RemoveAt(resolvedHandIndex);
 
 		var working = combat with
 		{
@@ -160,7 +171,8 @@ public sealed class CardPlayService
 			{
 				["action_points_before"] = combat.ActionPoints,
 				["action_points_after"] = working.ActionPoints,
-				["chain_before"] = combat.Chain
+				["chain_before"] = combat.Chain,
+				["hand_index"] = resolvedHandIndex
 			},
 			Metadata = new Dictionary<string, string>
 			{
@@ -471,6 +483,39 @@ public sealed class CardPlayService
 			ChainChangeMode.ConsumeAll => 0,
 			_ => currentChain
 		};
+	}
+
+	private static bool IsCardInHandSlot(CombatState combat, CardDefinition card, int? handIndex)
+	{
+		if (handIndex is null)
+		{
+			return combat.DeckZones.Hand.Contains(card.Id);
+		}
+
+		return handIndex.Value >= 0 &&
+			   handIndex.Value < combat.DeckZones.Hand.Count &&
+			   combat.DeckZones.Hand[handIndex.Value] == card.Id;
+	}
+
+	private static int ResolveHandIndex(IReadOnlyList<string> hand, string cardId, int? handIndex)
+	{
+		if (handIndex is not null)
+		{
+			if (handIndex.Value < 0 || handIndex.Value >= hand.Count || hand[handIndex.Value] != cardId)
+			{
+				throw new InvalidOperationException($"Card '{cardId}' is not in hand slot {handIndex.Value}.");
+			}
+
+			return handIndex.Value;
+		}
+
+		var resolvedIndex = hand.ToList().IndexOf(cardId);
+		if (resolvedIndex < 0)
+		{
+			throw new InvalidOperationException($"Card '{cardId}' is not in hand.");
+		}
+
+		return resolvedIndex;
 	}
 
 	private static bool TryResolveTargets(
