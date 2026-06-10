@@ -5,6 +5,9 @@ namespace RoguelikeCardGame.Presentation.Battle;
 
 public sealed partial class BattleTargetingOverlay
 {
+    private static readonly Vector2 NonTargetReleaseZonePosition = new(0, 0);
+    private static readonly Vector2 NonTargetReleaseZoneSize = new(1920, 720);
+
     private readonly Dictionary<string, Control> enemyNodes = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Control> enemyTargetHighlights = new(StringComparer.Ordinal);
     private PanelContainer? releaseZonePanel;
@@ -18,7 +21,7 @@ public sealed partial class BattleTargetingOverlay
         enemyTargetHighlights.Clear();
 
         releaseZonePanel = CreateReleaseZonePanel();
-        AddAt(root, releaseZonePanel, new Vector2(646, 392), new Vector2(628, 238));
+        AddAt(root, releaseZonePanel, NonTargetReleaseZonePosition, NonTargetReleaseZoneSize);
 
         dragArrow = new DragArrowOverlay
         {
@@ -27,7 +30,8 @@ public sealed partial class BattleTargetingOverlay
             CustomMinimumSize = new Vector2(1920, 1080),
             Visible = false,
             MouseFilter = Control.MouseFilterEnum.Ignore,
-            ZIndex = 95
+            ZIndex = 220,
+            ZAsRelative = false
         };
         root.AddChild(dragArrow);
     }
@@ -76,18 +80,12 @@ public sealed partial class BattleTargetingOverlay
 
     public bool IsPointerOverReleaseZone(Vector2 viewportPoint)
     {
-        return releaseZonePanel is not null && IsPointOverControl(releaseZonePanel, viewportPoint);
+        return releaseZonePanel is not null && IsPointInsideControl(releaseZonePanel, viewportPoint, requireVisible: false);
     }
 
     public void ShowReleaseZone(bool isHovered, bool canPlay)
     {
-        if (releaseZonePanel is null)
-        {
-            return;
-        }
-
-        releaseZonePanel.Visible = true;
-        SetReleaseZoneStyle(releaseZonePanel, isHovered, canPlay);
+        HideReleaseZone();
     }
 
     public void HideReleaseZone()
@@ -100,9 +98,9 @@ public sealed partial class BattleTargetingOverlay
 
     public void UpdateEnemyHighlights(string? hoveredEnemy)
     {
-        foreach (var (enemyId, highlight) in enemyTargetHighlights)
+        foreach (var (_, highlight) in enemyTargetHighlights)
         {
-            highlight.Visible = string.Equals(enemyId, hoveredEnemy, StringComparison.Ordinal);
+            highlight.Visible = false;
         }
     }
 
@@ -114,7 +112,17 @@ public sealed partial class BattleTargetingOverlay
         }
 
         var startInViewport = cardNode.GetGlobalTransformWithCanvas() * new Vector2(cardNode.Size.X * 0.5f, cardNode.Size.Y * 0.18f);
-        dragArrow.Start = ToLocal(canvasRoot, startInViewport);
+        ShowArrowFromViewport(startInViewport, viewportMouse, isValidTarget);
+    }
+
+    public void ShowArrowFromViewport(Vector2 viewportStart, Vector2 viewportMouse, bool isValidTarget)
+    {
+        if (dragArrow is null || canvasRoot is null)
+        {
+            return;
+        }
+
+        dragArrow.Start = ToLocal(canvasRoot, viewportStart);
         dragArrow.End = ToLocal(canvasRoot, viewportMouse);
         dragArrow.IsValidTarget = isValidTarget;
         dragArrow.Visible = true;
@@ -195,7 +203,12 @@ public sealed partial class BattleTargetingOverlay
 
     private static bool IsPointOverControl(Control control, Vector2 viewportPoint)
     {
-        if (!GodotObject.IsInstanceValid(control) || !control.Visible)
+        return IsPointInsideControl(control, viewportPoint, requireVisible: true);
+    }
+
+    private static bool IsPointInsideControl(Control control, Vector2 viewportPoint, bool requireVisible)
+    {
+        if (!GodotObject.IsInstanceValid(control) || (requireVisible && !control.Visible))
         {
             return false;
         }
@@ -224,26 +237,62 @@ public sealed partial class BattleTargetingOverlay
         public override void _Draw()
         {
             var vector = End - Start;
-            if (vector.LengthSquared() < 16f)
+            if (vector.LengthSquared() < 576f)
             {
                 return;
             }
 
+            var distance = vector.Length();
             var direction = vector.Normalized();
-            var normal = new Vector2(-direction.Y, direction.X);
             var lineColor = IsValidTarget ? ValidLine : NeutralLine;
-            var end = End - direction * 16f;
+            var curveEnd = End - direction * 18f;
+            var curvePoints = BuildCurvePoints(Start, curveEnd, direction, distance);
+            var shadowOffset = new Vector2(3, 4);
 
-            DrawLine(Start + new Vector2(3, 4), end + new Vector2(3, 4), Shadow, 16f, antialiased: true);
-            DrawLine(Start, end, lineColor, 9f, antialiased: true);
+            DrawCurve(curvePoints, shadowOffset, Shadow, 16f);
+            DrawCurve(curvePoints, Vector2.Zero, lineColor, 9f);
 
+            var tangent = (curvePoints[^1] - curvePoints[^3]).Normalized();
+            var normal = new Vector2(-tangent.Y, tangent.X);
             var tip = End;
-            var left = End - direction * 38f + normal * 22f;
-            var right = End - direction * 38f - normal * 22f;
-            var shadowPoints = new[] { tip + new Vector2(3, 4), left + new Vector2(3, 4), right + new Vector2(3, 4) };
+            var left = End - tangent * 38f + normal * 22f;
+            var right = End - tangent * 38f - normal * 22f;
+            var shadowPoints = new[] { tip + shadowOffset, left + shadowOffset, right + shadowOffset };
             var points = new[] { tip, left, right };
             DrawPolygon(shadowPoints, new[] { Shadow, Shadow, Shadow });
             DrawPolygon(points, new[] { lineColor, lineColor, lineColor });
+        }
+
+        private static Vector2[] BuildCurvePoints(Vector2 start, Vector2 end, Vector2 direction, float distance)
+        {
+            const int Segments = 24;
+            var normal = new Vector2(-direction.Y, direction.X);
+            var arc = Math.Clamp(distance * 0.18f, 36f, 118f);
+            var lift = Math.Clamp(distance * 0.06f, 14f, 48f);
+            var side = direction.X >= 0f ? -1f : 1f;
+            var control = (start + end) * 0.5f + normal * arc * side + new Vector2(0, -lift);
+            var points = new Vector2[Segments + 1];
+            for (var i = 0; i <= Segments; i++)
+            {
+                var t = i / (float)Segments;
+                points[i] = QuadraticBezier(start, control, end, t);
+            }
+
+            return points;
+        }
+
+        private void DrawCurve(IReadOnlyList<Vector2> points, Vector2 offset, Color color, float width)
+        {
+            for (var i = 0; i < points.Count - 1; i++)
+            {
+                DrawLine(points[i] + offset, points[i + 1] + offset, color, width, antialiased: true);
+            }
+        }
+
+        private static Vector2 QuadraticBezier(Vector2 start, Vector2 control, Vector2 end, float t)
+        {
+            var inverse = 1f - t;
+            return start * (inverse * inverse) + control * (2f * inverse * t) + end * (t * t);
         }
     }
 }

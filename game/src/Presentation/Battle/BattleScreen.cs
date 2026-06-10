@@ -32,6 +32,7 @@ public partial class BattleScreen : ComicScreen
     private Control? fxLayer;
     private Control? canvasRoot;
     private Control? dragFeedbackPanel;
+    private Control? inputBlocker;
     private bool showBattleLog;
     private string? currentMessage;
 
@@ -65,6 +66,7 @@ public partial class BattleScreen : ComicScreen
         fxLayer = null;
         canvasRoot = null;
         dragFeedbackPanel = null;
+        inputBlocker = null;
 
         var root = CreateCanvas();
         canvasRoot = root;
@@ -74,7 +76,7 @@ public partial class BattleScreen : ComicScreen
         battleHudView = new BattleHudView();
         battleHudView.Render(root, combat, run, RequireContent(), selectedEnemyInstanceId, LoadTexture, LoadFont, () =>
         {
-            battleHandView?.SetInteractionsLocked(true);
+            SetInteractionsLocked(true);
             EndTurnRequested?.Invoke();
         });
         chainPanel = battleHudView.ChainPanel;
@@ -94,7 +96,11 @@ public partial class BattleScreen : ComicScreen
         battleEnemyView.Render(root, combat.Enemies, RequireContent(), selectedEnemyInstanceId, targetingOverlay, LoadTexture);
 
         battleHandView = new BattleHandView();
-        battleHandView.CardRequested += (cardId, handIndex, targetEnemyId) => CardRequested?.Invoke(cardId, handIndex, targetEnemyId);
+        battleHandView.CardRequested += (cardId, handIndex, targetEnemyId) =>
+        {
+            SetInteractionsLocked(true);
+            CardRequested?.Invoke(cardId, handIndex, targetEnemyId);
+        };
         battleHandView.FeedbackRequested += ShowDragFeedback;
         battleHandView.Render(combat, RequireContent(), cardPlayService, targetingOverlay, LoadTexture, LoadFont);
         handNode = battleHandView;
@@ -116,6 +122,9 @@ public partial class BattleScreen : ComicScreen
 
         fxLayer = CreateFxLayer("FxLayer");
         root.AddChild(fxLayer);
+
+        inputBlocker = CreateInputBlocker();
+        root.AddChild(inputBlocker);
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -198,6 +207,15 @@ public partial class BattleScreen : ComicScreen
         battleHandView?.HidePlayedCard(handIndex);
     }
 
+    public void SetInteractionsLocked(bool locked)
+    {
+        battleHandView?.SetInteractionsLocked(locked);
+        if (inputBlocker is not null)
+        {
+            inputBlocker.Visible = locked;
+        }
+    }
+
     public async Task PlayLogAnimationsAsync(
         IReadOnlyList<CombatLogEvent> events,
         CardDefinition? playedCard = null,
@@ -226,5 +244,19 @@ public partial class BattleScreen : ComicScreen
             battleEnemyView?.EnemyNodes ?? new Dictionary<string, Control>(),
             handIndex => battleHandView?.GetCardNodeByHandIndex(handIndex),
             cardId => battleHandView?.GetFirstCardNode(cardId));
+    }
+
+    private static Control CreateInputBlocker()
+    {
+        return new Control
+        {
+            Name = "BattleInputBlocker",
+            Size = new Vector2(1920, 1080),
+            CustomMinimumSize = new Vector2(1920, 1080),
+            MouseFilter = MouseFilterEnum.Stop,
+            Visible = false,
+            ZIndex = 300,
+            ZAsRelative = false
+        };
     }
 }

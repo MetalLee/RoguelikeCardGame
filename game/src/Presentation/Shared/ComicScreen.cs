@@ -394,7 +394,7 @@ public abstract partial class ComicScreen : Control
 
     internal async Task PulseNodeAsync(Control? node, float peakScale, double duration)
     {
-        if (node is null)
+        if (node is null || !GodotObject.IsInstanceValid(node))
         {
             return;
         }
@@ -406,12 +406,12 @@ public abstract partial class ComicScreen : Control
         tween.SetEase(Tween.EaseType.Out);
         tween.TweenProperty(node, "scale", originalScale * peakScale, duration);
         tween.TweenProperty(node, "scale", originalScale, duration);
-        await ToSignal(tween, "finished");
+        await AwaitTweenFinishedAsync(tween, duration * 2.0 + 0.25);
     }
 
     internal async Task ShakeNodeAsync(Control? node, float distance, double duration)
     {
-        if (node is null)
+        if (node is null || !GodotObject.IsInstanceValid(node))
         {
             return;
         }
@@ -424,12 +424,12 @@ public abstract partial class ComicScreen : Control
         tween.TweenProperty(node, "position", originalPosition + new Vector2(-distance * 0.7f, 0), step);
         tween.TweenProperty(node, "position", originalPosition + new Vector2(distance * 0.35f, 0), step);
         tween.TweenProperty(node, "position", originalPosition, step);
-        await ToSignal(tween, "finished");
+        await AwaitTweenFinishedAsync(tween, duration + 0.25);
     }
 
     internal async Task LungeNodeAsync(Control? node, Vector2 offset, double duration)
     {
-        if (node is null)
+        if (node is null || !GodotObject.IsInstanceValid(node))
         {
             return;
         }
@@ -440,12 +440,12 @@ public abstract partial class ComicScreen : Control
         tween.SetEase(Tween.EaseType.Out);
         tween.TweenProperty(node, "position", originalPosition + offset, duration);
         tween.TweenProperty(node, "position", originalPosition, duration);
-        await ToSignal(tween, "finished");
+        await AwaitTweenFinishedAsync(tween, duration * 2.0 + 0.25);
     }
 
     internal async Task SpawnVfxAsync(Control? fxLayer, string assetId, Vector2 center, Vector2 size, Color tint, double duration)
     {
-        if (fxLayer is null)
+        if (fxLayer is null || !GodotObject.IsInstanceValid(fxLayer))
         {
             return;
         }
@@ -465,8 +465,66 @@ public abstract partial class ComicScreen : Control
         tween.TweenProperty(vfx, "modulate", tint, duration * 0.35);
         tween.TweenProperty(vfx, "scale", new Vector2(1.12f, 1.12f), duration);
         tween.Chain().TweenProperty(vfx, "modulate", new Color(tint.R, tint.G, tint.B, 0f), duration * 0.45);
-        await ToSignal(tween, "finished");
-        vfx.QueueFree();
+        await AwaitTweenFinishedAsync(tween, duration * 2.0 + 0.35);
+        if (GodotObject.IsInstanceValid(vfx))
+        {
+            vfx.QueueFree();
+        }
+    }
+
+    internal async Task AwaitTweenFinishedAsync(Tween tween, double timeoutSeconds)
+    {
+        if (!GodotObject.IsInstanceValid(tween))
+        {
+            return;
+        }
+
+        var tree = GetTree();
+        if (tree is null)
+        {
+            await ToSignal(tween, "finished");
+            return;
+        }
+
+        var completed = false;
+        var completion = new TaskCompletionSource();
+        var timeout = tree.CreateTimer(Math.Max(0.05, timeoutSeconds));
+
+        void Complete()
+        {
+            if (completed)
+            {
+                return;
+            }
+
+            completed = true;
+            completion.TrySetResult();
+        }
+
+        tween.Finished += Complete;
+        timeout.Timeout += Complete;
+
+        try
+        {
+            await completion.Task;
+        }
+        finally
+        {
+            if (GodotObject.IsInstanceValid(tween))
+            {
+                tween.Finished -= Complete;
+            }
+
+            if (GodotObject.IsInstanceValid(timeout))
+            {
+                timeout.Timeout -= Complete;
+            }
+        }
+
+        if (GodotObject.IsInstanceValid(tween) && tween.IsRunning())
+        {
+            tween.Kill();
+        }
     }
 
     protected async Task WaitAsync(double seconds)

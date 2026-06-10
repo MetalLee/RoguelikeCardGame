@@ -93,7 +93,7 @@ public static class CardPanel
 			canvas.AddChild(CreateImpactLabel(
 				costText,
 				layout.CostRect,
-				78,
+				100,
 				InkText,
 				outlineSize: 8,
 				heavyFont));
@@ -102,13 +102,13 @@ public static class CardPanel
 		canvas.AddChild(CreateTitleLabel(
 			content.CardName(card.Id),
 			layout.NameRect,
-			58,
+			68,
 			heavyFont));
 
 		canvas.AddChild(CreateRulesLabel(
 			content.CardRules(card.Id),
 			layout.RulesRect,
-			40,
+			60,
 			mediumFont,
 			heavyFont));
 
@@ -283,18 +283,18 @@ public static class CardPanel
 		{
 			CardType.Action => new CardLayout(
 				ArtRect: new Rect2(88, 236, 842, 717),
-				CostRect: new Rect2(72, 82, 132, 132),
-				NameRect: new Rect2(286, 84, 640, 104),
+				CostRect: new Rect2(82, 82, 142, 132),
+				NameRect: new Rect2(286, 100, 640, 120),
 				RulesRect: new Rect2(126, 1032, 772, 300)),
 			CardType.Skill => new CardLayout(
 				ArtRect: new Rect2(93, 257, 839, 710),
 				CostRect: new Rect2(),
-				NameRect: new Rect2(116, 86, 790, 112),
+				NameRect: new Rect2(116, 105, 790, 125),
 				RulesRect: new Rect2(126, 1034, 772, 300)),
 			CardType.Finisher => new CardLayout(
 				ArtRect: new Rect2(91, 243, 842, 707),
-				CostRect: new Rect2(78, 78, 128, 128),
-				NameRect: new Rect2(310, 84, 592, 104),
+				CostRect: new Rect2(108, 88, 158, 138),
+				NameRect: new Rect2(310, 100, 592, 120),
 				RulesRect: new Rect2(126, 1034, 772, 300)),
 			_ => new CardLayout(
 				ArtRect: new Rect2(90, 244, 842, 710),

@@ -917,3 +917,54 @@ game/logs/
 - 后续新增敌人站位、Boss 体型适配或敌人舞台 tooltip 优先进入 `BattleEnemyView.cs`。
 - 后续新增 HUD 元素、状态图标或数值条布局优先进入 `BattleHudView.cs`。
 - 后续新增战斗事件动画、音效触发或减少动画设置优先进入 `BattleLogAnimator.cs`。
+
+#### 任务 12 阶段修复记录：单体目标箭头拖拽效果优化
+
+完成日期：2026-06-11
+
+已完成：
+- 已排查并修复 `TargetRule.SingleEnemy` 卡牌拖拽时箭头不明显 / 不出现的问题：原先单体目标卡牌跟随鼠标移动，箭头起点与鼠标端点过近，且箭头层级容易被拖拽卡牌遮挡。
+- 已更新 `game/src/Presentation/Battle/BattleHandView.cs`：单体敌人目标卡牌进入拖拽后只从原扇形位置向上抬升一小段距离，并保持置顶 / 突出，不再跟随鼠标移动。
+- 已保持非单体目标卡牌原有拖拽手感不变：`TargetRule.Self`、`TargetRule.AllEnemies`、`TargetRule.None` 卡牌仍跟随鼠标移动，并通过中场释放区触发出牌。
+- 已更新 `game/src/Presentation/Battle/BattleTargetingOverlay.cs`：新增从视口固定锚点绘制箭头的入口，单体目标箭头从卡牌上方锚点出发，末端跟随鼠标。
+- 已提高箭头绘制层级并设为非相对 Z 排序，避免被手牌、敌人或 HUD 盖住。
+- 已将单体目标箭头从直线改为带弧度的二次贝塞尔路径：箭身使用多段采样绘制，保留粗线、深色投影和浅色主线；箭头头部沿曲线末端切线方向旋转。
+- 单体敌人目标卡牌释放时仍必须指向有效敌人；松开鼠标后箭头和目标高亮会清除，卡牌归位，再由流程控制器按 `cardId`、`handIndex`、`targetEnemyInstanceId` 请求规则层出牌。
+- 本次只调整表现层拖拽视觉、箭头绘制和目标提示，不改动规则层结算、卡牌数值、敌人数据、目标规则或奖励流程。
+
+实现要点：
+- `BattleHandView` 负责区分单体目标卡牌与非单体目标卡牌的拖拽行为；单体目标卡牌使用固定卡牌锚点 + 鼠标端点绘制箭头，非单体目标卡牌继续使用卡牌跟随鼠标 + 中场释放区。
+- `BattleTargetingOverlay` 负责箭头曲线路径、敌人目标命中检测、目标高亮和箭头隐藏 / 清理。
+- 箭头曲线当前使用 Godot 原生 `_Draw()` 绘制，不依赖专门美术资源；后续如有正式漫画风箭头贴图或材质，可继续在 `BattleTargetingOverlay` 内替换绘制实现。
+
+验证结果：
+- `dotnet build game\RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- Godot 4.6.3 .NET headless 启动 `D:\Godot_v4.6.3-stable_mono_win64\Godot_v4.6.3-stable_mono_win64_console.exe --headless --path game --quit-after 3`：通过，项目可启动。
+- 当前 Codex 沙箱中 Godot headless 可能因写入 `user://logs` 被拦截并崩溃；已按权限规则重跑并验证通过。
+
+#### 任务 12 阶段完成记录：拖拽有效目标卡牌蒙版反馈
+
+完成日期：2026-06-11
+
+已完成：
+- 已优化战斗手牌拖拽反馈：隐藏中场释放区 UI，不再显示“释放到这里”的区域面板，但保留原有释放区几何判定。
+- 对 `TargetRule.Self`、`TargetRule.AllEnemies` 和 `TargetRule.None` 卡牌，拖拽到有效中场释放区且 `CardPlayService.CanPlayCard(...)` 通过时，在被拖拽卡牌本身显示金色透明蒙版。
+- 已隐藏单体敌人目标卡牌的敌人边框高亮，不再用敌人控件边框提示有效目标。
+- 对 `TargetRule.SingleEnemy` 卡牌，箭头指向有效敌人且 `CardPlayService.CanPlayCard(...)` 通过时，在被拖拽卡牌本身显示金色透明蒙版。
+- 取消拖拽、释放到无效区域、出牌请求发出或卡牌归位时，都会清除卡牌蒙版，避免残留 UI 状态。
+- 本次只调整表现层反馈方式，不改动规则层结算、目标规则、出牌请求参数、卡牌数值、敌人数据或奖励流程。
+
+实现要点：
+- `game/src/Presentation/Battle/BattleTargetingOverlay.cs` 将释放区显示与释放区命中检测解耦：释放区面板保持隐藏，但 `IsPointerOverReleaseZone(...)` 仍可基于隐藏控件几何区域判断是否有效。
+- `BattleTargetingOverlay.UpdateEnemyHighlights(...)` 现在统一隐藏敌人拖拽高亮边框，敌人命中检测仍保留给单体目标箭头释放判断使用。
+- `game/src/Presentation/Battle/BattleHandView.cs` 为每张手牌创建默认隐藏的 `ValidTargetMask`，使用金色半透明 `StyleBoxFlat` 覆盖卡牌区域。
+- `BattleHandView.UpdateCardDrag(...)` 根据目标规则分别判断“中场释放区有效”或“箭头指向有效敌人”，仅在规则可打出时显示卡牌蒙版。
+
+验证结果：
+- `dotnet build game\RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- Godot 4.6.3 .NET headless 启动 `D:\Godot_v4.6.3-stable_mono_win64\Godot_v4.6.3-stable_mono_win64_console.exe --headless --path game --quit-after 3`：通过，项目可启动。
+- 当前 Codex 沙箱中 Godot headless 可能因写入 `user://logs` 被拦截并崩溃；已按权限规则重跑并验证通过。

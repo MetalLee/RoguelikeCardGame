@@ -64,15 +64,11 @@ public sealed class BattleLogAnimator
                 await screen.PulseNodeAsync(targets.HandNode, 0.94f, 0.10f);
                 break;
             case CombatLogEventType.CardsDrawn:
-                await screen.PulseNodeAsync(targets.DrawPilePanel, 1.18f, 0.12f);
                 await screen.PulseNodeAsync(targets.HandNode, 1.03f, 0.10f);
                 break;
             case CombatLogEventType.CardsDiscarded:
-                await screen.PulseNodeAsync(targets.DiscardPilePanel, 1.18f, 0.12f);
                 break;
             case CombatLogEventType.DeckReshuffled:
-                await screen.PulseNodeAsync(targets.DrawPilePanel, 1.22f, 0.12f);
-                await screen.PulseNodeAsync(targets.DiscardPilePanel, 1.22f, 0.12f);
                 break;
         }
     }
@@ -248,7 +244,7 @@ public sealed class BattleLogAnimator
             tween.SetParallel(true);
             tween.TweenProperty(enemyNode, "scale", enemyNode.Scale * 0.9f, 0.16);
             tween.TweenProperty(enemyNode, "modulate", new Color(0.25f, 0.25f, 0.25f, 0.55f), 0.16);
-            await screen.ToSignal(tween, "finished");
+            await screen.AwaitTweenFinishedAsync(tween, 0.45);
         }
     }
 

@@ -62,7 +62,7 @@ public sealed partial class BattleHandView : Control
             var cardControl = CreateCardControl(cardId, handIndex);
             var normalized = handCount <= 1 ? 0f : (handIndex / (float)(handCount - 1) - 0.5f) * 2f;
             var arcLift = (1f - Math.Abs(normalized)) * 26f;
-            cardControl.Position = new Vector2(startHandX + step * handIndex, 36f - arcLift);
+            cardControl.Position = new Vector2(startHandX + step * handIndex, 60f - arcLift);
             cardControl.Size = cardSize;
             cardControl.CustomMinimumSize = cardSize;
             cardControl.PivotOffset = cardSize * 0.5f;
@@ -172,6 +172,9 @@ public sealed partial class BattleHandView : Control
         button.MouseExited += () => SetCardHover(interaction, hovered: false);
         button.GuiInput += input => OnCardGuiInput(interaction, input);
         panel.AddChild(button);
+
+        interaction.ValidTargetMask = CreateValidTargetMask();
+        panel.AddChild(interaction.ValidTargetMask);
     }
 
     private PlayCardResult PreviewCanPlayCard(CardDefinition card, int handIndex)
@@ -223,26 +226,33 @@ public sealed partial class BattleHandView : Control
 
         draggingCard = card;
         card.IsHovered = false;
-        var mouseLocalToParent = ToLocal(parent, GetViewport().GetMousePosition());
-        card.DragOffset = card.Node.Position - mouseLocalToParent;
         card.Node.ZIndex = 85;
-        card.Node.RotationDegrees = 0;
-        card.Node.Scale = card.OriginalScale * 1.04f;
+        if (card.Card.TargetRule == TargetRule.SingleEnemy)
+        {
+            card.Node.Position = card.OriginalPosition + new Vector2(0, -62);
+            card.Node.RotationDegrees = 0;
+            card.Node.Scale = card.OriginalScale * 1.02f;
+        }
+        else
+        {
+            var mouseLocalToParent = ToLocal(parent, GetViewport().GetMousePosition());
+            card.DragOffset = card.Node.Position - mouseLocalToParent;
+            card.Node.RotationDegrees = 0;
+            card.Node.Scale = card.OriginalScale * 1.04f;
+        }
+
         UpdateCardDrag();
     }
 
     private void UpdateCardDrag()
     {
         var card = draggingCard;
-        if (card is null || !GodotObject.IsInstanceValid(card.Node) || card.Node.GetParent() is not Control parent)
+        if (card is null || !GodotObject.IsInstanceValid(card.Node))
         {
             return;
         }
 
         var viewportMouse = GetViewport().GetMousePosition();
-        var mouseLocalToParent = ToLocal(parent, viewportMouse);
-        card.Node.Position = mouseLocalToParent + card.DragOffset;
-
         if (card.Card.TargetRule == TargetRule.SingleEnemy)
         {
             RequireTargetingOverlay().HideReleaseZone();
@@ -251,15 +261,24 @@ public sealed partial class BattleHandView : Control
             RequireTargetingOverlay().UpdateEnemyHighlights(hoveredEnemy);
             var canPlay = hoveredEnemy is not null &&
                 RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, hoveredEnemy, card.HandIndex).Succeeded;
-            RequireTargetingOverlay().ShowArrow(card.Node, viewportMouse, canPlay);
+            SetValidTargetMask(card, canPlay);
+            RequireTargetingOverlay().ShowArrowFromViewport(CurrentCardAnchorInViewport(card), viewportMouse, canPlay);
             return;
         }
 
+        if (card.Node.GetParent() is not Control parent)
+        {
+            return;
+        }
+
+        var mouseLocalToParent = ToLocal(parent, viewportMouse);
+        card.Node.Position = mouseLocalToParent + card.DragOffset;
         RequireTargetingOverlay().HideArrow();
         RequireTargetingOverlay().UpdateEnemyHighlights(null);
         var overReleaseZone = RequireTargetingOverlay().IsPointerOverReleaseZone(viewportMouse);
         var canReleasePlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, null, card.HandIndex).Succeeded;
-        RequireTargetingOverlay().ShowReleaseZone(overReleaseZone, canReleasePlay);
+        RequireTargetingOverlay().HideReleaseZone();
+        SetValidTargetMask(card, overReleaseZone && canReleasePlay);
     }
 
     private void CompleteCardDrag()
@@ -299,7 +318,7 @@ public sealed partial class BattleHandView : Control
             }
         }
 
-        CleanupDragVisuals(restoreCard: !shouldRequest);
+        CleanupDragVisuals(restoreCard: !shouldRequest || card.Card.TargetRule == TargetRule.SingleEnemy);
         if (!shouldRequest)
         {
             return;
@@ -314,6 +333,10 @@ public sealed partial class BattleHandView : Control
         var card = draggingCard;
         draggingCard = null;
         RequireTargetingOverlay().HideDragVisuals();
+        if (card is not null)
+        {
+            SetValidTargetMask(card, visible: false);
+        }
 
         if (restoreCard && card is not null && GodotObject.IsInstanceValid(card.Node))
         {
@@ -328,6 +351,12 @@ public sealed partial class BattleHandView : Control
         card.Node.ZIndex = card.OriginalZIndex;
         card.Node.Scale = card.OriginalScale;
         card.Node.Modulate = card.OriginalModulate;
+        SetValidTargetMask(card, visible: false);
+    }
+
+    private static Vector2 CurrentCardAnchorInViewport(HandCardInteraction card)
+    {
+        return card.Node.GetGlobalTransformWithCanvas() * new Vector2(card.Node.Size.X * 0.5f, card.Node.Size.Y * 0.18f);
     }
 
     private CombatState RequireCombat()
@@ -382,6 +411,40 @@ public sealed partial class BattleHandView : Control
         button.AddThemeStyleboxOverride("focus", empty);
     }
 
+    private static Control CreateValidTargetMask()
+    {
+        var mask = new Panel
+        {
+            Name = "ValidTargetMask",
+            Visible = false,
+            MouseFilter = MouseFilterEnum.Ignore,
+            ZIndex = 95
+        };
+        mask.SetAnchorsPreset(LayoutPreset.FullRect);
+        mask.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(1.0f, 0.75f, 0.18f, 0.24f),
+            BorderColor = new Color(1.0f, 0.88f, 0.38f, 0.84f),
+            BorderWidthLeft = 4,
+            BorderWidthRight = 4,
+            BorderWidthTop = 4,
+            BorderWidthBottom = 4,
+            CornerRadiusBottomLeft = 10,
+            CornerRadiusBottomRight = 10,
+            CornerRadiusTopLeft = 10,
+            CornerRadiusTopRight = 10
+        });
+        return mask;
+    }
+
+    private static void SetValidTargetMask(HandCardInteraction card, bool visible)
+    {
+        if (card.ValidTargetMask is not null && GodotObject.IsInstanceValid(card.ValidTargetMask))
+        {
+            card.ValidTargetMask.Visible = visible;
+        }
+    }
+
     private static Vector2 ToLocal(Control control, Vector2 viewportPoint)
     {
         return control.GetGlobalTransformWithCanvas().AffineInverse() * viewportPoint;
@@ -434,5 +497,7 @@ public sealed partial class BattleHandView : Control
         public Vector2 DragOffset { get; set; }
 
         public string? CurrentTargetEnemyId { get; set; }
+
+        public Control? ValidTargetMask { get; set; }
     }
 }

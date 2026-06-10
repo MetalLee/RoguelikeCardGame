@@ -61,7 +61,11 @@ public sealed class BattleHudView
         }
 
         var endTurn = CreateEndTurnButton();
-        endTurn.Pressed += endTurnRequested;
+        endTurn.Pressed += () =>
+        {
+            PlayEndTurnClickAnimation(endTurn);
+            endTurnRequested();
+        };
         AddAt(root, endTurn, new Vector2(1530, 790), new Vector2(318, 92));
     }
 
@@ -137,9 +141,9 @@ public sealed class BattleHudView
         meter.Size = meterSize;
         ChainPanel.AddChild(meter);
 
-        var pointSize = new Vector2(44, 44);
-        var firstCenterX = 31f;
-        var slotStep = 82.7f;
+        var pointSize = new Vector2(33, 33);
+        var firstCenterX = 33f;
+        var slotStep = 81f;
         for (var i = 0; i < Math.Min(chain, 8); i++)
         {
             var point = CreateImage("asset.ui.battle.chain_point_red", pointSize, TextureRect.StretchModeEnum.Scale);
@@ -244,6 +248,31 @@ public sealed class BattleHudView
         label.VerticalAlignment = VerticalAlignment.Center;
         button.AddChild(label);
         return button;
+    }
+
+    private static void PlayEndTurnClickAnimation(Control button)
+    {
+        if (!GodotObject.IsInstanceValid(button))
+        {
+            return;
+        }
+
+        button.PivotOffset = button.Size * 0.5f;
+        button.Scale = Vector2.One;
+        button.Modulate = Colors.White;
+
+        var scaleTween = button.CreateTween();
+        scaleTween.SetTrans(Tween.TransitionType.Cubic);
+        scaleTween.SetEase(Tween.EaseType.Out);
+        scaleTween.TweenProperty(button, "scale", new Vector2(0.94f, 0.94f), 0.045);
+        scaleTween.TweenProperty(button, "scale", new Vector2(1.055f, 1.055f), 0.075);
+        scaleTween.TweenProperty(button, "scale", Vector2.One, 0.09);
+
+        var flashTween = button.CreateTween();
+        flashTween.SetTrans(Tween.TransitionType.Sine);
+        flashTween.SetEase(Tween.EaseType.Out);
+        flashTween.TweenProperty(button, "modulate", new Color(1.0f, 0.92f, 0.72f, 1.0f), 0.05);
+        flashTween.TweenProperty(button, "modulate", Colors.White, 0.14);
     }
 
     private Label CreateHudLabel(

@@ -38,6 +38,7 @@ public sealed class MvpRunFlowController
     private int actionCardsPlayedThisTurn;
     private RewardPackDefinition? openedRewardPack;
     private bool isAnimating;
+    private int flowVersion;
 
     public MvpRunFlowController(GameContent content, SceneScreenHost screenHost)
     {
@@ -49,6 +50,7 @@ public sealed class MvpRunFlowController
     {
         try
         {
+            ResetFlowInteractionState();
             var screen = screenHost.ShowScreen<StartMenuScreen>(StartMenuScenePath);
             screen.StartRequested += StartNewRun;
             screen.Render();
@@ -61,6 +63,7 @@ public sealed class MvpRunFlowController
 
     private void StartNewRun()
     {
+        ResetFlowInteractionState();
         var sequence = content.MvpRun;
         run = runFactory.CreateNewRun(
             runId: $"run_{DateTime.UtcNow:yyyyMMddHHmmss}",
@@ -119,18 +122,22 @@ public sealed class MvpRunFlowController
 
     private void SelectEnemy(string enemyInstanceId)
     {
+        if (isAnimating)
+        {
+            return;
+        }
+
         selectedEnemyInstanceId = enemyInstanceId;
         ShowBattle();
     }
 
     private async void PlayCard(string cardId, int handIndex, string? targetEnemyInstanceId)
     {
-        if (isAnimating)
+        if (!TryBeginBattleAnimation(out var operationVersion))
         {
             return;
         }
 
-        isAnimating = true;
         try
         {
             if (combat is null)
@@ -161,6 +168,10 @@ public sealed class MvpRunFlowController
 
             animationScreen?.HidePlayedCard(handIndex);
             await PlayBattleAnimationsAsync(animationScreen, eventsToAnimate, card, handIndex, playConcurrently: true);
+            if (!IsCurrentFlow(operationVersion))
+            {
+                return;
+            }
 
             selectedEnemyInstanceId = combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
             if (combat.Status == CombatStatus.Victory)
@@ -177,7 +188,7 @@ public sealed class MvpRunFlowController
         }
         finally
         {
-            isAnimating = false;
+            FinishBattleAnimation(operationVersion);
         }
     }
 
@@ -223,12 +234,11 @@ public sealed class MvpRunFlowController
 
     private async void EndTurn()
     {
-        if (isAnimating)
+        if (!TryBeginBattleAnimation(out var operationVersion))
         {
             return;
         }
 
-        isAnimating = true;
         try
         {
             if (combat is null || combat.Status != CombatStatus.PlayerTurn)
@@ -246,6 +256,11 @@ public sealed class MvpRunFlowController
             {
                 var defeatEvents = combat.Log.Skip(startLogCount).ToList();
                 await PlayBattleAnimationsAsync(animationScreen, defeatEvents, null, null);
+                if (!IsCurrentFlow(operationVersion))
+                {
+                    return;
+                }
+
                 run = runProgressService.ApplyCombatResult(run!, combat, encounter);
                 ShowRunResult();
                 return;
@@ -254,6 +269,10 @@ public sealed class MvpRunFlowController
             combat = turnService.PrepareNextPlayerTurn(combat);
             var eventsToAnimate = combat.Log.Skip(startLogCount).ToList();
             await PlayBattleAnimationsAsync(animationScreen, eventsToAnimate, null, null);
+            if (!IsCurrentFlow(operationVersion))
+            {
+                return;
+            }
 
             selectedEnemyInstanceId = combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
             actionCardsPlayedThisTurn = 0;
@@ -265,7 +284,7 @@ public sealed class MvpRunFlowController
         }
         finally
         {
-            isAnimating = false;
+            FinishBattleAnimation(operationVersion);
         }
     }
 
@@ -401,6 +420,7 @@ public sealed class MvpRunFlowController
 
     private void ShowRunResult()
     {
+        ResetFlowInteractionState();
         var screen = screenHost.ShowScreen<RunResultScreen>(RunResultScenePath);
         screen.RestartRequested += StartNewRun;
         screen.RenderRunResult(run);
@@ -419,5 +439,50 @@ public sealed class MvpRunFlowController
         }
 
         await screen.PlayLogAnimationsAsync(eventsToAnimate, playedCard, playedHandIndex, playConcurrently);
+    }
+
+    private bool TryBeginBattleAnimation(out int operationVersion)
+    {
+        operationVersion = flowVersion;
+        if (isAnimating)
+        {
+            SetActiveBattleInteractionsLocked(true);
+            return false;
+        }
+
+        isAnimating = true;
+        SetActiveBattleInteractionsLocked(true);
+        return true;
+    }
+
+    private void FinishBattleAnimation(int operationVersion)
+    {
+        if (!IsCurrentFlow(operationVersion))
+        {
+            return;
+        }
+
+        isAnimating = false;
+        SetActiveBattleInteractionsLocked(false);
+    }
+
+    private bool IsCurrentFlow(int operationVersion)
+    {
+        return operationVersion == flowVersion;
+    }
+
+    private void ResetFlowInteractionState()
+    {
+        flowVersion++;
+        isAnimating = false;
+        SetActiveBattleInteractionsLocked(false);
+    }
+
+    private void SetActiveBattleInteractionsLocked(bool locked)
+    {
+        if (screenHost.ActiveScreen is BattleScreen battleScreen)
+        {
+            battleScreen.SetInteractionsLocked(locked);
+        }
     }
 }
