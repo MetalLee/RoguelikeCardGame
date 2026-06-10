@@ -158,7 +158,8 @@ public sealed class MvpRunFlowController
                 actionCardsPlayedThisTurn++;
             }
 
-            await PlayBattleAnimationsAsync(animationScreen, eventsToAnimate, card, handIndex);
+            animationScreen?.HidePlayedCard(handIndex);
+            await PlayBattleAnimationsAsync(animationScreen, eventsToAnimate, card, handIndex, playConcurrently: true);
 
             selectedEnemyInstanceId = combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
             if (combat.Status == CombatStatus.Victory)
@@ -420,13 +421,14 @@ public sealed class MvpRunFlowController
         BattleScreen? screen,
         IReadOnlyList<CombatLogEvent> eventsToAnimate,
         CardDefinition? playedCard,
-        int? playedHandIndex)
+        int? playedHandIndex,
+        bool playConcurrently = false)
     {
         if (screen is null || eventsToAnimate.Count == 0)
         {
             return;
         }
 
-        await screen.PlayLogAnimationsAsync(eventsToAnimate, playedCard, playedHandIndex);
+        await screen.PlayLogAnimationsAsync(eventsToAnimate, playedCard, playedHandIndex, playConcurrently);
     }
 }

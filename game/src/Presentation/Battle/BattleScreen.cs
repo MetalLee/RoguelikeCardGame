@@ -11,6 +11,19 @@ namespace RoguelikeCardGame.Presentation.Battle;
 
 public partial class BattleScreen : ComicScreen
 {
+    // 16:9 design-space stage tuning. Adjust this line first when matching feet to the painted ground.
+    private const float StageGroundY = 785f;
+
+    private static readonly Dictionary<string, EnemySpriteLayout> EnemySpriteLayouts = new(StringComparer.Ordinal)
+    {
+        ["enemy.training_dummy"] = new(new Vector2(1254, 1254), 1208f, 0.32f),
+        ["enemy.intent_scout"] = new(new Vector2(1254, 1254), 1185f, 0.31f),
+        ["enemy.splitling"] = new(new Vector2(1254, 1254), 1173f, 0.25f),
+        ["enemy.elite_guardian"] = new(new Vector2(1132, 1390), 1292f, 0.45f),
+        ["enemy.relic_tester"] = new(new Vector2(1254, 1254), 1182f, 0.41f),
+        ["enemy.chain_warden"] = new(new Vector2(1402, 1122), 1095f, 0.50f)
+    };
+
     private readonly CombatTurnService turnService = new();
     private readonly CardPlayService cardPlayService = new();
 
@@ -74,28 +87,31 @@ public partial class BattleScreen : ComicScreen
         discardPilePanel = CreatePilePanel("asset.ui.battle.discard_pile_panel", "弃牌", combat.DeckZones.DiscardPileCount);
         AddAt(root, discardPilePanel, new Vector2(1578, 910), new Vector2(272, 138));
 
-        playerNode = CreateImage("asset.character.swordsman.battle", new Vector2(510, 510), TextureRect.StretchModeEnum.KeepAspectCentered);
+        var playerSize = new Vector2(430, 430);
+        var playerPosition = new Vector2(250, StageGroundY - playerSize.Y + 50);
+        playerNode = CreateImage("asset.character.swordsman.battle", playerSize, TextureRect.StretchModeEnum.KeepAspectCentered);
         playerNode.Name = "PlayerStand";
-        AddAt(root, playerNode, new Vector2(120, 255), new Vector2(510, 510));
+        AddAt(root, playerNode, playerPosition, playerSize);
 
         if (run.RelicIds.Count > 0)
         {
             AddAt(root, CreateRelicStrip(), new Vector2(50, 152), new Vector2(350, 48));
         }
 
-        var enemyCount = combat.Enemies.Count;
-        var isBoss = encounter.NodeType == EncounterNodeType.Boss;
-        var enemyWidth = isBoss ? 500 : enemyCount <= 1 ? 360 : 280;
-        var enemyHeight = isBoss ? 540 : 390;
-        var spacing = enemyCount <= 1 ? 0 : 28;
-        var totalWidth = enemyCount * enemyWidth + Math.Max(0, enemyCount - 1) * spacing;
+        var enemyLayouts = combat.Enemies
+            .Select(enemy => (State: enemy, Layout: EnemySpriteLayoutFor(enemy.EnemyId)))
+            .ToList();
+        var spacing = enemyLayouts.Count <= 1 ? 0 : 28;
+        var totalWidth = enemyLayouts.Sum(item => item.Layout.DisplaySize.X) + Math.Max(0, enemyLayouts.Count - 1) * spacing;
         var startX = 1395 - totalWidth / 2f;
-        var enemyY = 742 - enemyHeight;
-        for (var i = 0; i < combat.Enemies.Count; i++)
+        var enemyX = startX;
+        foreach (var (enemyState, spriteLayout) in enemyLayouts)
         {
-            var enemyControl = CreateEnemyButton(combat.Enemies[i], enemyWidth, enemyHeight);
-            enemyNodes[combat.Enemies[i].InstanceId] = enemyControl;
-            AddAt(root, enemyControl, new Vector2(startX + i * (enemyWidth + spacing), enemyY), new Vector2(enemyWidth, enemyHeight));
+            var enemyPosition = new Vector2(enemyX, StageGroundY - spriteLayout.ContentBottom * spriteLayout.Scale);
+            var enemyControl = CreateEnemyButton(enemyState, spriteLayout.DisplaySize);
+            enemyNodes[enemyState.InstanceId] = enemyControl;
+            AddAt(root, enemyControl, enemyPosition, spriteLayout.DisplaySize);
+            enemyX += spriteLayout.DisplaySize.X + spacing;
         }
 
         var hand = new Control
@@ -131,7 +147,7 @@ public partial class BattleScreen : ComicScreen
             hand.AddChild(cardControl);
         }
 
-        AddAt(root, hand, new Vector2(475, 705), new Vector2(950, 360));
+        AddAt(root, hand, new Vector2(475, 742), new Vector2(950, 360));
 
         var endTurn = CreateEndTurnButton();
         endTurn.Pressed += () => EndTurnRequested?.Invoke();
@@ -295,7 +311,7 @@ public partial class BattleScreen : ComicScreen
         var value = CreateHudLabel(combat!.ActionPoints.ToString(), 58, new Color(1.0f, 0.92f, 0.75f), heavy: true);
         value.HorizontalAlignment = HorizontalAlignment.Center;
         value.VerticalAlignment = VerticalAlignment.Center;
-        value.Position = new Vector2(32, 34);
+        value.Position = new Vector2(32, 20);
         value.Size = new Vector2(92, 62);
         root.AddChild(value);
 
@@ -396,22 +412,31 @@ public partial class BattleScreen : ComicScreen
         return row;
     }
 
-    private Control CreateEnemyButton(CombatEnemyState enemyState, float displayWidth, float displayHeight)
+    private EnemySpriteLayout EnemySpriteLayoutFor(string enemyId)
+    {
+        if (EnemySpriteLayouts.TryGetValue(enemyId, out var layout))
+        {
+            return layout;
+        }
+
+        return new EnemySpriteLayout(new Vector2(1254, 1254), 1254f, 0.30f);
+    }
+
+    private Control CreateEnemyButton(CombatEnemyState enemyState, Vector2 displaySize)
     {
         var content = RequireContent();
         var panel = new Control
         {
-            CustomMinimumSize = new Vector2(displayWidth, displayHeight),
-            Size = new Vector2(displayWidth, displayHeight),
+            CustomMinimumSize = displaySize,
+            Size = displaySize,
             ClipContents = false,
             MouseFilter = MouseFilterEnum.Pass
         };
 
         var enemyView = content.EnemyViewsById[enemyState.EnemyId];
-        var portraitHeight = displayHeight - 16;
-        var portrait = CreateImage(enemyView.StandAsset, new Vector2(displayWidth, portraitHeight), TextureRect.StretchModeEnum.KeepAspectCentered);
+        var portrait = CreateImage(enemyView.StandAsset, displaySize, TextureRect.StretchModeEnum.Scale);
         portrait.Position = new Vector2(0, 0);
-        portrait.Size = new Vector2(displayWidth, portraitHeight);
+        portrait.Size = displaySize;
         portrait.Modulate = enemyState.CurrentHp <= 0 ? new Color(0.32f, 0.32f, 0.32f, 0.75f) : Colors.White;
         panel.AddChild(portrait);
 
@@ -429,7 +454,7 @@ public partial class BattleScreen : ComicScreen
         if (enemyState.InstanceId == selectedEnemyInstanceId && enemyState.CurrentHp > 0)
         {
             var targetIcon = CreateImage("asset.ui.icon.target_selected", new Vector2(46, 46), TextureRect.StretchModeEnum.KeepAspectCentered);
-            targetIcon.Position = new Vector2(displayWidth * 0.5f - 23, displayHeight - 66);
+            targetIcon.Position = new Vector2(displaySize.X * 0.5f - 23, displaySize.Y - 66);
             panel.AddChild(targetIcon);
         }
 
@@ -555,10 +580,29 @@ public partial class BattleScreen : ComicScreen
         };
     }
 
-    public async Task PlayLogAnimationsAsync(IReadOnlyList<CombatLogEvent> events, CardDefinition? playedCard = null, int? playedHandIndex = null)
+    public void HidePlayedCard(int handIndex)
+    {
+        if (cardNodesByHandIndex.TryGetValue(handIndex, out var cardNode))
+        {
+            cardNode.Visible = false;
+            cardNode.MouseFilter = MouseFilterEnum.Ignore;
+        }
+    }
+
+    public async Task PlayLogAnimationsAsync(
+        IReadOnlyList<CombatLogEvent> events,
+        CardDefinition? playedCard = null,
+        int? playedHandIndex = null,
+        bool playConcurrently = false)
     {
         if (events.Count == 0)
         {
+            return;
+        }
+
+        if (playConcurrently)
+        {
+            await Task.WhenAll(events.Select(item => PlayLogEventAsync(item, playedCard, playedHandIndex)));
             return;
         }
 
@@ -609,7 +653,7 @@ public partial class BattleScreen : ComicScreen
             ? nodes.FirstOrDefault()
             : null;
 
-        if (sourceCard is not null)
+        if (sourceCard is not null && sourceCard.Visible)
         {
             await PulseNodeAsync(sourceCard, 1.08f, 0.09f);
         }
@@ -676,9 +720,11 @@ public partial class BattleScreen : ComicScreen
                 continue;
             }
 
-            await SpawnVfxAsync(fxLayer, asset, CenterOf(enemyNode), new Vector2(250, 150), new Color(1f, 1f, 1f, 0.94f), 0.20f);
-            await SpawnVfxAsync(fxLayer, "asset.vfx.enemy_hit_comic_burst", CenterOf(enemyNode), new Vector2(180, 130), new Color(1f, 0.85f, 0.72f, 0.92f), 0.18f);
-            await ShakeNodeAsync(enemyNode, 18f, 0.16f);
+            var center = CenterOf(enemyNode);
+            await Task.WhenAll(
+                SpawnVfxAsync(fxLayer, asset, center, new Vector2(250, 150), new Color(1f, 1f, 1f, 0.94f), 0.20f),
+                SpawnVfxAsync(fxLayer, "asset.vfx.enemy_hit_comic_burst", center, new Vector2(180, 130), new Color(1f, 0.85f, 0.72f, 0.92f), 0.18f),
+                ShakeNodeAsync(enemyNode, 18f, 0.16f));
         }
     }
 
@@ -688,24 +734,29 @@ public partial class BattleScreen : ComicScreen
             ? playerNode
             : item.TargetIds.Select(id => enemyNodes.TryGetValue(id, out var enemyNode) ? enemyNode : null).FirstOrDefault(node => node is not null);
         var center = target is null ? new Vector2(300, 590) : CenterOf(target);
-        await SpawnVfxAsync(fxLayer, "asset.vfx.defense_shield_flash", center, new Vector2(260, 180), new Color(0.75f, 0.95f, 1f, 0.9f), 0.22f);
-        await PulseNodeAsync(target ?? blockPanel, 1.05f, 0.10f);
-        await PulseNodeAsync(blockPanel, 1.2f, 0.10f);
+        await Task.WhenAll(
+            SpawnVfxAsync(fxLayer, "asset.vfx.defense_shield_flash", center, new Vector2(260, 180), new Color(0.75f, 0.95f, 1f, 0.9f), 0.22f),
+            PulseNodeAsync(target ?? blockPanel, 1.05f, 0.10f),
+            PulseNodeAsync(blockPanel, 1.2f, 0.10f));
     }
 
     private async Task PlayChainChangeAsync(int before, int after)
     {
         if (after > before)
         {
-            await SpawnVfxAsync(fxLayer, "asset.vfx.chain_gain_spark", new Vector2(960, 118), new Vector2(220, 130), new Color(1f, 1f, 1f, 0.95f), 0.20f);
-            await PulseNodeAsync(chainPanel, 1.18f, 0.11f);
+            var animations = new List<Task>
+            {
+                SpawnVfxAsync(fxLayer, "asset.vfx.chain_gain_spark", new Vector2(960, 118), new Vector2(220, 130), new Color(1f, 1f, 1f, 0.95f), 0.20f),
+                PulseNodeAsync(chainPanel, 1.18f, 0.11f)
+            };
             foreach (var threshold in new[] { 3, 5, 8 })
             {
                 if (before < threshold && after >= threshold)
                 {
-                    await SpawnVfxAsync(fxLayer, $"asset.vfx.chain_threshold_{threshold}_burst", new Vector2(960, 118), new Vector2(300, 180), new Color(1f, 1f, 1f, 0.98f), 0.24f);
+                    animations.Add(SpawnVfxAsync(fxLayer, $"asset.vfx.chain_threshold_{threshold}_burst", new Vector2(960, 118), new Vector2(300, 180), new Color(1f, 1f, 1f, 0.98f), 0.24f));
                 }
             }
+            await Task.WhenAll(animations);
             return;
         }
 
@@ -724,17 +775,19 @@ public partial class BattleScreen : ComicScreen
 
         if (effectType == "damage")
         {
-            await LungeNodeAsync(sourceEnemy, new Vector2(-38, 0), 0.12f);
-            await SpawnVfxAsync(fxLayer, "asset.vfx.enemy_hit_comic_burst", CenterOf(playerNode), new Vector2(210, 150), new Color(1f, 0.74f, 0.62f, 0.9f), 0.18f);
-            await ShakeNodeAsync(playerNode, 14f, 0.15f);
+            await Task.WhenAll(
+                LungeNodeAsync(sourceEnemy, new Vector2(-38, 0), 0.12f),
+                SpawnVfxAsync(fxLayer, "asset.vfx.enemy_hit_comic_burst", CenterOf(playerNode), new Vector2(210, 150), new Color(1f, 0.74f, 0.62f, 0.9f), 0.18f),
+                ShakeNodeAsync(playerNode, 14f, 0.15f));
             return;
         }
 
         if (effectType == "block" || effectType == "gain_block")
         {
             var center = sourceEnemy is null ? new Vector2(1250, 520) : CenterOf(sourceEnemy);
-            await SpawnVfxAsync(fxLayer, "asset.vfx.defense_shield_flash", center, new Vector2(220, 160), new Color(0.72f, 0.95f, 1f, 0.88f), 0.22f);
-            await PulseNodeAsync(sourceEnemy, 1.05f, 0.10f);
+            await Task.WhenAll(
+                SpawnVfxAsync(fxLayer, "asset.vfx.defense_shield_flash", center, new Vector2(220, 160), new Color(0.72f, 0.95f, 1f, 0.88f), 0.22f),
+                PulseNodeAsync(sourceEnemy, 1.05f, 0.10f));
         }
     }
 
@@ -756,4 +809,8 @@ public partial class BattleScreen : ComicScreen
         }
     }
 
+    private readonly record struct EnemySpriteLayout(Vector2 SourceSize, float ContentBottom, float Scale)
+    {
+        public Vector2 DisplaySize => SourceSize * Scale;
+    }
 }
