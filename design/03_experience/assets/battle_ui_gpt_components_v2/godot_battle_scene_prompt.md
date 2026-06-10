@@ -19,7 +19,7 @@
 - 当前可接入的 UI 组件已经按 component_manifest.json 处理为真实 alpha PNG；实现时优先通过 manifest 中 `alpha: true` 的拆分组件直接用 TextureRect / NinePatchRect / TextureButton 叠加，再用 Godot Label 动态绘制文本和数值。
 - `ui_player_status_hud_generated.png`、`ui_enemy_status_hud_generated.png` 等整合旧图只作为历史风格参考；正式战斗 UI 应使用拆分后的玩家血量条、玩家护盾条、敌人名称条、敌人血量条、敌人护盾条、8 槽连锁条、连锁红点、AP 徽章、抽牌堆、弃牌堆和结束回合按钮组件。
 - 所有中文文本、数字、卡牌名、费用、生命、防御、连锁、抽弃牌数量和意图说明都必须由 Godot UI 动态绘制，不要烘焙到图片里。
-
+- 所有PNG素材按照当前godot项目约定，放到game/assets/ui下，并更新game\data\presentation\assets.json
 当前运行画面与目标图的差异：
 1. 当前顶部常驻显示“第 1/6 战”和教学文案；目标图中上方应为 8 格连锁进度。
 2. 当前敌人状态条在敌人脚下；目标图要求敌人名称、HP、防御和意图信息在右上角。
