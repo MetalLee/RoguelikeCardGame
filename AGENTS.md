@@ -811,3 +811,35 @@ game/logs/
 - 当前 UI PNG 为 gpt-image-2 风格生成组件，虽已作为真实 alpha PNG 接入，但不是最终手工切图。
 - 连锁红点槽位、HUD 文本落点、Boss 大体型站位和手牌 hover / selected 抬升仍需要基于实际运行截图继续微调。
 - 后续若有正式手绘 UI 资源，应继续放入 `game/assets/art/ui/` 并通过 `game/data/presentation/assets.json` 以稳定 `asset.ui.battle.*` ID 接入。
+
+#### 任务 12 阶段完成记录：卡牌 VFX 数据化
+
+完成日期：2026-06-11
+
+已完成：
+- 已将“卡牌使用时播放哪个特效”的配置从 `game/src/Presentation/Battle/BattleScreen.cs` 的类型 / 费用硬编码分支，迁移到卡牌 Domain 数据。
+- 已在 `game/src/Domain/Cards/CardDefinition.cs` 中新增 `VfxAsset` 字段，并使用 JSON 字段名 `vfx_asset`。
+- 已在 `game/data/gameplay/cards/cards.json` 为 MVP 全部卡牌配置 `vfx_asset`，例如：
+  - `card.basic_strike` 使用 `asset.vfx.slash_speed_lines`。
+  - `card.heavy_strike` 与 `card.guard_break` 使用 `asset.vfx.heavy_strike_impact_frame`。
+  - `card.arc_sweep_finish` 使用 `asset.vfx.group_sweep_arc_light`。
+  - 防御类卡牌使用 `asset.vfx.defense_shield_flash`，抽牌 / 预备类卡牌使用 `asset.vfx.chain_gain_spark`。
+- 已在 `game/src/Infrastructure/Content/GameContent.cs` 中解析 `vfx_asset` 到 `CardDefinition.VfxAsset`。
+- 已更新 `game/data/schemas/gameplay/cards.schema.json`，允许 `vfx_asset` 并约束其格式为 `asset.vfx.*`。
+- 已更新 `game/tools/data_validator/validate_data.py`，校验卡牌 `vfx_asset` 必须引用 `game/data/presentation/assets.json` 中已存在的资源 ID，避免数据写入不存在的特效。
+- 已更新 `game/src/Presentation/Battle/BattleScreen.cs`，伤害、防御、抽牌、获得行动点和临时减费占位等卡牌效果播放时优先读取 `CardDefinition.VfxAsset`；如果卡牌没有指定特效，则默认回退到 `asset.vfx.enemy_hit_comic_burst`。
+- 已移除战斗表现层中“行动牌默认斩击、2 费行动牌默认重击、终结牌默认冲击波”的硬编码推断，后续新增卡牌只需在数据中指定特效资源。
+- 已在 `game/tests/Unit/Program.cs` 中补充 `CardDefinition.VfxAsset` 序列化 / 反序列化 smoke test。
+- 本次只重构卡牌特效来源和表现层播放映射，未改动卡牌数值、伤害 / 防御 / 抽牌 / 连锁 / 费用等规则结算。
+
+验证结果：
+- `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `dotnet build game\RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- Godot 4.6.3 .NET headless 启动 `--path game --quit-after 3`：通过，项目可启动。
+- 当前 Codex 沙箱中 `dotnet` 与 Godot headless 可能因写入 `.godot\mono\temp\obj`、`obj` 或 `user://logs` 被拦截；已按权限规则重跑并验证通过。
+
+后续资源规范：
+- 新增卡牌时，应优先在 `game/assets/art/vfx/` 添加对应 PNG，并在 `game/data/presentation/assets.json` 中登记稳定资源 ID，再在卡牌数据中通过 `vfx_asset` 引用。
+- 可采用 `vfx_` + 卡牌语义名的文件命名方式，例如 `vfx_basic_strike.png`、`vfx_heavy_strike.png`，并映射为 `asset.vfx.basic_strike`、`asset.vfx.heavy_strike`。
+- 若暂时没有专属特效，可以省略 `vfx_asset`，表现层会使用 `asset.vfx.enemy_hit_comic_burst` 作为默认命中特效；但正式内容应尽量为关键卡牌配置专属 VFX。

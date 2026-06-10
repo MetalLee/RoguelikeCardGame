@@ -226,6 +226,9 @@ public sealed class GameContent
             TargetRule = ParseTargetRule(item.GetProperty("targeting")),
             Effects = effects.SelectMany(ParseCardEffect).ToList(),
             Rarity = ParseCardRarity(item.GetProperty("rarity").GetStringRequired("rarity")),
+            VfxAsset = item.TryGetProperty("vfx_asset", out var vfxAsset) && vfxAsset.ValueKind != JsonValueKind.Null
+                ? vfxAsset.GetString()
+                : null,
             Tags = ReadStringList(item, "tags")
         };
     }

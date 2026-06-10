@@ -362,6 +362,8 @@ def validate_cross_references(project_root: Path, documents: dict[str, dict[str,
 
         if card_id not in card_views_by_id:
             errors.append(f"cards:{card_id}: missing card view")
+        if "vfx_asset" in card:
+            require_asset(asset_ids, card.get("vfx_asset"), f"cards:{card_id}.vfx_asset", errors)
 
         for index, cost in enumerate(costs):
             validate_resource_amount(cost, f"cards:{card_id}.costs[{index}]", errors)

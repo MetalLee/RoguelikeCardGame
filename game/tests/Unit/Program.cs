@@ -28,6 +28,7 @@ var strike = new CardDefinition
     TargetRule = TargetRule.SingleEnemy,
     Effects = [new EffectDefinition { Type = "damage", Target = "selected_enemy", Value = 6 }],
     Rarity = CardRarity.Starter,
+    VfxAsset = "asset.vfx.slash_speed_lines",
     Tags = ["starter", "attack"]
 };
 
@@ -259,6 +260,7 @@ var serializedCard = JsonSerializer.Serialize(strike, options);
 var deserializedCard = JsonSerializer.Deserialize<CardDefinition>(serializedCard, options);
 AssertEqual(strike.Id, deserializedCard?.Id, "CardDefinition serializes and deserializes");
 AssertEqual(ChainChangeMode.FixedDelta, deserializedCard?.DefaultChainChange.Mode, "CardDefinition keeps chain change mode");
+AssertEqual(strike.VfxAsset, deserializedCard?.VfxAsset, "CardDefinition keeps card VFX asset");
 
 var runFactory = new RunStateFactory();
 var run = runFactory.CreateNewRun(

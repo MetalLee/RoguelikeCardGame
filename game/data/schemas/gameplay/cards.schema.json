@@ -18,6 +18,7 @@
           "id": { "type": "string", "pattern": "^card\\.[a-z0-9_]+$" },
           "card_type": { "type": "string", "enum": ["action", "skill", "finisher"] },
           "rarity": { "type": "string", "enum": ["starter", "common", "uncommon", "rare"] },
+          "vfx_asset": { "type": "string", "pattern": "^asset\\.vfx\\.[a-z0-9_]+$" },
           "costs": { "type": "array", "items": { "$ref": "#/$defs/resource_amount" } },
           "requirements": { "type": "array", "items": { "type": "object" } },
           "targeting": {

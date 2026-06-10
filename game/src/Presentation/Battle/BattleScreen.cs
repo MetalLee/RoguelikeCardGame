@@ -13,6 +13,7 @@ public partial class BattleScreen : ComicScreen
 {
     // 16:9 design-space stage tuning. Adjust this line first when matching feet to the painted ground.
     private const float StageGroundY = 785f;
+    private const string DefaultCardVfxAsset = "asset.vfx.enemy_hit_comic_burst";
 
     private static readonly Dictionary<string, EnemySpriteLayout> EnemySpriteLayouts = new(StringComparer.Ordinal)
     {
@@ -580,6 +581,26 @@ public partial class BattleScreen : ComicScreen
         };
     }
 
+    private static string CardVfxAsset(CardDefinition? card)
+    {
+        return string.IsNullOrWhiteSpace(card?.VfxAsset)
+            ? DefaultCardVfxAsset
+            : card.VfxAsset;
+    }
+
+    private static Vector2 CardVfxSize(string asset)
+    {
+        return asset switch
+        {
+            "asset.vfx.group_sweep_arc_light" => new Vector2(420, 220),
+            "asset.vfx.finisher_release_shockwave" => new Vector2(360, 220),
+            "asset.vfx.heavy_strike_impact_frame" => new Vector2(280, 180),
+            "asset.vfx.defense_shield_flash" => new Vector2(260, 180),
+            "asset.vfx.chain_gain_spark" => new Vector2(240, 150),
+            _ => new Vector2(250, 150)
+        };
+    }
+
     public void HidePlayedCard(int handIndex)
     {
         if (cardNodesByHandIndex.TryGetValue(handIndex, out var cardNode))
@@ -658,11 +679,7 @@ public partial class BattleScreen : ComicScreen
             await PulseNodeAsync(sourceCard, 1.08f, 0.09f);
         }
 
-        if (playedCard?.Type == CardType.Finisher)
-        {
-            await SpawnVfxAsync(fxLayer, "asset.vfx.finisher_release_shockwave", new Vector2(960, 430), new Vector2(560, 260), new Color(1f, 1f, 1f, 0.95f), 0.28f);
-            await WaitAsync(0.05);
-        }
+        await Task.CompletedTask;
     }
 
     private async Task PlayEffectResolvedAsync(CombatLogEvent item, CardDefinition? playedCard)
@@ -676,7 +693,7 @@ public partial class BattleScreen : ComicScreen
 
         if ((effectType == "block" || effectType == "gain_block") && item.NumericChanges.TryGetValue("block_gained", out var block) && block > 0)
         {
-            await PlayBlockAsync(item);
+            await PlayBlockAsync(item, playedCard);
             return;
         }
 
@@ -688,30 +705,35 @@ public partial class BattleScreen : ComicScreen
 
         if (effectType == "draw_cards")
         {
-            await PulseNodeAsync(handNode, 1.04f, 0.10f);
+            var asset = CardVfxAsset(playedCard);
+            await Task.WhenAll(
+                SpawnVfxAsync(fxLayer, asset, CenterOf(playerNode), CardVfxSize(asset), new Color(1f, 1f, 1f, 0.92f), 0.18f),
+                PulseNodeAsync(handNode, 1.04f, 0.10f));
             return;
         }
 
         if (effectType == "gain_action_points")
         {
-            await PulseNodeAsync(actionPointPanel, 1.2f, 0.12f);
+            var asset = CardVfxAsset(playedCard);
+            await Task.WhenAll(
+                SpawnVfxAsync(fxLayer, asset, CenterOf(actionPointPanel), CardVfxSize(asset), new Color(1f, 1f, 1f, 0.92f), 0.18f),
+                PulseNodeAsync(actionPointPanel, 1.2f, 0.12f));
             return;
         }
 
         if (effectType == "temporary_discount_placeholder")
         {
-            await PulseNodeAsync(handNode, 1.04f, 0.10f);
+            var asset = CardVfxAsset(playedCard);
+            await Task.WhenAll(
+                SpawnVfxAsync(fxLayer, asset, CenterOf(handNode), CardVfxSize(asset), new Color(1f, 1f, 1f, 0.92f), 0.18f),
+                PulseNodeAsync(handNode, 1.04f, 0.10f));
         }
     }
 
     private async Task PlayDamageAsync(CombatLogEvent item, CardDefinition? playedCard)
     {
-        var asset = playedCard?.Type switch
-        {
-            CardType.Finisher => "asset.vfx.finisher_release_shockwave",
-            CardType.Action when playedCard.Cost >= 2 => "asset.vfx.heavy_strike_impact_frame",
-            _ => "asset.vfx.slash_speed_lines"
-        };
+        var asset = CardVfxAsset(playedCard);
+        var size = CardVfxSize(asset);
 
         foreach (var targetId in item.TargetIds)
         {
@@ -722,20 +744,20 @@ public partial class BattleScreen : ComicScreen
 
             var center = CenterOf(enemyNode);
             await Task.WhenAll(
-                SpawnVfxAsync(fxLayer, asset, center, new Vector2(250, 150), new Color(1f, 1f, 1f, 0.94f), 0.20f),
-                SpawnVfxAsync(fxLayer, "asset.vfx.enemy_hit_comic_burst", center, new Vector2(180, 130), new Color(1f, 0.85f, 0.72f, 0.92f), 0.18f),
+                SpawnVfxAsync(fxLayer, asset, center, size, new Color(1f, 1f, 1f, 0.94f), 0.20f),
                 ShakeNodeAsync(enemyNode, 18f, 0.16f));
         }
     }
 
-    private async Task PlayBlockAsync(CombatLogEvent item)
+    private async Task PlayBlockAsync(CombatLogEvent item, CardDefinition? playedCard)
     {
         var target = item.TargetIds.Contains("player", StringComparer.Ordinal)
             ? playerNode
             : item.TargetIds.Select(id => enemyNodes.TryGetValue(id, out var enemyNode) ? enemyNode : null).FirstOrDefault(node => node is not null);
         var center = target is null ? new Vector2(300, 590) : CenterOf(target);
+        var asset = CardVfxAsset(playedCard);
         await Task.WhenAll(
-            SpawnVfxAsync(fxLayer, "asset.vfx.defense_shield_flash", center, new Vector2(260, 180), new Color(0.75f, 0.95f, 1f, 0.9f), 0.22f),
+            SpawnVfxAsync(fxLayer, asset, center, CardVfxSize(asset), new Color(0.75f, 0.95f, 1f, 0.9f), 0.22f),
             PulseNodeAsync(target ?? blockPanel, 1.05f, 0.10f),
             PulseNodeAsync(blockPanel, 1.2f, 0.10f));
     }

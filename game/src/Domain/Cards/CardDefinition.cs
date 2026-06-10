@@ -73,7 +73,9 @@ public sealed record CardDefinition
     [JsonPropertyName("rarity")]
     public CardRarity Rarity { get; init; }
 
+    [JsonPropertyName("vfx_asset")]
+    public string? VfxAsset { get; init; }
+
     [JsonPropertyName("tags")]
     public List<string> Tags { get; init; } = new();
-
 }
