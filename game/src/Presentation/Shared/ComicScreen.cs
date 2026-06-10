@@ -392,7 +392,7 @@ public abstract partial class ComicScreen : Control
         };
     }
 
-    protected async Task PulseNodeAsync(Control? node, float peakScale, double duration)
+    internal async Task PulseNodeAsync(Control? node, float peakScale, double duration)
     {
         if (node is null)
         {
@@ -409,7 +409,7 @@ public abstract partial class ComicScreen : Control
         await ToSignal(tween, "finished");
     }
 
-    protected async Task ShakeNodeAsync(Control? node, float distance, double duration)
+    internal async Task ShakeNodeAsync(Control? node, float distance, double duration)
     {
         if (node is null)
         {
@@ -427,7 +427,7 @@ public abstract partial class ComicScreen : Control
         await ToSignal(tween, "finished");
     }
 
-    protected async Task LungeNodeAsync(Control? node, Vector2 offset, double duration)
+    internal async Task LungeNodeAsync(Control? node, Vector2 offset, double duration)
     {
         if (node is null)
         {
@@ -443,7 +443,7 @@ public abstract partial class ComicScreen : Control
         await ToSignal(tween, "finished");
     }
 
-    protected async Task SpawnVfxAsync(Control? fxLayer, string assetId, Vector2 center, Vector2 size, Color tint, double duration)
+    internal async Task SpawnVfxAsync(Control? fxLayer, string assetId, Vector2 center, Vector2 size, Color tint, double duration)
     {
         if (fxLayer is null)
         {
@@ -474,7 +474,7 @@ public abstract partial class ComicScreen : Control
         await ToSignal(GetTree().CreateTimer(seconds), "timeout");
     }
 
-    protected static Vector2 CenterOf(Control? node)
+    internal static Vector2 CenterOf(Control? node)
     {
         return node is null
             ? new Vector2(960, 540)

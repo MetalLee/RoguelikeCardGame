@@ -15,6 +15,10 @@
 
 ## 日志
 
+### 2026-06-11
+
+- 更新第一版 MVP 战斗手牌交互：手牌悬停时抬升并置顶，所有卡牌改为拖拽释放出牌；非单体目标卡牌需要释放到中场区域，单体敌人目标卡牌需要通过漫画风箭头指向有效敌人。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]，明确表现层只负责 hover、drag、箭头、释放区和目标高亮，费用、连锁、目标合法性和结算仍由规则层处理。
+
 ### 2026-06-09
 
 - 确认 `design/03_experience/assets/battle_ui_effect_concept_2026-06-09_v2.png` 为第一版 MVP 战斗场景设计标准，并同步更新 [[design/03_experience/00_ui_ux|界面与交互]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/00_technical_requirements|技术需求]]；明确战斗界面采用明亮手绘漫画书气氛、无头像顶部 HUD、预留更大角色 / 敌人垂直舞台空间、底部扇形手牌，以及 `8` 格连锁点进度。

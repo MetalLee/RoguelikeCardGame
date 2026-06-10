@@ -123,7 +123,7 @@ public sealed class MvpRunFlowController
         ShowBattle();
     }
 
-    private async void PlayCard(string cardId, int handIndex)
+    private async void PlayCard(string cardId, int handIndex, string? targetEnemyInstanceId)
     {
         if (isAnimating)
         {
@@ -140,7 +140,8 @@ public sealed class MvpRunFlowController
 
             var animationScreen = screenHost.ActiveScreen as BattleScreen;
             var card = content.CardsById[cardId];
-            var result = cardPlayService.PlayCard(combat, card, ResolveTargetFor(card), handIndex);
+            selectedEnemyInstanceId = targetEnemyInstanceId ?? selectedEnemyInstanceId;
+            var result = cardPlayService.PlayCard(combat, card, targetEnemyInstanceId, handIndex);
             combat = result.Combat;
             var eventsToAnimate = result.Events.ToList();
 
@@ -403,18 +404,6 @@ public sealed class MvpRunFlowController
         var screen = screenHost.ShowScreen<RunResultScreen>(RunResultScenePath);
         screen.RestartRequested += StartNewRun;
         screen.RenderRunResult(run);
-    }
-
-    private string? ResolveTargetFor(CardDefinition card)
-    {
-        if (card.TargetRule != TargetRule.SingleEnemy || combat is null)
-        {
-            return null;
-        }
-
-        var selected = combat.Enemies.FirstOrDefault(enemy =>
-            enemy.InstanceId == selectedEnemyInstanceId && enemy.CurrentHp > 0);
-        return selected?.InstanceId ?? combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
     }
 
     private static async Task PlayBattleAnimationsAsync(

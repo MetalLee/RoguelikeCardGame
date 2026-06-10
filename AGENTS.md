@@ -843,3 +843,77 @@ game/logs/
 - 新增卡牌时，应优先在 `game/assets/art/vfx/` 添加对应 PNG，并在 `game/data/presentation/assets.json` 中登记稳定资源 ID，再在卡牌数据中通过 `vfx_asset` 引用。
 - 可采用 `vfx_` + 卡牌语义名的文件命名方式，例如 `vfx_basic_strike.png`、`vfx_heavy_strike.png`，并映射为 `asset.vfx.basic_strike`、`asset.vfx.heavy_strike`。
 - 若暂时没有专属特效，可以省略 `vfx_asset`，表现层会使用 `asset.vfx.enemy_hit_comic_burst` 作为默认命中特效；但正式内容应尽量为关键卡牌配置专属 VFX。
+
+#### 任务 12 阶段完成记录：手牌 hover 与拖拽出牌交互
+
+完成日期：2026-06-11
+
+已完成：
+- 已优化 `game/src/Presentation/Battle/BattleScreen.cs` 的战斗手牌交互：手牌仍保持底部紧凑扇形布局，悬停任意卡牌时该牌会从原位上移、轻微突出并提升 `ZIndex`，离开后恢复原始位置、旋转角度和层级。
+- 已将所有卡牌出牌方式从点击触发改为拖拽释放触发；单纯点击卡牌不会出牌。
+- 拖拽期间卡牌跟随鼠标移动，并保持置顶 / 突出状态；拖拽过程中不修改规则层 `CombatState`。
+- 对 `TargetRule.Self`、`TargetRule.AllEnemies` 和 `TargetRule.None` 卡牌，已新增中场释放区域：只有拖入主角、敌人和手牌之间的空场区域并释放，才会请求出牌；释放区仅在拖拽时显示高亮，不常驻遮挡画面。
+- 对 `TargetRule.SingleEnemy` 卡牌，已新增 Godot 原生绘制的漫画风拖拽箭头：粗线、深色投影、清晰箭头头部；鼠标悬停有效敌人目标时，对应敌人显示高亮反馈。
+- 单体敌人目标卡牌释放时必须指向有效敌人；释放到空白区域或仅中场释放区都会取消拖拽并回到原位。
+- 不可打出状态下仍保留 hover 和拖拽视觉反馈，但释放时会再次调用 `CardPlayService.CanPlayCard(combat, card, targetEnemyInstanceId, handIndex)` 校验，不能绕过费用、连锁、回合状态、目标合法性或手牌槽位检查。
+- 已将 `BattleScreen.CardRequested` 扩展为传递 `cardId`、`handIndex` 和可选 `targetEnemyInstanceId`。
+- 已更新 `game/src/Presentation/Flow/MvpRunFlowController.cs`，出牌时使用表现层释放得到的明确目标敌人 ID；单体卡牌不再自动回退到当前选中敌人或第一个敌人。
+- 已保持同名卡牌按 `handIndex` 出牌的修复不回退：拖拽释放请求仍携带并校验实际手牌槽位。
+- 已在动画 / 出牌流程中保持交互防抖：成功释放出牌或请求结束回合后，当前战斗屏幕会锁定进一步手牌交互，避免动画期间重复拖拽或重复出牌。
+- 已同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 和 [[design/08_governance/01_change_log|变更日志]]，记录第一版 MVP 的拖拽释放出牌基线。
+- 本次只修改表现层交互和流程事件签名，未改动规则层结算逻辑、卡牌数值、敌人数据、奖励逻辑或内容数据。
+
+实现要点：
+- hover 使用每张手牌的原始扇形位置、旋转和层级快照恢复，不触发整手牌重新排版。
+- 非单体目标释放区使用运行时 `PanelContainer` 和几何命中判断实现，只在拖拽时显示克制高亮。
+- 单体目标箭头使用 `Control._Draw()` 绘制双层线条和三角箭头头部，后续可替换为专门漫画风美术资源。
+- 敌人目标高亮作为敌人舞台控件内的透明边框层显示，不改变敌人立绘或 HUD 布局。
+- 规则合法性仍由 `CardPlayService` 负责，表现层只负责 hover、drag、arrow、release-zone highlight、target highlight 和出牌请求。
+
+验证结果：
+- `dotnet build game\RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- Godot 4.6.3 .NET headless 启动 `D:\Godot_v4.6.3-stable_mono_win64\Godot_v4.6.3-stable_mono_win64_console.exe --headless --path game --quit-after 3`：通过，项目可启动。
+- 当前 Codex 沙箱中 `dotnet` 与 Godot headless 可能因写入 `.godot\mono\temp\obj`、`obj` 或 `user://logs` 被拦截；已按权限规则重跑并验证通过。
+
+后续视觉替换点：
+- 当前箭头、释放区和目标高亮为 Godot 原生绘制 / StyleBox 实现，已满足响应、清晰和不遮挡；后续若有正式手绘漫画风箭头、释放区提示或目标锁定资源，可继续放入 `game/assets/art/ui/` 或 `game/assets/art/vfx/` 并通过 `game/data/presentation/assets.json` 以稳定 asset ID 接入。
+
+#### 任务 12 阶段完成记录：战斗表现层解耦
+
+完成日期：2026-06-11
+
+已完成：
+- 已将 `game/src/Presentation/Battle/BattleScreen.cs` 从 1300+ 行的集中式战斗界面脚本，收敛为约 230 行的屏幕编排脚本。
+- `BattleScreen.cs` 现在主要负责：接收 `CombatState` / `RunState` / `EncounterDefinition`，创建屏幕 root，转发战斗界面事件，显示玩家立绘、重开按钮、临时反馈和调试日志，并为动画层组装当前节点引用。
+- 已新增 `game/src/Presentation/Battle/BattleHandView.cs`，承接手牌扇形渲染、hover 抬升置顶、拖拽释放、`handIndex` 节点映射、释放前 `CardPlayService.CanPlayCard` 校验和出牌请求事件。
+- 已新增 `game/src/Presentation/Battle/BattleTargetingOverlay.cs`，承接中场释放区、单体目标拖拽箭头、敌人拖拽目标高亮、敌人与释放区几何命中检测。
+- 已新增 `game/src/Presentation/Battle/BattleLogAnimator.cs`，承接 `CombatLogEvent` 到 Tween / VFX 的动画解释逻辑，包括出牌、伤害、防御、连锁、抽弃牌、敌人行动和死亡反馈。
+- 已新增 `game/src/Presentation/Battle/BattleEnemyView.cs`，承接敌人舞台站位、敌人立绘节点创建、目标点击热区、选中图标、拖拽目标高亮挂载和 `enemyInstanceId -> Control` 节点映射。
+- 已新增 `game/src/Presentation/Battle/BattleHudView.cs`，承接玩家 HUD、敌人 HUD、连锁 HUD、行动点徽章、抽牌堆、弃牌堆、遗物条和结束回合按钮创建，并向动画层暴露连锁、格挡、行动点和牌堆节点引用。
+- 已将 `game/src/Presentation/Shared/ComicScreen.cs` 中的通用 Tween / VFX helper 调整为程序集内可复用，供 `BattleLogAnimator` 调用，避免动画 helper 在多个战斗表现类中重复。
+- Godot 已为新增 C# 脚本生成对应 `.uid` 文件：`BattleHandView.cs.uid`、`BattleTargetingOverlay.cs.uid`、`BattleLogAnimator.cs.uid`、`BattleEnemyView.cs.uid`。
+- 本次解耦只调整表现层职责边界和文件结构，未改动规则层战斗结算、卡牌效果、敌人意图、奖励逻辑、内容数据或第一版 MVP 范围。
+
+拆分后主要文件规模：
+- `game/src/Presentation/Battle/BattleScreen.cs`：约 230 行。
+- `game/src/Presentation/Battle/BattleHudView.cs`：约 345 行。
+- `game/src/Presentation/Battle/BattleEnemyView.cs`：约 154 行。
+- `game/src/Presentation/Battle/BattleHandView.cs`：约 438 行。
+- `game/src/Presentation/Battle/BattleTargetingOverlay.cs`：约 249 行。
+- `game/src/Presentation/Battle/BattleLogAnimator.cs`：约 287 行。
+
+验证结果：
+- `dotnet build game\RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- Godot 4.6.3 .NET headless 启动 `D:\Godot_v4.6.3-stable_mono_win64\Godot_v4.6.3-stable_mono_win64_console.exe --headless --path game --quit-after 3`：通过，项目可启动。
+- 当前 Codex 沙箱中 `dotnet` 与 Godot headless 可能因写入 `.godot\mono\temp\obj`、`obj` 或 `user://logs` 被拦截；已按权限规则重跑并验证通过。
+
+后续维护建议：
+- 后续新增手牌交互优先进入 `BattleHandView.cs`。
+- 后续新增目标提示、AOE 范围提示或箭头美术替换优先进入 `BattleTargetingOverlay.cs`。
+- 后续新增敌人站位、Boss 体型适配或敌人舞台 tooltip 优先进入 `BattleEnemyView.cs`。
+- 后续新增 HUD 元素、状态图标或数值条布局优先进入 `BattleHudView.cs`。
+- 后续新增战斗事件动画、音效触发或减少动画设置优先进入 `BattleLogAnimator.cs`。
