@@ -20,7 +20,7 @@ public sealed partial class BattleEnemyView : Control
 
     private readonly Dictionary<string, Control> enemyNodes = new(StringComparer.Ordinal);
 
-    public event Action<string>? EnemySelected;
+    public event Action<string?>? EnemyHoveredChanged;
 
     public IReadOnlyDictionary<string, Control> EnemyNodes => enemyNodes;
 
@@ -28,7 +28,6 @@ public sealed partial class BattleEnemyView : Control
         Control root,
         IReadOnlyList<CombatEnemyState> enemies,
         GameContent content,
-        string? selectedEnemyInstanceId,
         BattleTargetingOverlay targetingOverlay,
         Func<string, Texture2D?> loadTexture)
     {
@@ -45,7 +44,7 @@ public sealed partial class BattleEnemyView : Control
         foreach (var (enemyState, spriteLayout) in enemyLayouts)
         {
             var enemyPosition = new Vector2(enemyX, StageGroundY - spriteLayout.ContentBottom * spriteLayout.Scale);
-            var enemyControl = CreateEnemyButton(enemyState, spriteLayout.DisplaySize, content, selectedEnemyInstanceId, targetingOverlay, loadTexture);
+            var enemyControl = CreateEnemyPanel(enemyState, spriteLayout.DisplaySize, content, targetingOverlay, loadTexture);
             enemyNodes[enemyState.InstanceId] = enemyControl;
             targetingOverlay.RegisterEnemy(enemyState.InstanceId, enemyControl);
             AddAt(root, enemyControl, enemyPosition, spriteLayout.DisplaySize);
@@ -63,11 +62,10 @@ public sealed partial class BattleEnemyView : Control
         return new EnemySpriteLayout(new Vector2(1254, 1254), 1254f, 0.30f);
     }
 
-    private Control CreateEnemyButton(
+    private Control CreateEnemyPanel(
         CombatEnemyState enemyState,
         Vector2 displaySize,
         GameContent content,
-        string? selectedEnemyInstanceId,
         BattleTargetingOverlay targetingOverlay,
         Func<string, Texture2D?> loadTexture)
     {
@@ -78,6 +76,14 @@ public sealed partial class BattleEnemyView : Control
             ClipContents = false,
             MouseFilter = MouseFilterEnum.Pass
         };
+        panel.MouseEntered += () =>
+        {
+            if (enemyState.CurrentHp > 0)
+            {
+                EnemyHoveredChanged?.Invoke(enemyState.InstanceId);
+            }
+        };
+        panel.MouseExited += () => EnemyHoveredChanged?.Invoke(null);
 
         var enemyView = content.EnemyViewsById[enemyState.EnemyId];
         var portrait = CreateImage(enemyView.StandAsset, displaySize, TextureRect.StretchModeEnum.Scale, loadTexture);
@@ -85,24 +91,6 @@ public sealed partial class BattleEnemyView : Control
         portrait.Size = displaySize;
         portrait.Modulate = enemyState.CurrentHp <= 0 ? new Color(0.32f, 0.32f, 0.32f, 0.75f) : Colors.White;
         panel.AddChild(portrait);
-
-        var button = new Button
-        {
-            Text = "",
-            Disabled = enemyState.CurrentHp <= 0,
-            TooltipText = "点击选择目标"
-        };
-        MakeTransparentButton(button);
-        button.SetAnchorsPreset(LayoutPreset.FullRect);
-        button.Pressed += () => EnemySelected?.Invoke(enemyState.InstanceId);
-        panel.AddChild(button);
-
-        if (enemyState.InstanceId == selectedEnemyInstanceId && enemyState.CurrentHp > 0)
-        {
-            var targetIcon = CreateImage("asset.ui.icon.target_selected", new Vector2(46, 46), TextureRect.StretchModeEnum.KeepAspectCentered, loadTexture);
-            targetIcon.Position = new Vector2(displaySize.X * 0.5f - 23, displaySize.Y - 66);
-            panel.AddChild(targetIcon);
-        }
 
         var dragHighlight = targetingOverlay.CreateEnemyDragHighlight(enemyState.InstanceId);
         dragHighlight.SetAnchorsPreset(LayoutPreset.FullRect);
@@ -135,16 +123,6 @@ public sealed partial class BattleEnemyView : Control
         child.Size = size;
         child.CustomMinimumSize = size;
         parent.AddChild(child);
-    }
-
-    private static void MakeTransparentButton(Button button)
-    {
-        var empty = new StyleBoxEmpty();
-        button.AddThemeStyleboxOverride("normal", empty);
-        button.AddThemeStyleboxOverride("hover", empty);
-        button.AddThemeStyleboxOverride("pressed", empty);
-        button.AddThemeStyleboxOverride("disabled", empty);
-        button.AddThemeStyleboxOverride("focus", empty);
     }
 
     private readonly record struct EnemySpriteLayout(Vector2 SourceSize, float ContentBottom, float Scale)

@@ -172,6 +172,46 @@ game/
 - 奖励、抽牌洗牌、敌人行为池和后续地图生成应使用可追踪的随机流。
 - 第一版 MVP 因固定遭遇和固定奖励池，随机需求较少，但仍应建立种子接口，避免后续重构。
 
+#### Run 级随机流设计
+
+随机系统以 Run 为边界初始化。每次开始新 Run 时，运行时生成一个非固定整数 seed，并保存到 `RunState.Seed`。该 seed 是复现整局随机结果的入口；调试入口、战斗沙盒或后续复盘工具只要指定同一个 seed、同一套卡组和同一遭遇顺序，就应能复现对应随机结果。
+
+Run seed 不直接被各系统共享消耗，而是通过“Run seed + 随机流名称”派生多个互相独立的随机流。当前预留随机流包括：
+
+- `deck`：抽牌堆初始化洗牌、弃牌堆重洗以及由抽牌效果触发的牌库循环。
+- `map`：后续地图路线或节点生成。
+- `reward`：后续随机奖励池、遗物候选或卡牌包候选生成。
+- `encounter`：后续普通战斗随机池、敌人组合或遭遇变体生成。
+
+各随机流必须拥有独立 PRNG 状态。某个流多调用一次，只能推进该流自身状态，不能影响其他流。例如奖励随机多抽一次候选牌，不应改变下一场战斗的初始手牌顺序。表现层不得直接使用 `Random.Shared`、`DateTime` 或 Godot 节点逻辑临时决定玩法随机结果；表现层只读取规则层 / 应用层已经生成的结果。
+
+#### Deck 随机流流程
+
+以 `deck` 随机流为例，第一版 MVP 的完整随机流程如下：
+
+1. 主菜单点击“开始 MVP”时生成新的 Run seed，并创建 `RunRandomStreams.FromRunSeed(seed)`。
+2. `RunRandomStreams` 使用 Run seed 和字符串 `deck` 派生 `deck` 流的初始 seed；`map`、`reward`、`encounter` 使用各自名称派生独立 seed。
+3. 创建战斗时，`CombatStateFactory` 接收 `deck` 流的洗牌函数，将 `RunState.MasterDeck` 复制并执行 Fisher-Yates 洗牌后写入 `DeckZones.DrawPile`。此时不改变卡组内容，只改变抽牌顺序。
+4. 战斗开始进入第一回合时，`CombatTurnService.StartCombat` 从已经洗好的 `DrawPile` 顶部抽取 `CardsPerTurn` 张牌，因此第一回合手牌由 Run seed、`deck` 流状态、卡组顺序和遭遇顺序共同决定。
+5. 抽牌过程中如果 `DrawPile` 不足，`CombatTurnService.DrawCards` 会将当前 `DiscardPile` 用同一个 `deck` 流洗牌后移回 `DrawPile`，清空 `DiscardPile`，再继续抽牌。
+6. 卡牌效果触发抽牌时，也必须通过同一个 `CombatTurnService` 进入 `DrawCards`，从而复用同一个 `deck` 流状态，不允许出牌服务或表现层另行洗牌。
+7. 一场 Run 内多场战斗共用同一个 `deck` 流实例，使每次战斗开始洗牌和战斗内重洗按实际发生顺序推进。这样同一个 seed 在同一操作路径下可复现整局牌序；如果某场战斗因为玩家选择导致重洗次数变化，后续战斗的 deck 流状态也会相应变化，这是复盘当前操作路径所需的确定性。
+
+Deck 洗牌算法采用 Fisher-Yates。PRNG 使用项目内封装的确定性实现，避免依赖 `System.Random` 的运行时实现细节。洗牌输入必须先复制为局部列表，不得原地修改 `RunState.MasterDeck`，以免影响卡组持久状态和奖励加入逻辑。
+
+#### 复现与记录要求
+
+战斗创建日志应至少记录 `run_id` 和 `run_seed`。后续如果导出完整复盘，还应补充随机流名称、调用点、调用序号或流状态快照，用于定位“哪一次洗牌”导致结果差异。
+
+复现某个初始手牌顺序的最小条件是：
+
+- 相同 `RunState.Seed`。
+- 相同 `MasterDeck` 内容与顺序。
+- 相同遭遇顺序和战斗进入顺序。
+- 在创建该战斗前，各随机流尤其是 `deck` 流发生过相同次数、相同顺序的调用。
+
+单元测试必须覆盖：相同 seed 和相同卡组得到相同初始手牌；不同 seed 大概率得到不同初始手牌；弃牌堆重洗在相同 seed 下可复现；调用 `map`、`reward` 或 `encounter` 流不会改变 `deck` 流结果。
+
 ### UI 与反馈
 
 - 支持连锁层数当前值、8 格连锁点进度、3 / 5 / 8 阈值弱提示，以及超过 8 层后的继续计数；战斗 HUD 的当前布局标准参见 [[design/03_experience/00_ui_ux|界面与交互]] 中的第一版 MVP 战斗场景设计标准。

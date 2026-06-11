@@ -1005,3 +1005,64 @@ game/logs/
 - `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
 - Godot 4.6.3 .NET headless 启动 `D:\Godot_v4.6.3-stable_mono_win64\Godot_v4.6.3-stable_mono_win64_console.exe --headless --path game --quit-after 3`：通过，项目可启动。
 - 当前 Codex 沙箱中 Godot headless 可能因写入 `user://logs` 被拦截并崩溃；已按权限规则重跑并验证通过。
+
+#### 任务 12 阶段修复记录：敌人目标展示与右上 HUD 显示逻辑
+
+完成日期：2026-06-11
+
+已完成：
+- 已删除战斗中的敌人点击选取功能：`game/src/Presentation/Battle/BattleEnemyView.cs` 不再创建透明点击 `Button`，不再发出 `EnemySelected` 事件，也不再绘制 `asset.ui.icon.target_selected` 选中目标图标。
+- 已将敌人面板交互改为纯表现层 hover：`BattleEnemyView` 新增 `EnemyHoveredChanged(string? enemyInstanceId)`，仅用于通知鼠标进入 / 离开存活敌人热区，不修改规则层 `CombatState`。
+- 已更新 `game/src/Presentation/Battle/BattleHudView.cs`：右上角敌人 HUD 默认不渲染，不再用“默认第一个敌人”填充；只有收到显式 focus 敌人 ID 时才显示敌人名称、HP、防御和当前意图。
+- 已更新 `game/src/Presentation/Battle/BattleScreen.cs`：聚合敌人 hover 与单体目标卡牌拖拽箭头指向状态；单体拖拽进行中优先使用箭头指向敌人更新右上 HUD，否则使用当前 hover 敌人。
+- 已更新 `game/src/Presentation/Battle/BattleHandView.cs`：拖拽 `TargetRule.SingleEnemy` 卡牌时，将箭头当前指向的敌人 ID 作为表现层 HUD focus 状态上报；指向空白区域或拖拽结束时上报空目标并隐藏 HUD。
+- 已更新 `game/src/Presentation/Flow/MvpRunFlowController.cs`：删除“当前选中敌人”状态，不再在战斗开始、出牌后或新回合开始时维护默认敌人目标。
+- 单体敌人目标卡牌出牌仍只使用释放瞬间箭头命中的明确 `targetEnemyInstanceId`；释放到空白区域不会回退到默认敌人或第一个敌人。
+- 已保持同名卡牌按 `handIndex` 出牌的修复不回退，出牌请求仍携带 `cardId`、`handIndex` 和可选 `targetEnemyInstanceId`，并继续通过 `CardPlayService.CanPlayCard(...)` / `PlayCard(...)` 校验。
+- 本次只修改表现层 hover / drag 指向状态、HUD 显示来源和必要流程状态清理，未改动规则层结算逻辑、卡牌数值、敌人数据、奖励流程或内容数据。
+
+实现要点：
+- 右上敌人 HUD 的显示目标来自 `BattleScreen` 内部的 `hoveredEnemyInstanceId` 与 `dragPointedEnemyInstanceId`，不再来自规则层目标选择状态。
+- `BattleHudView.SetFocusedEnemy(null)` 会清除右上角敌人 HUD 节点，因此鼠标未悬停敌人且单体箭头未指向敌人时，不显示名称、HP、防御、意图、空白黑框或占位文本。
+- `BattleHandView.CompleteCardDrag()` 仍在释放时重新调用 `BattleTargetingOverlay.EnemyUnderMouse(...)` 获取目标，并用该目标 ID 请求出牌，避免表现层 hover 状态成为规则目标来源。
+
+验证结果：
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `godot-mono --headless --path game --quit`：通过，Godot 版本为 `4.6.3.stable.mono`，项目可启动。
+- 当前 Codex 沙箱中普通命令可能因 `bwrap: loopback: Failed RTM_NEWADDR` 被拦截；已按权限规则重跑并验证通过。
+
+
+#### 任务 12 阶段完成记录：Run seed 随机系统与 Deck 洗牌复现
+
+完成日期：2026-06-11
+
+已完成：
+- 已新增 `game/src/Infrastructure/Randomness/DeterministicRandom.cs`，实现项目内封装的确定性轻量 PRNG，并提供 Fisher-Yates 洗牌入口，避免依赖 `Random.Shared`、`DateTime` 或表现层临时随机。
+- 已新增 `game/src/Infrastructure/Randomness/RunRandomStreams.cs` 与 `RandomStreamName.cs`，以 Run seed + stream name 派生相互独立的随机流，当前包含 `deck`、`map`、`reward`、`encounter`。
+- 已新增 `game/src/Infrastructure/Randomness/RunSeedGenerator.cs`，主菜单每次点击开始 MVP 时生成新的非固定 seed。
+- 已保持 `RunState.Seed` 作为 Run seed 保存位置，并在战斗创建日志中记录 `run_seed`，便于后续调试、复盘和试玩指标导出。
+- 已更新 `game/src/Presentation/Flow/MvpRunFlowController.cs`：每次新 Run 创建 `RunRandomStreams.FromRunSeed(seed)`，并让 `CombatStateFactory`、`CombatTurnService`、`CardPlayService` 共用同一个 `deck` 随机流。
+- 已更新 `game/src/Application/Battle/CombatStateFactory.cs`：创建战斗时先复制 `RunState.MasterDeck`，再用 `deck` 随机流洗牌后写入 `DeckZones.DrawPile`，第一回合抽 5 张来自洗牌后的抽牌堆。
+- 已沿用并注入 `CombatTurnService` 的重洗入口：抽牌堆不足时，弃牌堆使用同一个 `deck` 随机流洗回抽牌堆；卡牌效果触发抽牌时也通过同一个服务推进 `deck` 流。
+- 已更新 `game/src/Application/Debug/DebugRunService.cs`：调试入口使用指定 seed 初始化 `deck` 随机流，便于直接进入指定遭遇时复现手牌顺序。
+- 已在 `game/tests/Unit/Program.cs` 补充随机系统 smoke tests，覆盖相同 seed 复现初始手牌、不同 seed 产生不同初始手牌、相同 seed 复现弃牌堆重洗、`deck` 与 `map` / `reward` / `encounter` 随机流互不影响，以及新 Run seed 不再固定为 `12345`。
+- 已更新 `game/tests/Unit/RoguelikeCardGame.Tests.csproj`，让规则层 smoke test 纳入 `game/src/Infrastructure/Randomness/` 源码。
+- 已更新 [[design/06_technical_production/00_technical_requirements|技术需求]]，以 `deck` 为例详细记录 Run seed 随机产生、随机流派生、初始洗牌、弃牌堆重洗、流隔离和复现条件。
+- 已更新 [[design/08_governance/01_change_log|变更日志]]，记录第一版 MVP Run seed 随机系统落地。
+- 本次未改动卡牌数值、敌人数据、奖励内容、拖拽出牌规则、敌人 HUD hover / 箭头指向显示、同名卡按 `handIndex` 出牌、奖励流程或结算流程。
+
+机制要点：
+- Run seed 是复现入口；主菜单新开 Run 自动生成不同 seed，调试入口可指定 seed。
+- 随机流由 `RunRandomStreams` 按 Run seed + stream name 派生，`deck` 流只负责牌库相关随机，`map`、`reward`、`encounter` 已预留但当前 MVP 不实现随机地图、随机奖励池或随机遭遇内容。
+- `deck` 流是有状态对象；同一 Run 内战斗初始洗牌、战斗内弃牌堆重洗和抽牌效果触发的重洗会按实际发生顺序推进。
+- 一个随机流的调用次数变化不会影响另一个随机流，因此后续奖励随机多调用一次，不会改变 `deck` 的洗牌结果。
+- 复现某个初始手牌顺序时，需要使用相同 `RunState.Seed`、相同 `MasterDeck` 内容与顺序、相同遭遇进入顺序，并在该战斗前保持相同的 `deck` 流调用历史。
+
+验证结果：
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `godot-mono --headless --path game --quit`：通过，Godot 版本为 `4.6.3.stable.mono`，项目可启动。
+- 当前 Codex 沙箱中普通命令可能因 `bwrap: loopback: Failed RTM_NEWADDR` 被拦截；已按权限规则重跑并验证通过。

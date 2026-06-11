@@ -6,6 +6,13 @@ namespace RoguelikeCardGame.Application.Battle;
 
 public sealed class CombatStateFactory
 {
+	private readonly Func<IReadOnlyList<string>, IReadOnlyList<string>> shuffleInitialDrawPile;
+
+	public CombatStateFactory(Func<IReadOnlyList<string>, IReadOnlyList<string>>? shuffleInitialDrawPile = null)
+	{
+		this.shuffleInitialDrawPile = shuffleInitialDrawPile ?? (cards => cards.ToList());
+	}
+
 	public CombatState CreateCombat(
 		string combatId,
 		RunState runState,
@@ -51,7 +58,7 @@ public sealed class CombatStateFactory
 			Chain = 0,
 			DeckZones = new DeckZones
 			{
-				DrawPile = runState.MasterDeck.ToList()
+				DrawPile = shuffleInitialDrawPile(runState.MasterDeck).ToList()
 			},
 			Enemies = enemyStates,
 			Log =
@@ -64,7 +71,8 @@ public sealed class CombatStateFactory
 					SourceId = encounter.Id,
 					Metadata = new Dictionary<string, string>
 					{
-						["run_id"] = runState.RunId
+						["run_id"] = runState.RunId,
+						["run_seed"] = runState.Seed.ToString()
 					}
 				}
 			]

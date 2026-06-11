@@ -16,7 +16,9 @@ public partial class BattleScreen : ComicScreen
     private CombatState? combat;
     private RunState? run;
     private EncounterDefinition? encounter;
-    private string? selectedEnemyInstanceId;
+    private string? hoveredEnemyInstanceId;
+    private string? dragPointedEnemyInstanceId;
+    private bool isSingleEnemyDragActive;
     private readonly BattleTargetingOverlay targetingOverlay = new();
     private BattleLogAnimator? logAnimator;
     private BattleHudView? battleHudView;
@@ -36,7 +38,6 @@ public partial class BattleScreen : ComicScreen
     private bool showBattleLog;
     private string? currentMessage;
 
-    public event Action<string>? EnemySelected;
     public event Action<string, int, string?>? CardRequested;
     public event Action? EndTurnRequested;
     public event Action? RestartRequested;
@@ -45,13 +46,14 @@ public partial class BattleScreen : ComicScreen
         CombatState combatState,
         RunState runState,
         EncounterDefinition encounterDefinition,
-        string? selectedEnemy,
         string? message = null)
     {
         combat = combatState;
         run = runState;
         encounter = encounterDefinition;
-        selectedEnemyInstanceId = selectedEnemy;
+        hoveredEnemyInstanceId = null;
+        dragPointedEnemyInstanceId = null;
+        isSingleEnemyDragActive = false;
         currentMessage = message;
         battleHudView = null;
         battleEnemyView = null;
@@ -74,7 +76,7 @@ public partial class BattleScreen : ComicScreen
         targetingOverlay.Initialize(root);
 
         battleHudView = new BattleHudView();
-        battleHudView.Render(root, combat, run, RequireContent(), selectedEnemyInstanceId, LoadTexture, LoadFont, () =>
+        battleHudView.Render(root, combat, run, RequireContent(), LoadTexture, LoadFont, () =>
         {
             SetInteractionsLocked(true);
             EndTurnRequested?.Invoke();
@@ -92,8 +94,8 @@ public partial class BattleScreen : ComicScreen
         AddAt(root, playerNode, playerPosition, playerSize);
 
         battleEnemyView = new BattleEnemyView();
-        battleEnemyView.EnemySelected += enemyId => EnemySelected?.Invoke(enemyId);
-        battleEnemyView.Render(root, combat.Enemies, RequireContent(), selectedEnemyInstanceId, targetingOverlay, LoadTexture);
+        battleEnemyView.EnemyHoveredChanged += OnEnemyHoveredChanged;
+        battleEnemyView.Render(root, combat.Enemies, RequireContent(), targetingOverlay, LoadTexture);
 
         battleHandView = new BattleHandView();
         battleHandView.CardRequested += (cardId, handIndex, targetEnemyId) =>
@@ -102,6 +104,7 @@ public partial class BattleScreen : ComicScreen
             CardRequested?.Invoke(cardId, handIndex, targetEnemyId);
         };
         battleHandView.FeedbackRequested += ShowDragFeedback;
+        battleHandView.SingleEnemyDragTargetChanged += OnSingleEnemyDragTargetChanged;
         battleHandView.Render(combat, RequireContent(), cardPlayService, targetingOverlay, LoadTexture, LoadFont);
         handNode = battleHandView;
         AddAt(root, battleHandView, new Vector2(475, 742), new Vector2(950, 360));
@@ -138,7 +141,7 @@ public partial class BattleScreen : ComicScreen
         showBattleLog = !showBattleLog;
         if (combat is not null && run is not null && encounter is not null)
         {
-            Render(combat, run, encounter, selectedEnemyInstanceId, currentMessage);
+            Render(combat, run, encounter, currentMessage);
         }
 
         GetViewport().SetInputAsHandled();
@@ -150,11 +153,31 @@ public partial class BattleScreen : ComicScreen
         {
             PlayCardFailureReason.InsufficientActionPoints => $"行动点不足：需要 {result.RequiredActionPoints}，当前 {result.CurrentActionPoints}",
             PlayCardFailureReason.InsufficientChain => $"连锁不足：需要 {result.RequiredChain}，当前 {result.CurrentChain}",
-            PlayCardFailureReason.TargetMissing => "需要先选择一个敌人目标",
+            PlayCardFailureReason.TargetMissing => "需要将箭头指向一个敌人目标",
             PlayCardFailureReason.NotPlayerTurn => "当前不是玩家回合",
             PlayCardFailureReason.CardNotInHand => "这张牌不在手牌中",
             _ => "无法打出"
         };
+    }
+
+
+    private void OnEnemyHoveredChanged(string? enemyInstanceId)
+    {
+        hoveredEnemyInstanceId = enemyInstanceId;
+        RefreshEnemyHudFocus();
+    }
+
+    private void OnSingleEnemyDragTargetChanged(string? enemyInstanceId, bool isDragging)
+    {
+        isSingleEnemyDragActive = isDragging;
+        dragPointedEnemyInstanceId = enemyInstanceId;
+        RefreshEnemyHudFocus();
+    }
+
+    private void RefreshEnemyHudFocus()
+    {
+        var focusEnemyId = isSingleEnemyDragActive ? dragPointedEnemyInstanceId : hoveredEnemyInstanceId;
+        battleHudView?.SetFocusedEnemy(focusEnemyId);
     }
 
     private void ShowDragFeedback(string text)

@@ -11,6 +11,7 @@ using RoguelikeCardGame.Domain.Enemies;
 using RoguelikeCardGame.Domain.Relics;
 using RoguelikeCardGame.Domain.Rewards;
 using RoguelikeCardGame.Domain.Runs;
+using RoguelikeCardGame.Infrastructure.Randomness;
 
 var options = new JsonSerializerOptions
 {
@@ -275,6 +276,7 @@ var run = runFactory.CreateNewRun(
 AssertEqual(RunStatus.InProgress, run.Status, "RunStateFactory starts run in progress");
 AssertEqual(60, run.PlayerHp, "RunStateFactory starts at full HP");
 AssertEqual(5, run.MasterDeck.Count, "RunStateFactory copies starter deck");
+AssertEqual(12345, run.Seed, "RunStateFactory records the run seed");
 
 var combatFactory = new CombatStateFactory();
 var damagedRunReadyForCombat = run with { PlayerHp = 1 };
@@ -363,6 +365,71 @@ AssertEqual(0, afterDrawCycle.DeckZones.DrawPileCount, "DrawCards consumes reshu
 AssertEqual(0, afterDrawCycle.DeckZones.DiscardPileCount, "DrawCards clears discard pile after reshuffle");
 AssertEqual("draw_01", afterDrawCycle.DeckZones.Hand[0], "DrawCards draws existing draw pile before reshuffling discard");
 Assert(afterDrawCycle.Log.Any(item => item.EventType == CombatLogEventType.DeckReshuffled), "DrawCards records reshuffle event");
+
+var shuffleDeck = new[]
+{
+    "card_01",
+    "card_02",
+    "card_03",
+    "card_04",
+    "card_05",
+    "card_06",
+    "card_07",
+    "card_08",
+    "card_09",
+    "card_10"
+};
+var seededRunA = runFactory.CreateNewRun("run_seed_a", 24680, 60, 3, 5, shuffleDeck, [encounter.Id]);
+var seededRunB = runFactory.CreateNewRun("run_seed_b", 24680, 60, 3, 5, shuffleDeck, [encounter.Id]);
+var randomStreamsA = RunRandomStreams.FromRunSeed(seededRunA.Seed);
+var randomStreamsB = RunRandomStreams.FromRunSeed(seededRunB.Seed);
+var shuffledCombatA = new CombatStateFactory(randomStreamsA.Deck.Shuffle)
+    .CreateCombat("combat_seed_a", seededRunA, encounter, enemiesById);
+var shuffledCombatB = new CombatStateFactory(randomStreamsB.Deck.Shuffle)
+    .CreateCombat("combat_seed_b", seededRunB, encounter, enemiesById);
+var openingHandA = new CombatTurnService(randomStreamsA.Deck.Shuffle)
+    .StartCombat(shuffledCombatA).DeckZones.Hand;
+var openingHandB = new CombatTurnService(randomStreamsB.Deck.Shuffle)
+    .StartCombat(shuffledCombatB).DeckZones.Hand;
+AssertSequenceEqual(openingHandA, openingHandB, "Same seed and deck reproduce opening hand order");
+AssertEqual(seededRunA.CardsPerTurn, openingHandA.Count, "Seeded opening hand still draws cards per turn");
+
+var differentSeedRun = runFactory.CreateNewRun("run_seed_c", 24681, 60, 3, 5, shuffleDeck, [encounter.Id]);
+var differentSeedStreams = RunRandomStreams.FromRunSeed(differentSeedRun.Seed);
+var differentSeedCombat = new CombatStateFactory(differentSeedStreams.Deck.Shuffle)
+    .CreateCombat("combat_seed_c", differentSeedRun, encounter, enemiesById);
+var differentSeedOpeningHand = new CombatTurnService(differentSeedStreams.Deck.Shuffle)
+    .StartCombat(differentSeedCombat).DeckZones.Hand;
+Assert(!openingHandA.SequenceEqual(differentSeedOpeningHand), "Different seeds produce a different opening hand for the smoke deck");
+
+var reshuffleState = drawCycleState with
+{
+    DeckZones = new DeckZones
+    {
+        DrawPile = [],
+        Hand = [],
+        DiscardPile = ["discard_01", "discard_02", "discard_03", "discard_04", "discard_05"]
+    }
+};
+var reshuffleA = new CombatTurnService(RunRandomStreams.FromRunSeed(112233).Deck.Shuffle)
+    .DrawCards(reshuffleState, 5).DeckZones.Hand;
+var reshuffleB = new CombatTurnService(RunRandomStreams.FromRunSeed(112233).Deck.Shuffle)
+    .DrawCards(reshuffleState, 5).DeckZones.Hand;
+AssertSequenceEqual(reshuffleA, reshuffleB, "Same seed reproduces discard reshuffle order");
+
+var isolatedBaselineStreams = RunRandomStreams.FromRunSeed(998877);
+var isolatedBaselineDeck = isolatedBaselineStreams.Deck.Shuffle(shuffleDeck);
+var isolatedPerturbedStreams = RunRandomStreams.FromRunSeed(998877);
+_ = isolatedPerturbedStreams.Reward.NextInt(100);
+_ = isolatedPerturbedStreams.Map.NextInt(100);
+_ = isolatedPerturbedStreams.Encounter.NextInt(100);
+_ = isolatedPerturbedStreams.Reward.Shuffle(shuffleDeck);
+var isolatedPerturbedDeck = isolatedPerturbedStreams.Deck.Shuffle(shuffleDeck);
+AssertSequenceEqual(isolatedBaselineDeck, isolatedPerturbedDeck, "Other random streams do not affect deck stream results");
+
+var generatedSeedA = RunSeedGenerator.CreateSeed();
+var generatedSeedB = RunSeedGenerator.CreateSeed();
+Assert(generatedSeedA != 12345 || generatedSeedB != 12345, "New Run seed generation is not fixed to 12345");
 
 var cardPlayService = new CardPlayService(turnService);
 
@@ -685,6 +752,14 @@ if (string.IsNullOrWhiteSpace(serializedBundle))
 }
 
 Console.WriteLine("Domain model smoke tests passed.");
+
+static void AssertSequenceEqual<T>(IEnumerable<T> expected, IEnumerable<T> actual, string message)
+{
+    if (!expected.SequenceEqual(actual))
+    {
+        throw new InvalidOperationException($"Assertion failed: {message}.");
+    }
+}
 
 static CombatState CreatePlayableCombat(
     IEnumerable<string> hand,

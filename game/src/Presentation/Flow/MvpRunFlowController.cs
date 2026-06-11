@@ -7,6 +7,7 @@ using RoguelikeCardGame.Domain.Effects;
 using RoguelikeCardGame.Domain.Rewards;
 using RoguelikeCardGame.Domain.Runs;
 using RoguelikeCardGame.Infrastructure.Content;
+using RoguelikeCardGame.Infrastructure.Randomness;
 using RoguelikeCardGame.Presentation.Battle;
 using RoguelikeCardGame.Presentation.Menus;
 using RoguelikeCardGame.Presentation.Rewards;
@@ -25,16 +26,16 @@ public sealed class MvpRunFlowController
     private readonly SceneScreenHost screenHost;
     private readonly RunStateFactory runFactory = new();
     private readonly RunProgressService runProgressService = new();
-    private readonly CombatStateFactory combatFactory = new();
-    private readonly CombatTurnService turnService = new();
-    private readonly CardPlayService cardPlayService = new();
     private readonly RewardService rewardService = new();
     private readonly HashSet<string> selectedRewardCards = new(StringComparer.Ordinal);
 
+    private RunRandomStreams? randomStreams;
+    private CombatStateFactory combatFactory = new();
+    private CombatTurnService turnService = new();
+    private CardPlayService cardPlayService = new();
     private RunState? run;
     private CombatState? combat;
     private EncounterDefinition? encounter;
-    private string? selectedEnemyInstanceId;
     private int actionCardsPlayedThisTurn;
     private RewardPackDefinition? openedRewardPack;
     private bool isAnimating;
@@ -65,9 +66,14 @@ public sealed class MvpRunFlowController
     {
         ResetFlowInteractionState();
         var sequence = content.MvpRun;
+        var seed = RunSeedGenerator.CreateSeed();
+        randomStreams = RunRandomStreams.FromRunSeed(seed);
+        combatFactory = new CombatStateFactory(randomStreams.Deck.Shuffle);
+        turnService = new CombatTurnService(randomStreams.Deck.Shuffle);
+        cardPlayService = new CardPlayService(turnService);
         run = runFactory.CreateNewRun(
             runId: $"run_{DateTime.UtcNow:yyyyMMddHHmmss}",
-            seed: 12345,
+            seed: seed,
             playerMaxHp: sequence.PlayerMaxHp,
             baseActionPoints: sequence.BaseActionPoints,
             cardsPerTurn: sequence.CardsPerTurn,
@@ -99,7 +105,6 @@ public sealed class MvpRunFlowController
             encounter: encounter,
             enemiesById: content.EnemiesById);
         combat = turnService.StartCombat(combat);
-        selectedEnemyInstanceId = combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
         actionCardsPlayedThisTurn = 0;
         ShowBattle();
     }
@@ -113,22 +118,10 @@ public sealed class MvpRunFlowController
         }
 
         var screen = screenHost.ShowScreen<BattleScreen>(BattleScenePath);
-        screen.EnemySelected += SelectEnemy;
         screen.CardRequested += PlayCard;
         screen.EndTurnRequested += EndTurn;
         screen.RestartRequested += StartNewRun;
-        screen.Render(combat, run, encounter, selectedEnemyInstanceId, message);
-    }
-
-    private void SelectEnemy(string enemyInstanceId)
-    {
-        if (isAnimating)
-        {
-            return;
-        }
-
-        selectedEnemyInstanceId = enemyInstanceId;
-        ShowBattle();
+        screen.Render(combat, run, encounter, message);
     }
 
     private async void PlayCard(string cardId, int handIndex, string? targetEnemyInstanceId)
@@ -147,7 +140,6 @@ public sealed class MvpRunFlowController
 
             var animationScreen = screenHost.ActiveScreen as BattleScreen;
             var card = content.CardsById[cardId];
-            selectedEnemyInstanceId = targetEnemyInstanceId ?? selectedEnemyInstanceId;
             var result = cardPlayService.PlayCard(combat, card, targetEnemyInstanceId, handIndex);
             combat = result.Combat;
             var eventsToAnimate = result.Events.ToList();
@@ -173,7 +165,6 @@ public sealed class MvpRunFlowController
                 return;
             }
 
-            selectedEnemyInstanceId = combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
             if (combat.Status == CombatStatus.Victory)
             {
                 ResolveCombatVictory();
@@ -274,7 +265,6 @@ public sealed class MvpRunFlowController
                 return;
             }
 
-            selectedEnemyInstanceId = combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId;
             actionCardsPlayedThisTurn = 0;
             ShowBattle("敌人行动已结算，新回合开始。");
         }

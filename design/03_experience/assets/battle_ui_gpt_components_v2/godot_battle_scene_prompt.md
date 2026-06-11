@@ -22,7 +22,7 @@
 - 所有PNG素材按照当前godot项目约定，放到game/assets/ui下，并更新game\data\presentation\assets.json
 当前运行画面与目标图的差异：
 1. 当前顶部常驻显示“第 1/6 战”和教学文案；目标图中上方应为 8 格连锁进度。
-2. 当前敌人状态条在敌人脚下；目标图要求敌人名称、HP、防御和意图信息在右上角。
+2. 当前敌人状态条在敌人脚下；目标图要求右上角保留敌人 HUD 区域，敌人名称、HP、防御和意图信息由运行时在敌人 hover 或单体目标箭头指向时显示，默认不显示。
 3. 当前连锁显示为 “1 / 3 5 8”；目标图要求 “连锁 X/8” 和 8 个槽位，3/5/8 阈值只做弱提示。
 4. 当前手牌更像横向铺开；目标图要求底部中间紧凑扇形叠放。
 5. 当前 AP、抽牌堆、弃牌堆、结束回合按钮位置和视觉重量不符合标准图；目标图要求 AP + 抽牌堆在左下，弃牌堆 + 结束回合在右下。
@@ -33,7 +33,7 @@
 - 主角：左侧中下，朝右，脚底基线约在画面高度 62%-68% 区间。
 - 敌人：右侧中下，朝左，与主角同一地面基线；普通敌人略小于主角，Boss 可向上扩展。
 - 玩家 HUD：左上，使用 `player_health_bar` 和 `player_block_bar` 两个拆分 alpha 组件，分别显示 HP 和 Defense；不显示头像，不生成第三行状态栏。
-- 敌人 HUD：右上，使用 `enemy_name_bar`、`enemy_health_bar` 和 `enemy_block_bar` 三个拆分 alpha 组件，分别显示敌人名称、HP 和 Defense；不显示头像，不生成第四行状态 / 意图栏。敌人意图可在右上 HUD 下方或旁侧用 Godot 原生 Label / Icon 动态绘制。
+- 敌人 HUD：右上保留显示区域，默认隐藏；鼠标悬停存活敌人，或拖拽 `TargetRule.SingleEnemy` 卡牌且箭头指向有效敌人时，使用 `enemy_name_bar`、`enemy_health_bar` 和 `enemy_block_bar` 三个拆分 alpha 组件分别显示该敌人名称、HP 和 Defense；不显示头像，不生成第四行状态 / 意图栏。敌人意图可在右上 HUD 下方或旁侧用 Godot 原生 Label / Icon 动态绘制。
 - 连锁 HUD：中上，使用 `chain_meter_8_slots` 作为 8 个空槽底图，使用 `chain_point_red` 作为填充点叠入槽位；显示文本 “连锁 X/8”。填充 min(chain, 8) 个槽；chain > 8 时文本显示 “连锁 X/8+” 或等价形式。
 - 左下：使用 `action_point_badge`、`draw_pile_panel` alpha 组件，动态绘制行动点、抽牌标签和抽牌堆数量。
 - 右下：使用 `discard_pile_panel`、`end_turn_button` alpha 组件，动态绘制弃牌标签、弃牌堆数量和结束回合按钮文字。

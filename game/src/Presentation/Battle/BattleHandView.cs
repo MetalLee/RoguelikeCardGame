@@ -24,6 +24,7 @@ public sealed partial class BattleHandView : Control
 
     public event Action<string, int, string?>? CardRequested;
     public event Action<string>? FeedbackRequested;
+    public event Action<string?, bool>? SingleEnemyDragTargetChanged;
 
     public void Render(
         CombatState combatState,
@@ -232,6 +233,7 @@ public sealed partial class BattleHandView : Control
             card.Node.Position = card.OriginalPosition + new Vector2(0, -62);
             card.Node.RotationDegrees = 0;
             card.Node.Scale = card.OriginalScale * 1.02f;
+            SingleEnemyDragTargetChanged?.Invoke(null, true);
         }
         else
         {
@@ -257,7 +259,12 @@ public sealed partial class BattleHandView : Control
         {
             RequireTargetingOverlay().HideReleaseZone();
             var hoveredEnemy = RequireTargetingOverlay().EnemyUnderMouse(RequireCombat().Enemies, viewportMouse);
-            card.CurrentTargetEnemyId = hoveredEnemy;
+            if (card.CurrentTargetEnemyId != hoveredEnemy)
+            {
+                card.CurrentTargetEnemyId = hoveredEnemy;
+                SingleEnemyDragTargetChanged?.Invoke(hoveredEnemy, true);
+            }
+
             RequireTargetingOverlay().UpdateEnemyHighlights(hoveredEnemy);
             var canPlay = hoveredEnemy is not null &&
                 RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, hoveredEnemy, card.HandIndex).Succeeded;
@@ -332,6 +339,11 @@ public sealed partial class BattleHandView : Control
     {
         var card = draggingCard;
         draggingCard = null;
+        if (card?.Card.TargetRule == TargetRule.SingleEnemy)
+        {
+            SingleEnemyDragTargetChanged?.Invoke(null, false);
+        }
+
         RequireTargetingOverlay().HideDragVisuals();
         if (card is not null)
         {

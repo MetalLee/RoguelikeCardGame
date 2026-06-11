@@ -5,6 +5,7 @@ using RoguelikeCardGame.Domain.Combat;
 using RoguelikeCardGame.Domain.Enemies;
 using RoguelikeCardGame.Domain.Rewards;
 using RoguelikeCardGame.Domain.Runs;
+using RoguelikeCardGame.Infrastructure.Randomness;
 
 namespace RoguelikeCardGame.Application.Debug;
 
@@ -50,7 +51,7 @@ public sealed record DebugRunStartResult
 public sealed class DebugRunService
 {
     private readonly RunStateFactory runStateFactory;
-    private readonly CombatStateFactory combatStateFactory;
+    private readonly CombatStateFactory? combatStateFactory;
     private readonly RewardService rewardService;
 
     public DebugRunService(
@@ -59,7 +60,7 @@ public sealed class DebugRunService
         RewardService? rewardService = null)
     {
         this.runStateFactory = runStateFactory ?? new RunStateFactory();
-        this.combatStateFactory = combatStateFactory ?? new CombatStateFactory();
+        this.combatStateFactory = combatStateFactory;
         this.rewardService = rewardService ?? new RewardService();
     }
 
@@ -100,7 +101,8 @@ public sealed class DebugRunService
             CurrentEncounterIndex = Math.Max(0, encounterIndex)
         };
 
-        var combat = combatStateFactory.CreateCombat(
+        var activeCombatFactory = combatStateFactory ?? new CombatStateFactory(RunRandomStreams.FromRunSeed(run.Seed).Deck.Shuffle);
+        var combat = activeCombatFactory.CreateCombat(
             combatId: $"{run.RunId}_{encounter.Id}",
             runState: run,
             encounter: encounter,

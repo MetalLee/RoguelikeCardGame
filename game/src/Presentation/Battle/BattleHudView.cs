@@ -11,6 +11,11 @@ public sealed class BattleHudView
 {
     private readonly CombatTurnService turnService = new();
 
+    private readonly List<Control> enemyHudNodes = new();
+
+    private Control? root;
+    private CombatState? combat;
+    private GameContent? content;
     private Func<string, Texture2D?>? loadTexture;
     private Func<string, Font?>? loadFont;
 
@@ -25,39 +30,41 @@ public sealed class BattleHudView
     public Control? DiscardPilePanel { get; private set; }
 
     public void Render(
-        Control root,
-        CombatState combat,
+        Control rootControl,
+        CombatState combatState,
         RunState run,
-        GameContent content,
-        string? selectedEnemyInstanceId,
+        GameContent gameContent,
         Func<string, Texture2D?> textureLoader,
         Func<string, Font?> fontLoader,
         Action endTurnRequested)
     {
+        root = rootControl;
+        combat = combatState;
+        content = gameContent;
         loadTexture = textureLoader;
         loadFont = fontLoader;
+        ClearEnemyHud();
         ChainPanel = null;
         BlockPanel = null;
         ActionPointPanel = null;
         DrawPilePanel = null;
         DiscardPilePanel = null;
 
-        RenderPlayerHud(root, combat);
-        RenderChainHud(root, combat);
-        RenderEnemyHud(root, combat, content, selectedEnemyInstanceId);
+        RenderPlayerHud(rootControl, combatState);
+        RenderChainHud(rootControl, combatState);
 
-        ActionPointPanel = CreateActionPointBadge(combat);
-        AddAt(root, ActionPointPanel, new Vector2(70, 760), new Vector2(156, 156));
+        ActionPointPanel = CreateActionPointBadge(combatState);
+        AddAt(rootControl, ActionPointPanel, new Vector2(70, 760), new Vector2(156, 156));
 
-        DrawPilePanel = CreatePilePanel("asset.ui.battle.draw_pile_panel", "抽牌", combat.DeckZones.DrawPileCount);
-        AddAt(root, DrawPilePanel, new Vector2(70, 910), new Vector2(272, 138));
+        DrawPilePanel = CreatePilePanel("asset.ui.battle.draw_pile_panel", "抽牌", combatState.DeckZones.DrawPileCount);
+        AddAt(rootControl, DrawPilePanel, new Vector2(70, 910), new Vector2(272, 138));
 
-        DiscardPilePanel = CreatePilePanel("asset.ui.battle.discard_pile_panel", "弃牌", combat.DeckZones.DiscardPileCount);
-        AddAt(root, DiscardPilePanel, new Vector2(1578, 910), new Vector2(272, 138));
+        DiscardPilePanel = CreatePilePanel("asset.ui.battle.discard_pile_panel", "弃牌", combatState.DeckZones.DiscardPileCount);
+        AddAt(rootControl, DiscardPilePanel, new Vector2(1578, 910), new Vector2(272, 138));
 
         if (run.RelicIds.Count > 0)
         {
-            AddAt(root, CreateRelicStrip(run, content), new Vector2(50, 152), new Vector2(350, 48));
+            AddAt(rootControl, CreateRelicStrip(run, gameContent), new Vector2(50, 152), new Vector2(350, 48));
         }
 
         var endTurn = CreateEndTurnButton();
@@ -66,7 +73,7 @@ public sealed class BattleHudView
             PlayEndTurnClickAnimation(endTurn);
             endTurnRequested();
         };
-        AddAt(root, endTurn, new Vector2(1530, 790), new Vector2(318, 92));
+        AddAt(rootControl, endTurn, new Vector2(1530, 790), new Vector2(318, 92));
     }
 
     private void RenderPlayerHud(Control root, CombatState combat)
@@ -78,15 +85,20 @@ public sealed class BattleHudView
         AddAt(root, BlockPanel, new Vector2(42, 96), new Vector2(288, 50));
     }
 
-    private void RenderEnemyHud(
-        Control root,
-        CombatState combat,
-        GameContent content,
-        string? selectedEnemyInstanceId)
+    public void SetFocusedEnemy(string? enemyInstanceId)
     {
-        var focus = combat.Enemies.FirstOrDefault(enemy => enemy.InstanceId == selectedEnemyInstanceId && enemy.CurrentHp > 0)
-            ?? combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)
-            ?? combat.Enemies.FirstOrDefault();
+        ClearEnemyHud();
+        RenderEnemyHud(enemyInstanceId);
+    }
+
+    private void RenderEnemyHud(string? enemyInstanceId)
+    {
+        if (root is null || combat is null || content is null || enemyInstanceId is null)
+        {
+            return;
+        }
+
+        var focus = combat.Enemies.FirstOrDefault(enemy => enemy.InstanceId == enemyInstanceId && enemy.CurrentHp > 0);
         if (focus is null)
         {
             return;
@@ -96,14 +108,14 @@ public sealed class BattleHudView
             .FirstOrDefault(view => view.EnemyInstanceId == focus.InstanceId);
 
         var nameBar = CreateHudImagePanel("asset.ui.battle.enemy_name_bar", content.EnemyName(focus.EnemyId), new Vector2(382, 62), new Rect2(48, 5, 286, 46), 27);
-        AddAt(root, nameBar, new Vector2(1490, 42), new Vector2(382, 62));
+        AddEnemyHudAt(root, nameBar, new Vector2(1490, 42), new Vector2(382, 62));
 
         var hpText = focus.CurrentHp <= 0 ? "击败" : $"{focus.CurrentHp}/{focus.MaxHp}";
         var healthBar = CreateHudImagePanel("asset.ui.battle.enemy_health_bar", hpText, new Vector2(328, 50), new Rect2(80, 3, 194, 42), 26);
-        AddAt(root, healthBar, new Vector2(1538, 102), new Vector2(328, 50));
+        AddEnemyHudAt(root, healthBar, new Vector2(1538, 102), new Vector2(328, 50));
 
         var blockBar = CreateHudImagePanel("asset.ui.battle.enemy_block_bar", focus.Block.ToString(), new Vector2(294, 48), new Rect2(76, 3, 160, 40), 25);
-        AddAt(root, blockBar, new Vector2(1572, 154), new Vector2(294, 48));
+        AddEnemyHudAt(root, blockBar, new Vector2(1572, 154), new Vector2(294, 48));
 
         if (intent is null)
         {
@@ -122,7 +134,29 @@ public sealed class BattleHudView
         label.HorizontalAlignment = HorizontalAlignment.Left;
         label.VerticalAlignment = VerticalAlignment.Center;
         intentRoot.AddChild(label);
-        AddAt(root, intentRoot, new Vector2(1570, 204), new Vector2(300, 42));
+        AddEnemyHudAt(root, intentRoot, new Vector2(1570, 204), new Vector2(300, 42));
+    }
+
+    private void AddEnemyHudAt(Control parent, Control child, Vector2 position, Vector2 size)
+    {
+        AddAt(parent, child, position, size);
+        enemyHudNodes.Add(child);
+    }
+
+    private void ClearEnemyHud()
+    {
+        foreach (var node in enemyHudNodes)
+        {
+            if (!GodotObject.IsInstanceValid(node))
+            {
+                continue;
+            }
+
+            node.GetParent()?.RemoveChild(node);
+            node.QueueFree();
+        }
+
+        enemyHudNodes.Clear();
     }
 
     private void RenderChainHud(Control root, CombatState combat)
