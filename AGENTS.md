@@ -544,7 +544,10 @@ game/logs/
 - 本轮仍未实现路线图、商店、事件、休息节点、长期成长或正式存档。
 
 验证结果：
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
 - `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `godot-mono --headless --path game --quit`：通过，Godot 版本为 `4.6.3.stable.mono`，项目可启动。
 - `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
 - `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
 - `godot-mono --headless --path game --quit`：通过，项目可加载。
@@ -704,7 +707,29 @@ game/logs/
 - 已补充规则层回归测试，覆盖重复同名牌按指定槽位出牌时，不会错误移除前面的同名牌。
 
 验证结果：
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
 - `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `godot-mono --headless --path game --quit`：通过，Godot 版本为 `4.6.3.stable.mono`，项目可启动。
+
+#### 任务 12 阶段完成记录：多敌人头顶状态与意图展示
+
+完成日期：2026-06-11
+
+已完成：
+- 已更新 `game/src/Presentation/Battle/BattleEnemyView.cs`，每个存活敌人立绘头顶常驻显示轻量纸质状态条。
+- 头顶状态条包含敌人名称、生命、当前防御和当前意图摘要；攻击 / 防御 / 压迫意图使用对应 UI 图标和颜色区分。
+- 多敌人遭遇中，每个敌人各自显示自己的状态和意图，不再依赖右上角单个 HUD 承载全部敌人信息。
+- 右上敌人 HUD 仍保留为当前焦点详情：无 hover / 拖拽目标时显示第一个存活敌人，hover 或单体目标箭头指向时切换到对应敌人，用于展示完整意图文本。
+- 已更新 `game/src/Presentation/Battle/BattleScreen.cs`，向 `BattleEnemyView` 传入完整 `CombatState` 和字体加载器，使敌人视图可以基于当前战斗状态绘制每个敌人的头顶信息。
+- 已同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 和 [[design/08_governance/01_change_log|变更日志]]，明确多敌人战斗以敌人头顶状态条作为核心信息承载，右上 HUD 只作为焦点详情。
+- 本次只调整战斗表现层信息布局，不改动敌人意图结算、卡牌目标判定、敌人数据、卡牌数值、奖励流程或 Run 推进。
+
+验证结果：
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `godot-mono --headless --path game --quit`：通过，Godot 版本为 `4.6.3.stable.mono`，项目可启动。
 - `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
 - `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
 - `godot-mono --headless --path game --quit`：通过，项目可加载。
@@ -1032,6 +1057,51 @@ game/logs/
 - `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
 - `godot-mono --headless --path game --quit`：通过，Godot 版本为 `4.6.3.stable.mono`，项目可启动。
 - 当前 Codex 沙箱中普通命令可能因 `bwrap: loopback: Failed RTM_NEWADDR` 被拦截；已按权限规则重跑并验证通过。
+
+#### 任务 12 阶段修复记录：敌人 HUD 常驻显示
+
+完成日期：2026-06-11
+
+已完成：
+- 已修复战斗右上敌人 HUD 只有 hover 时才显示的问题。
+- 已更新 `game/src/Presentation/Battle/BattleHudView.cs`：战斗界面渲染时立即绘制敌人 HUD；当没有 hover 或单体目标箭头焦点时，默认显示第一个存活敌人的名称、生命、防御和当前意图。
+- `BattleHudView.SetFocusedEnemy(null)` 现在不再清空并隐藏敌人 HUD，而是回退到第一个存活敌人；hover 存活敌人或单体目标箭头指向敌人时仍可临时切换右上 HUD 焦点。
+- 已同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 和 [[design/08_governance/01_change_log|变更日志]]，明确敌人生命、防御和意图属于战斗核心信息，必须常驻显示，hover / 拖拽只负责切换焦点。
+- 本次只调整表现层 HUD 焦点和显示规则，不改动出牌目标判定、敌人数据、敌人意图结算、卡牌数值、奖励流程或 Run 推进。
+
+验证结果：
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+
+#### 任务 12 阶段修复记录：敌人 HUD 按敌人数切换
+
+完成日期：2026-06-11
+
+已完成：
+- 已收敛敌人信息展示策略：单敌人遭遇只显示右上完整敌人 HUD，不显示敌人头顶状态条，避免重复展示。
+- 已更新 `game/src/Presentation/Battle/BattleHudView.cs`：右上敌人 HUD 只在 `CombatState.Enemies.Count <= 1` 的单敌人遭遇中渲染；多敌人遭遇中 `SetFocusedEnemy(...)` 不再创建右上 HUD。
+- 已更新 `game/src/Presentation/Battle/BattleEnemyView.cs`：多敌人遭遇才显示头顶缩略 HUD；单敌人遭遇不再显示头顶 HUD。
+- 已将多敌人的头顶状态条改为缩小版敌人 HUD 视觉：使用现有敌人姓名条 / 生命条资源，加一个小意图 chip，减少上一版大纸框造成的突兀感。
+- 多敌人头顶缩略 HUD 显示敌人名称、生命、防御和当前意图摘要；右上完整 HUD 不再与头顶 HUD 同时展示同一敌人信息。
+- 已同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 和 [[design/08_governance/01_change_log|变更日志]]，明确单敌人 / 多敌人两套敌人信息展示规则。
+- 本次只调整战斗表现层信息布局，不改动敌人意图结算、卡牌目标判定、敌人数据、卡牌数值、奖励流程或 Run 推进。
+
+验证结果：
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+
+#### 任务 12 阶段修复记录：多敌人头顶 HUD 三行意图展示
+
+完成日期：2026-06-11
+
+已完成：
+- 已更新 `game/src/Presentation/Battle/BattleEnemyView.cs`，将多敌人头顶缩略 HUD 从“姓名条 + 生命条 + 右侧小意图 chip”改为三行纵向布局。
+- 三行布局为：第一行敌人名称，第二行生命 / 防御，第三行意图图标 + 意图文本摘要。
+- 意图文本不再缩在右侧小角落；攻击、防守、压迫会分别显示为“攻击 N”“防守 N”“压迫 N+M”等可读文本。
+- 已保留单敌人遭遇只使用右上完整敌人 HUD 的规则，多敌人遭遇仍关闭右上敌人 HUD。
+- 已同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 和 [[design/08_governance/01_change_log|变更日志]]，记录多敌人头顶 HUD 必须按三行展示，意图独占一行。
+- 本次只调整战斗表现层信息布局，不改动敌人意图结算、卡牌目标判定、敌人数据、卡牌数值、奖励流程或 Run 推进。
+
+验证结果：
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
 
 
 #### 任务 12 阶段完成记录：Run seed 随机系统与 Deck 洗牌复现

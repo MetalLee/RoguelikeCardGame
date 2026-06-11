@@ -18,6 +18,7 @@ public sealed class BattleHudView
     private GameContent? content;
     private Func<string, Texture2D?>? loadTexture;
     private Func<string, Font?>? loadFont;
+    private bool showFocusedEnemyHud;
 
     public Control? ChainPanel { get; private set; }
 
@@ -43,6 +44,7 @@ public sealed class BattleHudView
         content = gameContent;
         loadTexture = textureLoader;
         loadFont = fontLoader;
+        showFocusedEnemyHud = combatState.Enemies.Count <= 1;
         ClearEnemyHud();
         ChainPanel = null;
         BlockPanel = null;
@@ -67,6 +69,11 @@ public sealed class BattleHudView
             AddAt(rootControl, CreateRelicStrip(run, gameContent), new Vector2(50, 152), new Vector2(350, 48));
         }
 
+        if (showFocusedEnemyHud)
+        {
+            RenderEnemyHud(enemyInstanceId: null);
+        }
+
         var endTurn = CreateEndTurnButton();
         endTurn.Pressed += () =>
         {
@@ -88,17 +95,23 @@ public sealed class BattleHudView
     public void SetFocusedEnemy(string? enemyInstanceId)
     {
         ClearEnemyHud();
+        if (!showFocusedEnemyHud)
+        {
+            return;
+        }
+
         RenderEnemyHud(enemyInstanceId);
     }
 
     private void RenderEnemyHud(string? enemyInstanceId)
     {
-        if (root is null || combat is null || content is null || enemyInstanceId is null)
+        if (root is null || combat is null || content is null)
         {
             return;
         }
 
-        var focus = combat.Enemies.FirstOrDefault(enemy => enemy.InstanceId == enemyInstanceId && enemy.CurrentHp > 0);
+        var focus = combat.Enemies.FirstOrDefault(enemy => enemy.InstanceId == enemyInstanceId && enemy.CurrentHp > 0) ??
+                    combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0);
         if (focus is null)
         {
             return;

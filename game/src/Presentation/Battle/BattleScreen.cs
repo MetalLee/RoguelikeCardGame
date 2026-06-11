@@ -95,7 +95,7 @@ public partial class BattleScreen : ComicScreen
 
         battleEnemyView = new BattleEnemyView();
         battleEnemyView.EnemyHoveredChanged += OnEnemyHoveredChanged;
-        battleEnemyView.Render(root, combat.Enemies, RequireContent(), targetingOverlay, LoadTexture);
+        battleEnemyView.Render(root, combat, RequireContent(), targetingOverlay, LoadTexture, LoadFont);
 
         battleHandView = new BattleHandView();
         battleHandView.CardRequested += (cardId, handIndex, targetEnemyId) =>
