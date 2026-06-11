@@ -498,7 +498,10 @@ game/logs/
 - 该界面仍是程序化占位 UI，尚未拆分正式 Battle / Card / Enemy 组件，也未接入手绘漫画书视觉资产和动画演出。
 
 验证结果：
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
 - `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `godot-mono --headless --path game --quit`：通过，项目可加载。
 - `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
 - `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
 - `godot-mono --headless --path game --quit`：通过，项目可加载。
@@ -943,6 +946,40 @@ game/logs/
 - `python game\tools\data_validator\validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
 - Godot 4.6.3 .NET headless 启动 `D:\Godot_v4.6.3-stable_mono_win64\Godot_v4.6.3-stable_mono_win64_console.exe --headless --path game --quit-after 3`：通过，项目可启动。
 - 当前 Codex 沙箱中 Godot headless 可能因写入 `user://logs` 被拦截并崩溃；已按权限规则重跑并验证通过。
+
+#### 任务 12 阶段完成记录：奖励包透明化与按钮风格调整
+
+完成日期：2026-06-11
+
+已完成：
+- 已将三类奖励卡牌包资源替换为明亮手绘漫画纸质包装图，资源位于 `game/assets/art/cards/packs/reward_pack_mvp_action.png`、`game/assets/art/cards/packs/reward_pack_mvp_skill.png`、`game/assets/art/cards/packs/reward_pack_mvp_finisher.png`。
+- 三张卡牌包图均已处理为透明背景 PNG，不再使用黑色或暗黑哥特底图承载。
+- 已更新 `game/src/Presentation/Rewards/RewardScreen.cs`：奖励包选择控件移除黑色 `PanelContainer` 底板，改为透明点击区 + 纸质标签，直接叠加在漫画荒漠背景上。
+- 已将“跳过并进入下一战”调整为“不拿牌，进入下一战”的纸质次级按钮样式，与奖励界面背景和卡牌包图统一。
+- 已为奖励包选择增加轻量入场动画，三类卡牌包依次淡入 / 弹出；打开卡包时的脉冲和连锁火花范围同步放大。
+- 已同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 和 [[design/08_governance/01_change_log|变更日志]]，明确奖励包必须使用透明纸质包装图、不能包裹黑色底板，跳过按钮应为次级纸质操作。
+- 本次只调整奖励界面的表现层、卡包美术资源和对应文档，不改动奖励规则、卡牌候选、卡牌数值、Run 推进或数据结构。
+
+验证结果：
+- `python3 game/tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 12 data files and 12 schemas.`。
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
+- `dotnet run --project game/tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
+- `godot-mono --headless --path game --quit`：通过，项目可加载。
+
+#### 任务 12 阶段修复记录：奖励选择 hover 与卡包点击命中
+
+完成日期：2026-06-11
+
+已完成：
+- 已新增 `game/src/Presentation/Rewards/RewardPackHitArea.cs`，通过覆盖 `Control._HasPoint(...)` 按卡牌包 PNG 的 alpha 非透明区域判断鼠标命中。
+- 已更新 `game/src/Presentation/Rewards/RewardScreen.cs`：卡牌包不再使用覆盖整个控件矩形的透明 `Button`，点击和 hover 只在鼠标真正位于卡牌包图形上时触发。
+- 已为卡牌包选择补充 hover 反馈：鼠标悬停时卡包轻微放大、置顶、提亮，并显示沿卡包 alpha 的柔和高光。
+- 已为打开卡包后的 3 张候选奖励卡补充 hover 反馈：鼠标悬停时卡牌轻微放大、置顶、提亮；选中 / 取消选择仍沿用原有选中图标和确认流程。
+- 已同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 和 [[design/08_governance/01_change_log|变更日志]]，明确奖励包交互命中不能再由整块透明矩形代替。
+- 本次只调整奖励界面交互表现和点击命中，不改动奖励规则、卡牌候选、卡牌数值、Run 推进或数据结构。
+
+验证结果：
+- `dotnet build game/RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
 
 #### 任务 12 阶段完成记录：拖拽有效目标卡牌蒙版反馈
 

@@ -41,7 +41,7 @@ public partial class RewardScreen : ComicScreen
         }
 
         var packs = new HBoxContainer();
-        packs.AddThemeConstantOverride("separation", 36);
+        packs.AddThemeConstantOverride("separation", 52);
         packs.Alignment = BoxContainer.AlignmentMode.Center;
         foreach (var pack in rewardService.GetAvailableCardPacks(encounter, content.RewardPacksById))
         {
@@ -50,13 +50,14 @@ public partial class RewardScreen : ComicScreen
             packs.AddChild(packControl);
         }
 
-        AddAt(root, packs, new Vector2(540, 300), new Vector2(840, 330));
+        AddAt(root, packs, new Vector2(505, 258), new Vector2(910, 386));
 
-        var skip = CreateArtButton("跳过并进入下一战", "asset.ui.icon.end_turn", new Vector2(240, 58), new Color(0.36f, 0.31f, 0.26f));
+        var skip = CreatePaperActionButton("不拿牌，进入下一战", "asset.ui.icon.end_turn", new Vector2(300, 62));
         skip.Pressed += () => ConfirmRequested?.Invoke();
-        AddAt(root, skip, new Vector2(840, 760), new Vector2(240, 58));
+        AddAt(root, skip, new Vector2(810, 760), new Vector2(300, 62));
 
         AddFxLayer(root);
+        _ = PlayPackSelectionEntranceAsync();
     }
 
     public void RenderOpenedPack(RewardPackDefinition openedRewardPack, IReadOnlySet<string> selectedRewardCards)
@@ -99,27 +100,44 @@ public partial class RewardScreen : ComicScreen
     {
         var content = RequireContent();
         var view = content.RewardPackViewsById[pack.Id];
-        var panel = CreateFramedPanel(new Vector2(230, 286), GoldLine);
-        var box = new VBoxContainer();
-        box.AddThemeConstantOverride("separation", 8);
-        panel.AddChild(box);
-        box.AddChild(CreateImage(view.IconAsset, new Vector2(205, 200), TextureRect.StretchModeEnum.KeepAspectCentered));
-
-        var title = CreateSmallLabel(content.RewardPackName(pack.Id));
-        title.HorizontalAlignment = HorizontalAlignment.Center;
-        title.AddThemeFontSizeOverride("font_size", 17);
-        box.AddChild(title);
-
-        var button = new Button
+        var accent = PackAccent(pack.Id);
+        var root = new Control
         {
-            Text = "",
-            TooltipText = "打开卡牌包"
+            CustomMinimumSize = new Vector2(250, 344),
+            Size = new Vector2(250, 344),
+            MouseFilter = MouseFilterEnum.Ignore
         };
-        MakeTransparentButton(button);
-        button.SetAnchorsPreset(LayoutPreset.FullRect);
-        button.Pressed += () => RewardPackRequested?.Invoke(pack.Id);
-        panel.AddChild(button);
-        return panel;
+
+        var imageSize = new Vector2(230, 286);
+        var imagePosition = new Vector2(10, 0);
+        var hoverGlow = CreateImage(view.IconAsset, imageSize, TextureRect.StretchModeEnum.KeepAspectCentered);
+        hoverGlow.Position = imagePosition;
+        hoverGlow.Size = imageSize;
+        hoverGlow.PivotOffset = imageSize * 0.5f;
+        hoverGlow.Scale = new Vector2(1.05f, 1.05f);
+        hoverGlow.Modulate = new Color(accent.R, accent.G, accent.B, 0f);
+        root.AddChild(hoverGlow);
+
+        var image = CreateImage(view.IconAsset, new Vector2(230, 286), TextureRect.StretchModeEnum.KeepAspectCentered);
+        image.Position = imagePosition;
+        image.Size = imageSize;
+        root.AddChild(image);
+
+        var title = CreateRewardPackLabel(content.RewardPackName(pack.Id), accent);
+        title.Position = new Vector2(20, 286);
+        title.Size = new Vector2(210, 46);
+        root.AddChild(title);
+
+        var hitArea = new RewardPackHitArea
+        {
+            Position = imagePosition,
+            ZIndex = 10
+        };
+        hitArea.Configure(pack.Id, LoadImage(view.IconAsset), imageSize, id => RewardPackRequested?.Invoke(id));
+        hitArea.MouseEntered += () => SetRewardPackHover(root, image, hoverGlow, title, hovered: true);
+        hitArea.MouseExited += () => SetRewardPackHover(root, image, hoverGlow, title, hovered: false);
+        root.AddChild(hitArea);
+        return root;
     }
 
     private Control CreateRewardCardControl(CardDefinition card, bool picked)
@@ -131,6 +149,8 @@ public partial class RewardScreen : ComicScreen
         button.Size = control.CustomMinimumSize;
         button.CustomMinimumSize = control.CustomMinimumSize;
         button.SetAnchorsPreset(LayoutPreset.FullRect);
+        button.MouseEntered += () => SetRewardCardHover(control, hovered: true, picked);
+        button.MouseExited += () => SetRewardCardHover(control, hovered: false, picked);
         button.Pressed += () => RewardCardToggled?.Invoke(card.Id);
         control.AddChild(button);
 
@@ -148,8 +168,32 @@ public partial class RewardScreen : ComicScreen
     {
         if (rewardPackNodes.TryGetValue(packId, out var packNode))
         {
-            await PulseNodeAsync(packNode, 1.08f, 0.12f);
-            await SpawnVfxAsync(fxLayer, "asset.vfx.chain_gain_spark", CenterOf(packNode), new Vector2(230, 150), new Color(1f, 0.88f, 0.48f, 0.95f), 0.22f);
+            await PulseNodeAsync(packNode, 1.12f, 0.12f);
+            await SpawnVfxAsync(fxLayer, "asset.vfx.chain_gain_spark", CenterOf(packNode), new Vector2(270, 180), new Color(1f, 0.88f, 0.48f, 0.95f), 0.24f);
+        }
+    }
+
+    private async Task PlayPackSelectionEntranceAsync()
+    {
+        foreach (var packNode in rewardPackNodes.Values)
+        {
+            if (!GodotObject.IsInstanceValid(packNode))
+            {
+                continue;
+            }
+
+            packNode.PivotOffset = packNode.Size * 0.5f;
+            packNode.Scale = new Vector2(0.9f, 0.9f);
+            packNode.Modulate = new Color(1f, 1f, 1f, 0f);
+
+            var tween = CreateTween();
+            tween.SetParallel(true);
+            tween.SetTrans(Tween.TransitionType.Back);
+            tween.SetEase(Tween.EaseType.Out);
+            tween.TweenProperty(packNode, "scale", Vector2.One, 0.18);
+            tween.TweenProperty(packNode, "modulate", Colors.White, 0.18);
+            await ToSignal(tween, "finished");
+            await WaitAsync(0.045);
         }
     }
 
@@ -195,5 +239,165 @@ public partial class RewardScreen : ComicScreen
     {
         fxLayer = CreateFxLayer("RewardFxLayer");
         root.AddChild(fxLayer);
+    }
+
+    private void SetRewardPackHover(Control root, CanvasItem image, CanvasItem hoverGlow, Control title, bool hovered)
+    {
+        if (!GodotObject.IsInstanceValid(root))
+        {
+            return;
+        }
+
+        root.PivotOffset = root.Size * 0.5f;
+        root.ZIndex = hovered ? 30 : 0;
+
+        var tween = CreateTween();
+        tween.SetParallel(true);
+        tween.SetTrans(Tween.TransitionType.Cubic);
+        tween.SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(root, "scale", hovered ? new Vector2(1.055f, 1.055f) : Vector2.One, 0.10);
+        tween.TweenProperty(image, "modulate", hovered ? new Color(1f, 0.98f, 0.88f, 1f) : Colors.White, 0.10);
+        tween.TweenProperty(hoverGlow, "modulate", hovered ? new Color(1f, 0.73f, 0.22f, 0.35f) : new Color(1f, 0.73f, 0.22f, 0f), 0.10);
+        tween.TweenProperty(title, "scale", hovered ? new Vector2(1.035f, 1.035f) : Vector2.One, 0.10);
+    }
+
+    private void SetRewardCardHover(Control card, bool hovered, bool picked)
+    {
+        if (!GodotObject.IsInstanceValid(card))
+        {
+            return;
+        }
+
+        card.PivotOffset = card.Size * 0.5f;
+        card.ZIndex = hovered ? 35 : picked ? 12 : 0;
+
+        var tween = CreateTween();
+        tween.SetParallel(true);
+        tween.SetTrans(Tween.TransitionType.Cubic);
+        tween.SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(card, "scale", hovered ? new Vector2(1.045f, 1.045f) : Vector2.One, 0.10);
+        tween.TweenProperty(card, "modulate", hovered ? new Color(1f, 0.98f, 0.88f, 1f) : Colors.White, 0.10);
+    }
+
+    private Image LoadImage(string assetId)
+    {
+        var content = RequireContent();
+        if (!content.AssetsById.TryGetValue(assetId, out var asset))
+        {
+            throw new InvalidOperationException($"Asset '{assetId}' is not defined.");
+        }
+
+        var image = new Image();
+        var bytes = System.IO.File.ReadAllBytes(ProjectSettings.GlobalizePath(asset.Path));
+        var error = image.LoadPngFromBuffer(bytes);
+        if (error != Error.Ok)
+        {
+            throw new InvalidOperationException($"Failed to load PNG image '{asset.Path}': {error}.");
+        }
+
+        return image;
+    }
+
+    private PanelContainer CreateRewardPackLabel(string text, Color accent)
+    {
+        var panel = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(210, 46),
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        panel.AddThemeStyleboxOverride("panel", CreatePaperLabelStyle(accent));
+
+        var label = new Label
+        {
+            Text = text,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        label.AddThemeFontSizeOverride("font_size", 18);
+        label.AddThemeColorOverride("font_color", new Color(0.22f, 0.12f, 0.06f));
+        panel.AddChild(label);
+        return panel;
+    }
+
+    private Button CreatePaperActionButton(string text, string iconAsset, Vector2 minSize)
+    {
+        var button = new Button
+        {
+            Text = text,
+            Icon = LoadTexture(iconAsset),
+            CustomMinimumSize = minSize,
+            ExpandIcon = true,
+            Alignment = HorizontalAlignment.Center
+        };
+        button.AddThemeFontSizeOverride("font_size", 18);
+        button.AddThemeColorOverride("font_color", new Color(0.23f, 0.12f, 0.05f));
+        button.AddThemeColorOverride("font_hover_color", new Color(0.15f, 0.08f, 0.04f));
+        button.AddThemeColorOverride("font_pressed_color", new Color(0.40f, 0.16f, 0.06f));
+        button.AddThemeColorOverride("icon_normal_color", new Color(0.50f, 0.20f, 0.08f));
+        button.AddThemeColorOverride("icon_hover_color", new Color(0.70f, 0.24f, 0.08f));
+        button.AddThemeColorOverride("icon_pressed_color", new Color(0.36f, 0.12f, 0.04f));
+        button.AddThemeStyleboxOverride("normal", CreatePaperButtonStyle(new Color(0.70f, 0.38f, 0.12f), new Color(0.86f, 0.70f, 0.44f, 0.92f)));
+        button.AddThemeStyleboxOverride("hover", CreatePaperButtonStyle(new Color(0.92f, 0.48f, 0.12f), new Color(0.95f, 0.78f, 0.48f, 0.98f)));
+        button.AddThemeStyleboxOverride("pressed", CreatePaperButtonStyle(new Color(0.62f, 0.26f, 0.08f), new Color(0.78f, 0.56f, 0.32f, 0.98f)));
+        button.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
+        return button;
+    }
+
+    private static StyleBoxFlat CreatePaperLabelStyle(Color accent)
+    {
+        return new StyleBoxFlat
+        {
+            BgColor = new Color(0.86f, 0.72f, 0.49f, 0.90f),
+            BorderColor = accent,
+            BorderWidthLeft = 2,
+            BorderWidthRight = 2,
+            BorderWidthTop = 2,
+            BorderWidthBottom = 2,
+            CornerRadiusBottomLeft = 5,
+            CornerRadiusBottomRight = 5,
+            CornerRadiusTopLeft = 5,
+            CornerRadiusTopRight = 5,
+            ContentMarginLeft = 10,
+            ContentMarginRight = 10,
+            ContentMarginTop = 6,
+            ContentMarginBottom = 6
+        };
+    }
+
+    private static StyleBoxFlat CreatePaperButtonStyle(Color borderColor, Color backgroundColor)
+    {
+        return new StyleBoxFlat
+        {
+            BgColor = backgroundColor,
+            BorderColor = borderColor,
+            BorderWidthLeft = 2,
+            BorderWidthRight = 2,
+            BorderWidthTop = 2,
+            BorderWidthBottom = 2,
+            CornerRadiusBottomLeft = 6,
+            CornerRadiusBottomRight = 6,
+            CornerRadiusTopLeft = 6,
+            CornerRadiusTopRight = 6,
+            ContentMarginLeft = 14,
+            ContentMarginRight = 14,
+            ContentMarginTop = 8,
+            ContentMarginBottom = 8
+        };
+    }
+
+    private static Color PackAccent(string packId)
+    {
+        if (packId.Contains(".action", StringComparison.Ordinal))
+        {
+            return BloodLine;
+        }
+
+        if (packId.Contains(".skill", StringComparison.Ordinal))
+        {
+            return SkillLine;
+        }
+
+        return FinisherLine;
     }
 }

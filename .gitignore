@@ -10,6 +10,7 @@ game/.mono/
 export.cfg
 export_credentials.cfg
 *.tmp
+tmp
 game/export.cfg
 game/export_credentials.cfg
 

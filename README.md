@@ -1,110 +1,70 @@
 # RoguelikeCardGame
 
-Roguelike 卡牌独立游戏设计开发文档与资料。
+Roguelike 卡牌独立游戏原型项目，包含 Obsidian 友好的设计知识库和 Godot 4.6.x .NET / C# MVP 工程。
 
-最后更新：2026-06-03，根据当前 Git 提交日志与设计文档整理。
+## Status
 
-## 项目当前状态
+当前仓库已包含可运行的第一版 MVP：主菜单、战斗、奖励选择、线性 Run 推进、Boss 通关 / 失败结算和重开流程。MVP 仍处于原型验证阶段，重点是验证战斗局内循环、连锁层数、终结牌兑现和战后奖励闭环。
 
-本仓库目前是一个 Obsidian 友好的游戏设计知识库，尚未进入完整工程实现阶段。当前已完成：
+更多设计、范围和阶段状态见 [Design Knowledge Base](design/README.md) 与 [MVP 项目状态](design/07_production/03_mvp_project_status.md)。
 
-- Obsidian 知识库结构搭建。
-- 产品层设计收束。
-- 核心玩法阶段设计收束。
-- 第一版 MVP 玩法边界决策。
-- 技术生产方案设计。
-- 清理 Obsidian 个人配置，并通过 `.gitignore` 降低个人环境文件对仓库的干扰。
+## Requirements
 
-后续开发、灵感整理和实现工作应优先遵循 [[design/README|Design Knowledge Base]]。
+- Godot `4.6.x` .NET / Mono 版，当前验证版本为 `4.6.3.stable.mono`。
+- .NET SDK `8.0.x`。
+- Python `3.x`，用于运行数据校验工具。
 
-## 当前游戏概念
+## Quick Start
 
-本项目是一款以卡组构筑、卡牌联动和连锁 combo 爽快感为核心的 Roguelike 卡牌独立游戏。
+Godot 工程根目录是 `game/`，入口场景为 `game/scenes/main/Main.tscn`。
 
-核心体验链路：
+```bash
+cd game
 
-1. 玩家通过局内奖励、删改、强化和路线选择构筑卡组。
-2. 玩家在战斗中通过行动牌积累连锁层数。
-3. 玩家通过牌序规划把连锁层数推到关键阈值。
-4. 玩家使用终结牌兑现高连锁收益，获得巨额数值反馈和动画演出爽感。
+# Godot 命令名称依安装方式不同，可能是 godot、godot4、godot-mono 或 Godot 可执行文件完整路径。
+godot-mono --path .
+```
 
-核心设计文档：
+也可以直接用 Godot .NET 编辑器打开 `game/project.godot`，点击运行项目。
 
-- [[design/00_product/00_game_concept|游戏概述]]
-- [[design/00_product/01_design_pillars|设计支柱]]
-- [[design/01_core_gameplay/02_combat_system|战斗系统]]
-- [[design/01_core_gameplay/03_card_system|卡牌系统]]
+## Rebuild Notes
 
-## 第一版 MVP 范围
+- 修改 `game/src/**/*.cs` 后需要重新构建 C#。Godot 编辑器通常会自动编译；命令行启动前建议先运行 `dotnet build`。
+- 修改 `game/data/**/*.json` 通常不需要重新构建，但需要重启当前游戏或重新进入流程，让数据重新加载。
+- 修改 `.tscn`、图片、字体等 Godot 资源通常不需要手动 `dotnet build`；Godot 编辑器会处理资源导入。
+- 修改 `game/project.godot`、入口场景或项目设置后，建议重启 Godot 项目。
 
-第一版 MVP 目标是验证战斗局内循环，而不是验证完整 Roguelike 内容量。
+## Validation
 
-当前 MVP 范围：
+```bash
+cd game
 
-- 目标时长：约 10-15 分钟。
-- 流程结构：1 个线性章节。
-- 战斗结构：3 场普通战斗、1 场精英战斗、1 场普通战斗、1 场 Boss 战斗。
-- 遭遇策略：6 场战斗全部采用固定遭遇。
-- 角色范围：至少 1 名可玩角色或临时角色壳。
-- 初始牌组：10 张牌。
-- 奖励牌池：约 9 张奖励牌，行动牌、技能牌、终结牌各 3 张。
-- 奖励规则：普通战斗后选择卡牌包；精英战斗额外给 1 个普通遗物。
-- 生命规则：MVP 中每场战斗开始时生命回满，优先验证单场战斗和奖励闭环。
-- 胜负规则：生命归零结束本次 MVP Run；击败 Boss 显示 MVP 通关并提供重开入口。
+dotnet build RoguelikeCardGame.csproj -v:minimal
+dotnet run --project tests/Unit/RoguelikeCardGame.Tests.csproj
+python3 tools/data_validator/validate_data.py
+godot-mono --headless --path . --quit
+```
 
-详细范围见 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]。
+Windows PowerShell 下可使用项目检查脚本，并按本机 Godot 安装位置传入可执行文件路径：
 
-## 已确认核心玩法规则
+```powershell
+.\game\tools\check_project.ps1 -GodotPath "D:\Godot_v4.6.3-stable_mono_win64\Godot_v4.6.3-stable_mono_win64_console.exe"
+```
 
-- 基础行动点上限为 3。
-- 默认每回合抽 5 张牌。
-- 行动牌默认消耗行动点，使用后 +1 连锁层数。
-- 技能牌默认不消耗行动点，默认不产生连锁层数，承担防御、抽牌、检索、减费、回费等辅助职责。
-- 终结牌默认不消耗行动点，但需要满足连锁层数条件才能打出，并通常在结算后清空连锁层数。
-- 连锁层数是回合内资源，玩家回合结束时通常清空。
-- 关键连锁阈值为 3 / 5 / 8；超过 8 层后仍可继续计数，但收益曲线待定义。
-- 防御在玩家回合结束时不清空，用于承受随后敌人行动；敌人行动后剩余防御在下一回合开始时清空。
-- 抽牌堆不足时，将弃牌堆洗回抽牌堆继续抽。
+## Repository Layout
 
-详细规则见 [[design/01_core_gameplay/02_combat_system|战斗系统]] 与 [[design/01_core_gameplay/03_card_system|卡牌系统]]。
-
-## 技术生产方向
-
-当前技术方向已确认：
-
-- 引擎：Godot 4.6.x .NET 版。
-- 语言：C#。
-- 协作方式：使用 Codex 作为 coding agent，协助实现、校验、重构和文档维护。
-- 首版平台：PC 桌面优先，Windows 优先。
-- 数据方向：JSON + JSON Schema。
-- 架构方向：战斗规则层与 Godot 表现层分离。
-- 首版工具目标：数据校验、战斗沙盒、结构化战斗日志、本地试玩指标导出。
-
-详细决策见 [[design/08_governance/2026-06-03_godot_csharp_codex_technical_stack|采用 Godot + C# 与 Codex 的技术生产方案]]。
-
-## 仓库结构
-
-- `design/`：最高设计准则和正式设计文档。
+- `game/`：Godot 4.6.x .NET / C# MVP 工程。
+- `design/`：正式设计文档、技术方案、制作计划和治理记录。
 - `inspiration/`：灵感、头脑风暴和阶段性 Q&A。
-- `insight/`：竞品分析与外部资料洞察，当前尚未建立正式目录。
-- `AGENTS.md`：知识库维护规则。
-- `README.md`：项目当前信息入口。
+- `insight/`：竞品分析与外部资料洞察。
+- `AGENTS.md`：知识库维护规则与 Codex 协作规则。
 
-## Git 历史摘要
+## Documentation
 
-- `704254b`：删除 Obsidian 个人配置文件夹，补充 `.gitignore` 屏蔽规则。
-- `24063c6`：完成产品技术阶段设计。
-- `3610b90`：完成核心玩法阶段及第一版 MVP 玩法边界决策。
-- `b08dc4d`：增加战斗规则社区调研。
-- `e581d79`：补充文档规则，使 AI 生成内容符合 Obsidian 格式。
-- `79e844f`：完成产品层设计文档编写。
-- `25517cd`：建立 Obsidian 知识库。
-- `5bb82e9`：Initial commit。
-
-## 下一步建议
-
-1. 初始化 Godot + C# 工程骨架。
-2. 建立 JSON + JSON Schema 数据管线。
-3. 落地 MVP 初始牌组、9 张奖励牌、1 个普通遗物和 6 组固定敌人。
-4. 实现最小战斗规则层、战斗沙盒和结构化日志。
-5. 通过 10-15 分钟 MVP 验证连锁层数、终结牌兑现和奖励闭环是否成立。
+- [游戏概述](design/00_product/00_game_concept.md)
+- [项目范围与成功标准](design/00_product/03_scope_and_success_criteria.md)
+- [战斗系统](design/01_core_gameplay/02_combat_system.md)
+- [卡牌系统](design/01_core_gameplay/03_card_system.md)
+- [技术需求](design/06_technical_production/00_technical_requirements.md)
+- [数据管线与工具](design/06_technical_production/01_data_pipeline_and_tools.md)
+- [MVP 项目状态](design/07_production/03_mvp_project_status.md)

@@ -82,6 +82,7 @@
 - [[design/07_production/00_roadmap_milestones|开发路线图与里程碑]]
 - [[design/07_production/01_scope_risk_backlog|范围、风险与待办池]]
 - [[design/07_production/02_playtest_plan|试玩测试计划]]
+- [[design/07_production/03_mvp_project_status|MVP 项目状态]]
 
 ### 08 Governance
 
