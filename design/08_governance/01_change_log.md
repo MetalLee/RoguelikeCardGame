@@ -15,6 +15,17 @@
 
 ## 日志
 
+### 2026-06-13
+
+- 根据 [[inspiration/2026-06-13_background_story|对游戏背景设定的补充以及卡牌、战斗机制的重新设计]] 及开发者确认，正式确立游戏名《剑与黑塔》，并将核后失色世界、黑塔、勇者联盟、左与茵纳入当前设计基线；同步更新 [[design/00_product/00_game_concept|游戏概述]]、[[design/05_narrative_world/00_world_and_tone|世界观与语气]] 与 [[design/05_narrative_world/01_story_delivery|叙事投放]]。
+- 将角色旅途与黑塔谜团提升为重要卖点，但仍不压过卡牌战斗；明确剧情主要通过事件、卡牌、遗物、敌人、Boss 和结算文本隐晦表达，采用碎片化叙事。
+- 将旧“连锁层数”替换为世界观化的「彩能」表达，并取消 3 / 5 / 8 固定阈值；终结牌改为按自身标注消耗固定数量、X 数量或全部彩能。同步更新 [[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]]、[[design/04_balance_data/00_balance_principles|平衡原则]] 与 [[design/08_governance/02_glossary|术语表]]。
+- 删除“技能牌”作为正式卡牌类型，卡牌类型收束为行动牌和终结牌；防御、控制、过牌、回费和减费职责归入行动牌或终结牌。
+- 将第一版 MVP 起始结构改为武器选牌：左轮剑 8 选 6、机械臂 8 选 4，组成 10 张初始卡组；明确武器是角色机制和卡池入口，不是传统装备系统。同步更新 [[design/02_content_systems/01_characters_and_archetypes|角色与构筑原型]]、[[design/01_core_gameplay/03_card_system|卡牌系统]] 与 [[design/07_production/03_mvp_project_status|MVP 项目状态]]。
+- 将普通战斗后旧卡牌包奖励替换为“随机色彩碎片 + 武器卡牌三选一”，并将五色机制纳入基础战斗与 MVP 范围；精英保留普通遗物奖励，Boss 加入简化 Boss 奖励。同步更新 [[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]、[[design/01_core_gameplay/00_core_loop|核心循环]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]。
+- 将第一版 MVP 敌人与 Boss 的设计语境统一到黑塔世界观，并明确事件系统暂不进入当前 MVP，但作为 MVP 战斗打磨后的下一阶段优先项，高于商店和路线图。同步更新 [[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]]、[[design/02_content_systems/04_events_and_encounters|事件与遭遇]] 与 [[design/07_production/00_roadmap_milestones|开发路线图与里程碑]]。
+- 新增 [[design/08_governance/2026-06-13_sword_black_tower_color_energy_core|确立《剑与黑塔》的彩能、色彩与武器卡池核心]] 决策记录，并将 [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|以连锁层数作为 combo 爽感兑现机制]] 标记为已替代。
+
 ### 2026-06-11
 
 - 落地并记录第一版 MVP Run seed 随机系统：每次新 Run 生成并保存不同 seed，抽牌堆初始洗牌和弃牌堆重洗改由 `deck` 随机流驱动，预留 `map`、`reward`、`encounter` 独立随机流，并在 [[design/06_technical_production/00_technical_requirements|技术需求]] 中补充以 Deck 为例的随机产生、推进、隔离和复现流程。

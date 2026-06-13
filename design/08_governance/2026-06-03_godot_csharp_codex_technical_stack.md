@@ -4,6 +4,8 @@
 状态：已接受  
 影响范围：技术 / 制作 / 工具 / 平台
 
+> 2026-06-13 更新：本技术栈决策仍然有效，但文中关于“连锁层数”的玩法对象应按 [[design/08_governance/2026-06-13_sword_black_tower_color_energy_core|确立《剑与黑塔》的彩能、色彩与武器卡池核心]] 更新理解为彩能、色彩、武器卡池和附魔系统。Godot + C#、JSON 数据管线、规则层与表现层分离的技术方向不变。
+
 ## 背景
 
 开发者确认本项目计划使用 Godot + C# 作为技术栈，并使用 Codex 作为 coding agent。项目当前处于设计知识库和第一版 MVP 规划阶段，核心目标是验证 [[design/00_product/00_game_concept|卡组联动与 combo 爽感]]、[[design/01_core_gameplay/02_combat_system|连锁层数战斗机制]] 和 10-15 分钟线性 MVP。
