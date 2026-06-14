@@ -22,6 +22,7 @@
 - [[design/08_governance/2026-06-03_hand_drawn_comic_book_visual_direction|采用手绘漫画书风格作为主视觉方向]]
 - [[design/08_governance/2026-06-04_keep_godot_project_in_same_repo_game_subdir|Godot 工程与知识库同仓库并放入 game 子目录]]
 - [[design/08_governance/2026-06-13_sword_black_tower_color_energy_core|确立《剑与黑塔》的彩能、色彩与武器卡池核心]]
+- [[design/08_governance/2026-06-14_universal_color_enchantment_and_mvp_archetypes|通用色彩附魔与 MVP 构筑原型]]
 
 ## 摘要表
 
@@ -34,3 +35,4 @@
 | 2026-06-03 | 采用手绘漫画书风格作为主视觉方向 | 已接受 | 体验 / 视觉 / UI / 演出 | [[design/03_experience/01_visual_direction|视觉方向]]、[[design/03_experience/00_ui_ux|界面与交互]] |
 | 2026-06-04 | Godot 工程与知识库同仓库并放入 game 子目录 | 已接受 | 仓库结构 / 技术 / 制作 / Codex 协作 | [[design/06_technical_production/00_technical_requirements|技术需求]] |
 | 2026-06-13 | 确立《剑与黑塔》的彩能、色彩与武器卡池核心 | 已接受 | 产品 / 玩法 / 内容 / 叙事 / UI / 数据 / 技术实现 | [[design/00_product/00_game_concept|游戏概述]]、[[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/05_narrative_world/00_world_and_tone|世界观与语气]] |
+| 2026-06-14 | 通用色彩附魔与 MVP 构筑原型 | 已接受 | 玩法 / 卡牌 / 资源 / UI / 平衡 / 内容 | [[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/01_characters_and_archetypes|角色与构筑原型]]、[[design/04_balance_data/00_balance_principles|平衡原则]] |
