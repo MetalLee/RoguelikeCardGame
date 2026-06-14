@@ -56,6 +56,7 @@ public sealed class CombatStateFactory
 			CardsPerTurn = runState.CardsPerTurn,
 			ActionPoints = 0,
 			Chain = 0,
+			ColorEnergy = ColorEnergyPool.Empty(),
 			DeckZones = new DeckZones
 			{
 				DrawPile = shuffleInitialDrawPile(runState.MasterDeck).ToList()

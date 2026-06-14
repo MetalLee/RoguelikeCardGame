@@ -1,358 +1,108 @@
-# RoguelikeCardGame MVP 程序调用链路
+# 《剑与黑塔》MVP 程序调用链路
 
-本文记录第一版 MVP 中，从玩家进入战斗、打出卡牌、造成伤害、击败敌人、战斗胜利，到选择卡包、打开卡包、选择卡片加入牌组的规则层调用链路。
+本文记录当前 Godot / C# MVP 的正式运行链路。正式主流程以武器卡池、彩能、色彩附魔和武器卡三选一奖励为基线；旧连锁、技能牌和卡牌包奖励不再作为 `game/data/gameplay/` 的运行数据共存，仅保留必要兼容字段。
 
 ## 运行环境
-
-项目当前目标运行环境：
 
 - Godot：`4.6.3.stable.mono` 或同系列 Godot 4.6.x .NET 版。
 - .NET SDK：`8.0.x`，项目目标框架为 `net8.0`。
 
-团队成员可使用各自平台的官方安装方式配置 Godot .NET 与 .NET SDK。只要命令行可调用 `dotnet`，并能通过 Godot .NET 编辑器打开 `game/project.godot` 即可。
-
-常用命令：
+常用验证命令：
 
 ```bash
-cd game
-
 dotnet build RoguelikeCardGame.csproj -v:minimal
 dotnet run --project tests/Unit/RoguelikeCardGame.Tests.csproj
-python3 tools/data_validator/validate_data.py
-# Godot 命令名称依安装方式不同可能是 godot、godot4、godot-mono 或 Godot 可执行文件路径。
+python tools/data_validator/validate_data.py
 godot-mono --headless --path . --quit
-godot-mono --path .
 ```
-
-最近一次验证结果（2026-06-05）：
-
-- `dotnet build RoguelikeCardGame.csproj -v:minimal`：通过，0 个警告、0 个错误。
-- `dotnet run --project tests/Unit/RoguelikeCardGame.Tests.csproj`：通过，输出 `Domain model smoke tests passed.`。
-- `python3 tools/data_validator/validate_data.py`：通过，输出 `Data validation passed. Validated 7 data files and 7 schemas.`。
-- `godot-mono --headless --path . --quit`：通过，项目可加载。
-- Godot GUI 可通过 Godot .NET 编辑器打开 `game/project.godot`，或在命令行使用对应 Godot 可执行文件运行 `--path .`。
-
-当前阶段已通过 `src/Presentation/Menus/MainMenu.cs` 接入程序化占位 UI，可跑通 MVP 战斗、奖励、通关 / 失败和重开流程。以下链路描述表现层调用的 `Application` 服务，以及这些服务如何读写 `Domain` 状态对象。
 
 ## 总览调用图
 
 ```mermaid
 flowchart TD
-  A["RunState 当前进度"] --> B["CombatStateFactory.CreateCombat"]
-  B --> C["CombatTurnService.StartCombat"]
-  C --> D["CardPlayService.PlayCard"]
-  D --> E["ResolveDamage / ResolveEffect"]
-  E --> F["AppendCombatOutcomeLogs"]
-  F --> G{"CombatStatus.Victory?"}
-  G --> H["RunProgressService.ApplyCombatResult"]
-  H --> I["RewardService.GetAvailableCardPacks"]
-  I --> J["RewardService.OpenRewardPack"]
-  J --> K["RewardService.ClaimCards"]
-  K --> L["RewardService.GrantEncounterRelic"]
+  A["StartMenuScreen"] --> B["WeaponSelectionScreen"]
+  B --> C["StartingDeckSelectionScreen"]
+  C --> D["RunStateFactory.CreateNewRunFromWeaponSelection"]
+  D --> E["CombatStateFactory.CreateCombat"]
+  E --> F["CombatTurnService.StartCombat"]
+  F --> G["CardPlayService.PlayCard"]
+  G --> H{"CombatStatus.Victory?"}
+  H --> I["RewardService.GenerateColorShard"]
+  I --> J["RewardService.ApplyColorShard"]
+  J --> K["RewardService.GenerateWeaponCardCandidates"]
+  K --> L["RewardService.ClaimWeaponCardChoice"]
   L --> M["RunProgressService.AdvanceAfterRewards"]
+  H --> N{"Boss defeated?"}
+  N --> O["RunStatus.Cleared"]
 ```
 
-## 关键状态对象
+## 关键数据
 
-- `RunState`：定义在 `src/Domain/Runs/RunState.cs`，保存整局 Run 的生命、主卡组 `MasterDeck`、遗物 `RelicIds`、遭遇顺序和当前遭遇索引。
-- `CombatState`：定义在 `src/Domain/Combat/CombatState.cs`，保存单场战斗状态，包括玩家生命、防御、行动点、连锁、牌区、敌人状态和结构化日志。
-- `DeckZones`：定义在 `src/Domain/Combat/DeckZones.cs`，保存抽牌堆、手牌、弃牌堆。
-- `CardDefinition`：定义在 `src/Domain/Cards/CardDefinition.cs`，保存卡牌类型、费用、目标规则、默认连锁变化和效果列表。
-- `RewardPackDefinition`：定义在 `src/Domain/Rewards/RewardPackDefinition.cs`，保存奖励包类型、3 张候选牌、最小 / 最大选择数量和重复规则。
-- `CombatLogEvent`：定义在 `src/Domain/Combat/CombatLogEvent.cs`，记录 `CardPlayed`、`EffectResolved`、`EnemyDied`、`CombatEnded` 等结构化事件。
+- `game/data/gameplay/weapons/weapons.json`：正式 MVP 武器入口，当前包含左轮剑和机械臂。
+- `game/data/gameplay/cards/cards.json`：正式 MVP 卡牌池，只允许行动牌和终结牌，每张牌带 `weapon_id`。
+- `game/data/gameplay/colors/colors.json`：红、黄、蓝、绿、紫五色定义。黄色只表示增加卡牌释放次数。
+- `game/data/gameplay/card_pools/card_pools.json`：每种武器的 8 张起始池，以及按武器和稀有度组织的奖励池。
+- `game/data/gameplay/encounters/`、`enemies/`、`relics/`、`runs/`：正式 MVP 遭遇、魔物、遗物和线性 Run 数据。
 
-## 1. 进入战斗
+## 开局流程
 
-表现层从当前 `RunState` 和当前遭遇 `EncounterDefinition` 开始。
+`MvpRunFlowController.StartNewRun` 不再读取固定 `starter_deck`。流程为：
 
-第一步调用：
+1. `WeaponSelectionScreen` 选择主手武器和副手武器。
+2. `StartingDeckSelectionScreen` 从主手 8 张起始池选择 6 张，从副手 8 张起始池选择 4 张。
+3. `StartingDeckSelectionService.Validate` 校验数量、武器归属和重复张数。
+4. `RunStateFactory.CreateNewRunFromWeaponSelection` 创建 10 张 `CardInstance`，写入 `MainHandWeaponId`、`OffHandWeaponId`、`MasterDeckInstances` 和附魔状态。
 
-```csharp
-var combat = combatStateFactory.CreateCombat(
-	combatId,
-	runState,
-	encounter,
-	enemiesById);
-```
+## 战斗流程
 
-关键类与方法：
+战斗状态由 `CombatStateFactory.CreateCombat` 创建，并由 `CombatTurnService.StartCombat` 进入玩家回合。`CombatState` 保存玩家生命、防御、行动点、牌区、魔物状态、日志和 6 格 `ColorEnergyPool`。
 
-- `CombatStateFactory.CreateCombat`：`src/Application/Battle/CombatStateFactory.cs`
+`CardPlayService.PlayCard` 是出牌结算入口：
 
-该方法负责：
+- 行动牌消耗行动点，结算基础效果。
+- 行动牌根据自身附魔颜色生成彩能；未附魔时生成无色彩能。
+- 行动牌附魔颜色也会触发对应颜色追加效果。
+- 终结牌检查并消耗彩能，不读取旧阈值。
+- 终结牌按实际消耗的颜色逐一结算追加效果。
 
-- 根据遭遇创建敌人实例状态。
-- 将玩家生命设置为最大生命，满足 MVP 每场战斗开始时生命回满。
-- 将 `RunState.MasterDeck` 复制到 `CombatState.DeckZones.DrawPile`。
-- 写入 `CombatStarted` 日志。
-- 返回 `CombatStatus.NotStarted` 的 `CombatState`。
+颜色边界：
 
-第二步调用：
+- 红色：提高伤害，或把防御 / 控制收益的一部分转为伤害。
+- 黄色：增加卡牌释放次数，单次结算有硬上限，不抽牌、不返还行动点、不回能量。
+- 蓝色：按最终伤害或最终效果值获得防御。
+- 绿色：按最终伤害或最终效果值回复生命，不能超过最大生命。
+- 紫色：放大最终效果，有硬上限，不能无限循环。
 
-```csharp
-combat = combatTurnService.StartCombat(combat);
-```
+## 奖励流程
 
-关键类与方法：
+普通和精英战斗胜利后不再打开卡牌包。新版奖励由 `RewardService` 分三步处理：
 
-- `CombatTurnService.StartCombat`：`src/Application/Battle/CombatTurnService.cs`
+1. `GenerateColorShard` 生成随机色彩碎片，并通过 `AddPendingColorShard` 进入 `RunState.PendingColorShards`。
+2. `ListEnchantableActionCards` 列出当前牌组中未附魔行动牌；`ApplyColorShard` 把碎片写入目标 `CardInstance.Enchantment`。
+3. `GenerateWeaponCardCandidates` 从主手 / 副手武器奖励池生成 3 张候选；`ClaimWeaponCardChoice` 必须选择 1 张作为新 `CardInstance` 加入牌组。
 
-该方法负责：
+精英战斗仍可通过 `GrantEncounterRelic` 发放固定遗物。Boss 胜利由 `RunProgressService.ApplyCombatResult` 设置为 `RunStatus.Cleared`；玩家生命归零设置为 `RunStatus.Failed`。
 
-- 从 `NotStarted` 进入第 1 回合玩家回合。
-- 恢复基础行动点。
-- 抽 5 张牌。
-- 写入 `CardsDrawn` 和 `TurnStarted` 日志。
+## Debug / Metrics
 
-## 2. 打出卡牌
+`PlaytestMetricsService` 已按新版资源口径统计：
 
-玩家点击卡牌并选择目标后，表现层调用：
+- 彩能峰值。
+- 彩能生成颜色构成。
+- 终结牌颜色消费构成。
+- 行动牌附魔使用率。
+- 蓝绿重炮流、红色机械防反流、黄紫弹幕调色流的早期路线信号。
 
-```csharp
-var result = cardPlayService.PlayCard(
-	combat,
-	cardDefinition,
-	targetEnemyInstanceId);
-```
-
-关键类与方法：
-
-- `CardPlayService.PlayCard`：`src/Application/Battle/CardPlayService.cs`
-- `CardPlayService.CanPlayCard`：`src/Application/Battle/CardPlayService.cs`
-- `PlayCardResult`：`src/Application/Battle/CardPlayService.cs`
-
-`PlayCard` 内部会先调用 `CanPlayCard`，检查：
-
-- 当前是否为玩家回合。
-- 卡牌是否在手牌中。
-- 行动牌行动点是否足够。
-- 终结牌是否满足由 `requirements` 派生出的连锁要求。
-- 单体敌人牌是否有合法目标。
-
-如果失败，`PlayCardResult` 会返回：
-
-- `FailureReason`
-- 本地化消息键 `FailureMessageKey`
-- 所需 / 当前行动点
-- 所需 / 当前连锁
-- 所需目标规则
-- `CardPlayRejected` 结构化事件
-
-如果成功，`PlayCard` 会：
-
-- 从手牌移除该卡。
-- 行动牌扣行动点。
-- 写入 `CardPlayed` 日志。
-- 逐个结算 `CardDefinition.Effects`。
-- 应用默认连锁变化。
-- 将打出的牌放入弃牌堆。
-- 返回新的 `CombatState` 和本次产生的结构化事件。
-
-## 3. 造成伤害
-
-卡牌效果由 `CardPlayService.ResolveEffect` 分发。
-
-当前 MVP 已支持：
-
-- `damage`
-- `block` / `gain_block`
-- `draw_cards`
-- `gain_action_points`
-- `temporary_discount` 占位
-- `chain_threshold_bonus`
-
-伤害效果会进入：
-
-```csharp
-ResolveDamage(combat, effect, card, targetEnemyInstanceId)
-```
-
-关键类与方法：
-
-- `CardPlayService.ResolveEffect`
-- `CardPlayService.ResolveDamage`
-
-伤害结算流程：
-
-- 根据卡牌目标规则和效果目标解析敌人列表。
-- 先扣敌人 `Block`。
-- 剩余伤害扣敌人 `CurrentHp`。
-- 敌人生命最低钳制到 0。
-- 写入 `EffectResolved` 日志，包含 `damage`、`hp_damage`、`blocked_damage`。
-
-## 4. 击败敌人和战斗胜利
-
-每次成功出牌结尾都会调用：
-
-```csharp
-AppendCombatOutcomeLogs(updatedCombat)
-```
-
-关键类与方法：
-
-- `CardPlayService.AppendCombatOutcomeLogs`
-
-该方法负责：
-
-- 扫描所有 `CurrentHp <= 0` 且未记录死亡的敌人。
-- 为这些敌人写入 `EnemyDied` 日志。
-- 如果全部敌人死亡，将 `CombatState.Status` 设置为 `CombatStatus.Victory`。
-- 写入 `CombatEnded` 日志。
-
-因此表现层不需要自行判断是否胜利，只需要读取：
-
-```csharp
-result.Combat.Status == CombatStatus.Victory
-```
-
-## 5. 战斗结果同步到 Run
-
-战斗结束后，表现层调用：
-
-```csharp
-runState = runProgressService.ApplyCombatResult(
-	runState,
-	combat,
-	encounter);
-```
-
-关键类与方法：
-
-- `RunProgressService.ApplyCombatResult`：`src/Application/Runs/RunProgressService.cs`
-
-规则：
-
-- 如果 `combat.Status == CombatStatus.Defeat`，Run 进入 `RunStatus.Failed`，玩家生命记为 0。
-- 如果 `combat.Status == CombatStatus.Victory` 且当前遭遇是 Boss，Run 进入 `RunStatus.Cleared`。
-- 普通 / 精英战胜利后，Run 仍保持 `RunStatus.InProgress`，并同步战斗后的玩家生命。
-
-每场战斗开始前可调用：
-
-```csharp
-runState = runProgressService.PrepareForCombat(runState);
-```
-
-该方法会显式把玩家生命回满。
-
-## 6. 选择卡包
-
-普通 / 精英战胜利后，表现层调用：
-
-```csharp
-var packs = rewardService.GetAvailableCardPacks(
-	encounter,
-	rewardPacksById);
-```
-
-关键类与方法：
-
-- `RewardService.GetAvailableCardPacks`：`src/Application/Rewards/RewardService.cs`
-
-该方法负责：
-
-- 读取 `EncounterDefinition.RewardProfile.CardPackIds`。
-- 返回可选奖励包列表。
-- Boss 遭遇返回空列表。
-
-MVP 普通战斗会提供：
-
-- 行动牌包
-- 技能牌包
-- 终结牌包
-
-## 7. 打开奖励包
-
-玩家选择某个卡包后，表现层调用：
-
-```csharp
-var openedPack = rewardService.OpenRewardPack(
-	packId,
-	rewardPacksById);
-```
-
-关键类与方法：
-
-- `RewardService.OpenRewardPack`
-
-该方法负责：
-
-- 校验奖励包 ID 是否存在。
-- 校验候选牌数量是否正好为 3。
-- 返回 `RewardPackDefinition`。
-
-表现层可读取：
-
-```csharp
-openedPack.CandidateIds
-```
-
-用于展示 3 张候选卡。
-
-## 8. 选择卡片加入牌组
-
-玩家可选择 0-3 张候选牌，然后调用：
-
-```csharp
-runState = rewardService.ClaimCards(
-	runState,
-	openedPack,
-	selectedCardIds);
-```
-
-关键类与方法：
-
-- `RewardService.ClaimCards`
-
-该方法负责：
-
-- 校验选择数量在 `MinPick` 到 `MaxPick` 之间。
-- 校验每张选择的牌都属于当前奖励包候选。
-- 将选择的卡牌 ID 追加到 `RunState.MasterDeck`。
-- 不去重，因此同名牌允许重复加入。
-
-精英战额外遗物通过以下方法发放：
-
-```csharp
-runState = rewardService.GrantEncounterRelic(
-	runState,
-	encounter,
-	relicsById);
-```
-
-## 9. 奖励后推进到下一场
-
-奖励结算完成后，表现层调用：
-
-```csharp
-runState = runProgressService.AdvanceAfterRewards(
-	runState,
-	encounter);
-```
-
-关键类与方法：
-
-- `RunProgressService.AdvanceAfterRewards`
-
-该方法负责：
-
-- 将 `CurrentEncounterIndex` 推进到下一场。
-- 将玩家生命回满，为下一场战斗做准备。
-- 如果当前遭遇是 Boss，则将 Run 设置为 `RunStatus.Cleared`。
+旧最高连锁和 3/5/8 阈值指标不再导出。
 
 ## 当前测试覆盖
 
-规则层 smoke test 位于：
+`tests/Unit/Program.cs` 覆盖：
 
-- `tests/Unit/Program.cs`
-
-已覆盖：
-
-- 战斗创建与开战抽牌。
-- 卡牌可打出、费用不足、连锁不足、目标缺失。
-- 行动牌、技能牌、终结牌默认连锁规则。
-- 伤害、防御、抽牌、获得行动点、临时减费占位。
-- 敌人死亡、战斗胜利、Run 失败。
-- 奖励包选择、打开 3 候选、跳过拿牌、选择多张、重复加入同名牌。
-- 精英遗物获得。
-- Boss 通关。
-- 奖励后线性推进和满血开战。
+- 主副武器选择与 6 + 4 起始牌校验。
+- 从武器选牌创建 10 张 `CardInstance` 并进入战斗。
+- 行动牌生成带色彩能，彩能上限 6，跨回合清空。
+- 终结牌消耗彩能，并触发五色 MVP 追加效果。
+- 黄色不触发抽牌、返还行动点或回能量。
+- 战后色彩碎片附魔、武器卡三选一、进入下一场战斗。
+- Boss 胜利通关结算与玩家生命归零失败结算。

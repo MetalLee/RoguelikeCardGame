@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "res://data/schemas/gameplay/card_pools.schema.json",
+  "title": "Sword Black Tower MVP Weapon Card Pools",
+  "type": "object",
+  "required": ["schema", "content_version", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "sword_black_tower.card_pools.v1" },
+    "content_version": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "pool_type", "weapon_id", "starting_entries", "reward_by_rarity", "tags"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^card_pool\\.(starting|reward)\\.[a-z0-9_]+$" },
+          "pool_type": { "type": "string", "enum": ["starting", "reward"] },
+          "weapon_id": { "type": "string", "pattern": "^weapon\\.[a-z0-9_]+$" },
+          "starting_entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["card_id", "count"],
+              "additionalProperties": false,
+              "properties": {
+                "card_id": { "type": "string", "pattern": "^card\\.[a-z0-9_]+$" },
+                "count": { "type": "integer", "minimum": 1 }
+              }
+            }
+          },
+          "reward_by_rarity": {
+            "type": "object",
+            "required": ["common", "uncommon", "rare"],
+            "additionalProperties": false,
+            "properties": {
+              "common": { "type": "array", "items": { "type": "string", "pattern": "^card\\.[a-z0-9_]+$" } },
+              "uncommon": { "type": "array", "items": { "type": "string", "pattern": "^card\\.[a-z0-9_]+$" } },
+              "rare": { "type": "array", "items": { "type": "string", "pattern": "^card\\.[a-z0-9_]+$" } }
+            }
+          },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

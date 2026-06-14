@@ -1,0 +1,22 @@
+{
+  "schema": "sword_black_tower.weapons.v1",
+  "content_version": "mvp.1.0-draft",
+  "items": [
+    {
+      "id": "weapon.revolver_sword",
+      "starting_pool_id": "card_pool.starting.revolver_sword",
+      "reward_pool_id": "card_pool.reward.revolver_sword",
+      "main_hand_allowed": true,
+      "off_hand_allowed": true,
+      "tags": ["mvp", "starter", "blade", "firearm"]
+    },
+    {
+      "id": "weapon.mechanical_arm",
+      "starting_pool_id": "card_pool.starting.mechanical_arm",
+      "reward_pool_id": "card_pool.reward.mechanical_arm",
+      "main_hand_allowed": true,
+      "off_hand_allowed": true,
+      "tags": ["mvp", "starter", "shield", "control"]
+    }
+  ]
+}

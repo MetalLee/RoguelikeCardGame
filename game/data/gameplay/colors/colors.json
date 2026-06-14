@@ -1,0 +1,41 @@
+{
+  "schema": "sword_black_tower.colors.v1",
+  "content_version": "mvp.1.0-draft",
+  "items": [
+    {
+      "id": "color.red",
+      "role": "offense_conversion",
+      "base_effect_template": { "op": "add_damage", "basis": "final_effect_value", "ratio_percent": 50 },
+      "stack_rule": { "mode": "capped_additive", "max_per_card": 6 },
+      "tags": ["mvp", "color"]
+    },
+    {
+      "id": "color.yellow",
+      "role": "tempo_conversion",
+      "base_effect_template": { "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+      "stack_rule": { "mode": "capped_additive", "max_per_card": 1 },
+      "tags": ["mvp", "color", "high_risk"]
+    },
+    {
+      "id": "color.blue",
+      "role": "protection_conversion",
+      "base_effect_template": { "op": "gain_block_from_final_value", "ratio_percent": 50 },
+      "stack_rule": { "mode": "capped_additive", "max_per_card": 6 },
+      "tags": ["mvp", "color"]
+    },
+    {
+      "id": "color.green",
+      "role": "life_conversion",
+      "base_effect_template": { "op": "heal_from_final_value", "ratio_percent": 30, "capped_by_max_hp": true },
+      "stack_rule": { "mode": "capped_additive", "max_per_card": 6 },
+      "tags": ["mvp", "color"]
+    },
+    {
+      "id": "color.purple",
+      "role": "amplification_conversion",
+      "base_effect_template": { "op": "multiply_final_value", "multiplier_percent": 200, "max_copy_depth": 0 },
+      "stack_rule": { "mode": "multiplier", "max_per_card": 1 },
+      "tags": ["mvp", "color", "high_risk"]
+    }
+  ]
+}

@@ -18,7 +18,7 @@ public sealed partial class BattleEnemyView : Control
         ["enemy.splitling"] = new(new Vector2(1254, 1254), 1173f, 0.25f),
         ["enemy.elite_guardian"] = new(new Vector2(1132, 1390), 1292f, 0.45f),
         ["enemy.relic_tester"] = new(new Vector2(1254, 1254), 1182f, 0.41f),
-        ["enemy.chain_warden"] = new(new Vector2(1402, 1122), 1095f, 0.50f)
+        ["enemy.black_tower_warden"] = new(new Vector2(1402, 1122), 1095f, 0.50f)
     };
 
     private readonly Dictionary<string, Control> enemyNodes = new(StringComparer.Ordinal);

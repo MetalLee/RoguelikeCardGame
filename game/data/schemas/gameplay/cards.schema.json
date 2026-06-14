@@ -1,24 +1,24 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "res://data/schemas/gameplay/cards.schema.json",
-  "title": "RoguelikeCardGame Gameplay Cards",
+  "title": "Sword Black Tower MVP Cards",
   "type": "object",
   "required": ["schema", "content_version", "items"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "const": "roguelike_card_game.cards.v1" },
+    "schema": { "const": "sword_black_tower.cards.v1" },
     "content_version": { "type": "string" },
     "items": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "card_type", "rarity", "costs", "requirements", "targeting", "effects", "after_play", "tags", "balance"],
+        "required": ["id", "weapon_id", "card_type", "rarity", "costs", "requirements", "targeting", "energy", "effects", "color_interactions", "after_play", "tags", "balance"],
         "additionalProperties": false,
         "properties": {
           "id": { "type": "string", "pattern": "^card\\.[a-z0-9_]+$" },
-          "card_type": { "type": "string", "enum": ["action", "skill", "finisher"] },
+          "weapon_id": { "type": "string", "pattern": "^weapon\\.[a-z0-9_]+$" },
+          "card_type": { "type": "string", "enum": ["action", "finisher"] },
           "rarity": { "type": "string", "enum": ["starter", "common", "uncommon", "rare"] },
-          "vfx_asset": { "type": "string", "pattern": "^asset\\.vfx\\.[a-z0-9_]+$" },
           "costs": { "type": "array", "items": { "$ref": "#/$defs/resource_amount" } },
           "requirements": { "type": "array", "items": { "type": "object" } },
           "targeting": {
@@ -26,12 +26,50 @@
             "required": ["mode", "side", "required"],
             "additionalProperties": false,
             "properties": {
-              "mode": { "type": "string", "enum": ["single", "all", "self", "none"] },
+              "mode": { "type": "string", "enum": ["single", "all", "self", "none", "random"] },
               "side": { "type": "string", "enum": ["enemy", "player", "none"] },
               "required": { "type": "boolean" }
             }
           },
+          "energy": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "generate": { "$ref": "#/$defs/energy_generate" },
+              "consume": { "$ref": "#/$defs/energy_consume" }
+            }
+          },
           "effects": { "type": "array", "items": { "type": "object" } },
+          "color_interactions": {
+            "type": "object",
+            "required": ["enchantment", "finisher_color_effects"],
+            "additionalProperties": false,
+            "properties": {
+              "enchantment": {
+                "type": "object",
+                "required": ["can_be_enchanted", "generated_energy_color"],
+                "additionalProperties": false,
+                "properties": {
+                  "can_be_enchanted": { "type": "boolean" },
+                  "generated_energy_color": { "type": "string", "enum": ["none", "inherits_enchantment"] },
+                  "self_effects": { "type": "array", "items": { "type": "object" } }
+                }
+              },
+              "finisher_color_effects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["color_id", "effects", "stack_limit"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "color_id": { "type": "string", "pattern": "^color\\.(red|yellow|blue|green|purple)$" },
+                    "effects": { "type": "array", "items": { "type": "object" } },
+                    "stack_limit": { "type": "integer", "minimum": 1 }
+                  }
+                }
+              }
+            }
+          },
           "after_play": { "type": "array", "items": { "type": "object" } },
           "tags": { "type": "array", "items": { "type": "string" } },
           "balance": {
@@ -53,8 +91,29 @@
       "required": ["resource", "amount"],
       "additionalProperties": false,
       "properties": {
-        "resource": { "type": "string", "enum": ["action_point", "chain"] },
+        "resource": { "type": "string", "enum": ["action_point"] },
         "amount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "energy_generate": {
+      "type": "object",
+      "required": ["amount", "color_source"],
+      "additionalProperties": false,
+      "properties": {
+        "amount": { "type": "integer", "minimum": 0 },
+        "color_source": { "type": "string", "enum": ["none", "enchantment", "fixed_color"] },
+        "fixed_color_id": { "type": "string", "pattern": "^color\\.(red|yellow|blue|green|purple)$" }
+      }
+    },
+    "energy_consume": {
+      "type": "object",
+      "required": ["mode", "min_amount"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "type": "string", "enum": ["fixed", "x", "all"] },
+        "amount": { "type": "integer", "minimum": 0 },
+        "min_amount": { "type": "integer", "minimum": 0 },
+        "color_filter": { "type": "string", "enum": ["any", "colored_only"] }
       }
     }
   }

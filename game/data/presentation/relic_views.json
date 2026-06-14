@@ -3,10 +3,10 @@
   "content_version": "mvp.0.2",
   "items": [
     {
-      "id": "relic.mvp_chain_spark",
-      "name_key": "relic.mvp_chain_spark.name",
-      "rules_key": "relic.mvp_chain_spark.rules",
-      "icon_asset": "asset.relic.mvp_chain_spark.icon"
+      "id": "relic.mvp_color_spark",
+      "name_key": "relic.mvp_color_spark.name",
+      "rules_key": "relic.mvp_color_spark.rules",
+      "icon_asset": "asset.relic.mvp_color_spark.icon"
     }
   ]
 }

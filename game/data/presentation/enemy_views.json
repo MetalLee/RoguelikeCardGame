@@ -45,12 +45,12 @@
       }
     },
     {
-      "id": "enemy.chain_warden",
-      "name_key": "enemy.chain_warden.name",
-      "stand_asset": "asset.enemy.chain_warden.stand",
+      "id": "enemy.black_tower_warden",
+      "name_key": "enemy.black_tower_warden.name",
+      "stand_asset": "asset.enemy.black_tower_warden.stand",
       "intent_text_keys": {
-        "intent.attack": "enemy.chain_warden.intent.attack",
-        "intent.pressure": "enemy.chain_warden.intent.pressure"
+        "intent.attack": "enemy.black_tower_warden.intent.attack",
+        "intent.pressure": "enemy.black_tower_warden.intent.pressure"
       }
     }
   ]

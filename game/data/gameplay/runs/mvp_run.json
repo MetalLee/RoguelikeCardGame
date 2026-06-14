@@ -7,14 +7,7 @@
     "base_action_points": 3,
     "cards_per_turn": 5
   },
-  "starter_deck": [
-    { "card_id": "card.basic_strike", "count": 4 },
-    { "card_id": "card.quick_jab", "count": 1 },
-    { "card_id": "card.heavy_strike", "count": 1 },
-    { "card_id": "card.basic_guard", "count": 2 },
-    { "card_id": "card.tactical_read", "count": 1 },
-    { "card_id": "card.burst_finish", "count": 1 }
-  ],
+  "starter_deck": [],
   "nodes": [
     { "order": 1, "encounter_id": "encounter.mvp.normal_01" },
     { "order": 2, "encounter_id": "encounter.mvp.normal_02" },

@@ -50,6 +50,7 @@ public sealed class BattleLogAnimator
         {
             case CombatLogEventType.CardPlayed:
                 await PlayCardPlayedAsync(item, targets, playedHandIndex);
+                await PlayColorEnergySpentAsync(item, targets);
                 break;
             case CombatLogEventType.EffectResolved:
                 await PlayEffectResolvedAsync(item, targets, playedCard);
@@ -108,9 +109,21 @@ public sealed class BattleLogAnimator
             return;
         }
 
-        if (effectType == "default_chain_change" && item.NumericChanges.TryGetValue("chain_before", out var before) && item.NumericChanges.TryGetValue("chain_after", out var after))
+        if (effectType == "gain_color_energy")
         {
-            await PlayChainChangeAsync(before, after, targets);
+            await PlayColorEnergyGainAsync(item, targets);
+            return;
+        }
+
+        if (effectType == "yellow_extra_casts")
+        {
+            await PlayYellowExtraCastAsync(targets);
+            return;
+        }
+
+        if (item.NumericChanges.TryGetValue("purple_multiplier", out var purpleMultiplier) && purpleMultiplier > 1)
+        {
+            await PlayPurpleAmplifyAsync(targets);
             return;
         }
 
@@ -179,30 +192,54 @@ public sealed class BattleLogAnimator
             screen.PulseNodeAsync(targets.BlockPanel, 1.2f, 0.10f));
     }
 
-    private async Task PlayChainChangeAsync(int before, int after, BattleAnimationTargets targets)
+    private async Task PlayColorEnergyGainAsync(CombatLogEvent item, BattleAnimationTargets targets)
     {
-        if (after > before)
+        if (!item.NumericChanges.TryGetValue("color_energy_generated", out var generated) || generated <= 0)
         {
-            var animations = new List<Task>
-            {
-                screen.SpawnVfxAsync(targets.FxLayer, "asset.vfx.chain_gain_spark", new Vector2(960, 118), new Vector2(220, 130), new Color(1f, 1f, 1f, 0.95f), 0.20f),
-                screen.PulseNodeAsync(targets.ChainPanel, 1.18f, 0.11f)
-            };
-            foreach (var threshold in new[] { 3, 5, 8 })
-            {
-                if (before < threshold && after >= threshold)
-                {
-                    animations.Add(screen.SpawnVfxAsync(targets.FxLayer, $"asset.vfx.chain_threshold_{threshold}_burst", new Vector2(960, 118), new Vector2(300, 180), new Color(1f, 1f, 1f, 0.98f), 0.24f));
-                }
-            }
-            await Task.WhenAll(animations);
             return;
         }
 
-        if (after < before)
+        await Task.WhenAll(
+            screen.SpawnVfxAsync(targets.FxLayer, "asset.vfx.color_energy_spark", new Vector2(960, 118), new Vector2(220, 130), ColorEnergyTint(item), 0.20f),
+            screen.PulseNodeAsync(targets.ColorEnergyPanel, 1.16f, 0.11f));
+    }
+
+    private async Task PlayColorEnergySpentAsync(CombatLogEvent item, BattleAnimationTargets targets)
+    {
+        if (!item.NumericChanges.TryGetValue("color_energy_spent", out var spent) || spent <= 0)
         {
-            await screen.PulseNodeAsync(targets.ChainPanel, 0.9f, 0.12f);
+            return;
         }
+
+        await Task.WhenAll(
+            screen.SpawnVfxAsync(targets.FxLayer, "asset.vfx.finisher_release_shockwave", new Vector2(960, 118), new Vector2(270, 160), new Color(1f, 0.94f, 0.62f, 0.92f), 0.20f),
+            screen.PulseNodeAsync(targets.ColorEnergyPanel, 0.90f, 0.12f));
+    }
+
+    private async Task PlayYellowExtraCastAsync(BattleAnimationTargets targets)
+    {
+        await Task.WhenAll(
+            screen.SpawnVfxAsync(targets.FxLayer, "asset.vfx.color_energy_spark", new Vector2(960, 118), new Vector2(260, 150), new Color(1f, 0.82f, 0.20f, 0.95f), 0.20f),
+            screen.PulseNodeAsync(targets.HandNode, 1.05f, 0.10f));
+    }
+
+    private async Task PlayPurpleAmplifyAsync(BattleAnimationTargets targets)
+    {
+        await screen.SpawnVfxAsync(targets.FxLayer, "asset.vfx.finisher_release_shockwave", new Vector2(960, 118), new Vector2(300, 180), new Color(0.72f, 0.38f, 1f, 0.92f), 0.22f);
+    }
+
+    private static Color ColorEnergyTint(CombatLogEvent item)
+    {
+        var color = item.Metadata.TryGetValue("color", out var value) ? value : "";
+        return color switch
+        {
+            "Red" => new Color(1f, 0.28f, 0.18f, 0.95f),
+            "Yellow" => new Color(1f, 0.82f, 0.20f, 0.95f),
+            "Blue" => new Color(0.30f, 0.58f, 1f, 0.95f),
+            "Green" => new Color(0.36f, 0.88f, 0.36f, 0.95f),
+            "Purple" => new Color(0.72f, 0.38f, 1f, 0.95f),
+            _ => new Color(1f, 1f, 1f, 0.90f)
+        };
     }
 
     private async Task PlayEnemyIntentAsync(CombatLogEvent item, BattleAnimationTargets targets)
@@ -263,7 +300,7 @@ public sealed class BattleLogAnimator
             "asset.vfx.finisher_release_shockwave" => new Vector2(360, 220),
             "asset.vfx.heavy_strike_impact_frame" => new Vector2(280, 180),
             "asset.vfx.defense_shield_flash" => new Vector2(260, 180),
-            "asset.vfx.chain_gain_spark" => new Vector2(240, 150),
+            "asset.vfx.color_energy_spark" => new Vector2(240, 150),
             _ => new Vector2(250, 150)
         };
     }
@@ -271,7 +308,7 @@ public sealed class BattleLogAnimator
 
 public sealed record BattleAnimationTargets(
     Control? PlayerNode,
-    Control? ChainPanel,
+    Control? ColorEnergyPanel,
     Control? BlockPanel,
     Control? ActionPointPanel,
     Control? HandNode,

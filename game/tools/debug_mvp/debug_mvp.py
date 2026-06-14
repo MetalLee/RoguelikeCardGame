@@ -27,6 +27,20 @@ def expand_starter_deck(entries: list[dict[str, Any]]) -> list[str]:
     return cards
 
 
+def default_weapon_starter_deck(card_pools_by_id: dict[str, dict[str, Any]]) -> list[str]:
+    """Compatibility helper for debug sessions before the weapon picker is simulated."""
+    revolver_pool = card_pools_by_id["card_pool.starting.revolver_sword"]
+    arm_pool = card_pools_by_id["card_pool.starting.mechanical_arm"]
+    return expand_starter_deck(revolver_pool["starting_entries"])[:6] + expand_starter_deck(arm_pool["starting_entries"])[:4]
+
+
+def flatten_reward_pool(pool: dict[str, Any]) -> list[str]:
+    cards: list[str] = []
+    for rarity in ("common", "uncommon", "rare"):
+        cards.extend(pool.get("reward_by_rarity", {}).get(rarity, []))
+    return cards
+
+
 def parse_card_list(value: str | None) -> list[str] | None:
     if value is None:
         return None
@@ -46,7 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, help="Run seed. Defaults to a generated seed.")
     parser.add_argument("--starter-deck", help="Comma-separated card ids replacing the MVP starter deck.")
     parser.add_argument("--add-card", action="append", default=[], help="Card id to append to the starter deck.")
-    parser.add_argument("--reward-pack-id", action="append", default=[], help="Reward pack id to preview.")
+    parser.add_argument("--reward-pack-id", action="append", default=[], help="Deprecated compatibility option; card packs are no longer previewed.")
     parser.add_argument("--output-dir", type=Path, help="Output directory. Defaults to game/logs.")
     return parser
 
@@ -59,8 +73,8 @@ def main() -> int:
 
     gameplay_root = data_root / "gameplay"
     cards_by_id = index_items(load_json(gameplay_root / "cards" / "cards.json"))
+    card_pools_by_id = index_items(load_json(gameplay_root / "card_pools" / "card_pools.json"))
     encounters_by_id = index_items(load_json(gameplay_root / "encounters" / "encounters.json"))
-    rewards_by_id = index_items(load_json(gameplay_root / "rewards" / "reward_packs.json"))
     run_sequence = load_json(gameplay_root / "runs" / "mvp_run.json")
 
     node_order = [
@@ -71,7 +85,11 @@ def main() -> int:
     if encounter_id not in encounters_by_id:
         raise SystemExit(f"Unknown encounter id: {encounter_id}")
 
-    starter_deck = parse_card_list(args.starter_deck) or expand_starter_deck(run_sequence["starter_deck"])
+    starter_deck = parse_card_list(args.starter_deck)
+    if starter_deck is None:
+        starter_deck = expand_starter_deck(run_sequence.get("starter_deck", []))
+    if not starter_deck:
+        starter_deck = default_weapon_starter_deck(card_pools_by_id)
     starter_deck.extend(args.add_card)
     unknown_cards = [card_id for card_id in starter_deck if card_id not in cards_by_id]
     if unknown_cards:
@@ -79,18 +97,21 @@ def main() -> int:
 
     seed = args.seed if args.seed is not None else random.randint(0, 2_147_483_647)
     encounter = encounters_by_id[encounter_id]
-    reward_pack_ids = args.reward_pack_id or encounter["reward_profile"].get("card_pack_ids", [])
-    unknown_packs = [pack_id for pack_id in reward_pack_ids if pack_id not in rewards_by_id]
-    if unknown_packs:
-        raise SystemExit(f"Unknown reward pack id(s): {', '.join(unknown_packs)}")
+    if args.reward_pack_id or encounter["reward_profile"].get("card_pack_ids"):
+        print("Warning: card pack rewards are deprecated; previewing color shard plus weapon card rewards instead.")
 
     reward_previews = [
         {
-            "reward_pack_id": pack_id,
-            "pack_type": rewards_by_id[pack_id]["pack_type"],
-            "candidate_ids": rewards_by_id[pack_id]["candidate_ids"],
-        }
-        for pack_id in reward_pack_ids
+            "reward_type": "color_shard",
+            "candidate_colors": ["red", "yellow", "blue", "green", "purple"],
+        },
+        {
+            "reward_type": "weapon_card_three_choice",
+            "weapon_ids": ["weapon.revolver_sword", "weapon.mechanical_arm"],
+            "candidate_pool_ids": ["card_pool.reward.revolver_sword", "card_pool.reward.mechanical_arm"],
+            "candidate_ids": flatten_reward_pool(card_pools_by_id["card_pool.reward.revolver_sword"])
+            + flatten_reward_pool(card_pools_by_id["card_pool.reward.mechanical_arm"]),
+        },
     ]
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -105,7 +126,8 @@ def main() -> int:
         "node_order": node_order,
         "starter_deck": starter_deck,
         "added_cards": args.add_card,
-        "reward_pack_previews": reward_previews,
+        "reward_pack_previews": [],
+        "reward_previews": reward_previews,
     }
     combat_log = {
         "combat_id": f"debug_{encounter_id}_seed_{seed}",

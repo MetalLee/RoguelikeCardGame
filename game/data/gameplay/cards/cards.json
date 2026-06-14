@@ -1,258 +1,569 @@
 {
-  "schema": "roguelike_card_game.cards.v1",
-  "content_version": "mvp.0.2",
+  "schema": "sword_black_tower.cards.v1",
+  "content_version": "mvp.1.0-draft",
   "items": [
     {
-      "id": "card.basic_strike",
+      "id": "card.revolver_slash",
+      "weapon_id": "weapon.revolver_sword",
       "card_type": "action",
-      "rarity": "starter",
-      "vfx_asset": "asset.vfx.slash_speed_lines",
+      "rarity": "common",
       "costs": [{ "resource": "action_point", "amount": 1 }],
       "requirements": [],
       "targeting": { "mode": "single", "side": "enemy", "required": true },
-      "effects": [
-        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 6 },
-        { "op": "gain_resource", "resource": "chain", "amount": 1 }
-      ],
+      "energy": { "generate": { "amount": 1, "color_source": "enchantment" } },
+      "effects": [{ "op": "damage", "target": { "ref": "selected_target" }, "amount": 6 }],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "add_damage", "amount": 3 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "gain_block_from_final_damage", "ratio_percent": 50 },
+            { "color_id": "color.green", "op": "heal_from_final_damage", "ratio_percent": 30, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "multiply_final_damage", "multiplier_percent": 200, "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["starter", "attack", "chain_builder"],
-      "balance": { "role": "basic_attack", "tier": 0 }
+      "tags": ["mvp", "starting_pool", "attack", "color_energy_generator"],
+      "balance": { "role": "basic_single_target_generator", "tier": 0 }
     },
     {
-      "id": "card.quick_jab",
+      "id": "card.revolver_double_slash",
+      "weapon_id": "weapon.revolver_sword",
       "card_type": "action",
-      "rarity": "starter",
-      "vfx_asset": "asset.vfx.slash_speed_lines",
+      "rarity": "uncommon",
+      "costs": [{ "resource": "action_point", "amount": 1 }],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "energy": { "generate": { "amount": 2, "color_source": "enchantment" } },
+      "effects": [{ "op": "multi_hit_damage", "target": { "ref": "selected_target" }, "amount": 4, "hits": 2 }],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "add_damage_per_hit", "amount": 2 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "gain_block_from_final_damage", "ratio_percent": 40 },
+            { "color_id": "color.green", "op": "heal_from_final_damage", "ratio_percent": 25, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "double_hit_count", "extra_hits": 2, "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "starting_pool", "attack", "multi_hit", "color_energy_generator"],
+      "balance": { "role": "multi_hit_generator", "tier": 1 }
+    },
+    {
+      "id": "card.revolver_quick_thrust",
+      "weapon_id": "weapon.revolver_sword",
+      "card_type": "action",
+      "rarity": "common",
+      "costs": [{ "resource": "action_point", "amount": 0 }],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "energy": { "generate": { "amount": 1, "color_source": "enchantment" } },
+      "effects": [{ "op": "damage", "target": { "ref": "selected_target" }, "amount": 3 }],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "add_damage", "amount": 2 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "gain_block_from_final_damage", "ratio_percent": 50 },
+            { "color_id": "color.green", "op": "heal_from_final_damage", "ratio_percent": 30, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "multiply_final_damage", "multiplier_percent": 200, "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "starting_pool", "attack", "zero_cost", "color_energy_generator"],
+      "balance": { "role": "zero_cost_starter", "tier": 0 }
+    },
+    {
+      "id": "card.revolver_heavy_cannon",
+      "weapon_id": "weapon.revolver_sword",
+      "card_type": "finisher",
+      "rarity": "rare",
       "costs": [],
       "requirements": [],
       "targeting": { "mode": "single", "side": "enemy", "required": true },
-      "effects": [
-        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 3 },
-        { "op": "gain_resource", "resource": "chain", "amount": 1 }
-      ],
+      "energy": { "consume": { "mode": "fixed", "amount": 3, "min_amount": 3, "color_filter": "any" } },
+      "effects": [{ "op": "damage", "target": { "ref": "selected_target" }, "amount": 22 }],
+      "color_interactions": {
+        "enchantment": { "can_be_enchanted": false, "generated_energy_color": "none", "self_effects": [] },
+        "finisher_color_effects": [
+          { "color_id": "color.red", "effects": [{ "op": "add_damage", "amount_per_energy": 4 }], "stack_limit": 6 },
+          { "color_id": "color.yellow", "effects": [{ "op": "extra_casts", "amount": 1, "max_extra_casts": 1 }], "stack_limit": 1 },
+          { "color_id": "color.blue", "effects": [{ "op": "gain_block_from_final_damage", "ratio_percent": 50 }], "stack_limit": 6 },
+          { "color_id": "color.green", "effects": [{ "op": "heal_from_final_damage", "ratio_percent": 30, "capped_by_max_hp": true }], "stack_limit": 6 },
+          { "color_id": "color.purple", "effects": [{ "op": "multiply_final_damage", "multiplier_percent": 200, "stack_limit": 1 }], "stack_limit": 1 }
+        ]
+      },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["starter", "attack", "low_cost", "chain_builder"],
-      "balance": { "role": "low_cost_starter", "tier": 0 }
+      "tags": ["mvp", "starting_pool", "finisher", "single_target"],
+      "balance": { "role": "single_target_burst", "tier": 2 }
     },
     {
-      "id": "card.heavy_strike",
-      "card_type": "action",
-      "rarity": "starter",
-      "vfx_asset": "asset.vfx.heavy_strike_impact_frame",
-      "costs": [{ "resource": "action_point", "amount": 2 }],
+      "id": "card.revolver_bullet_storm",
+      "weapon_id": "weapon.revolver_sword",
+      "card_type": "finisher",
+      "rarity": "rare",
+      "costs": [],
       "requirements": [],
-      "targeting": { "mode": "single", "side": "enemy", "required": true },
-      "effects": [
-        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 13 },
-        { "op": "gain_resource", "resource": "chain", "amount": 1 }
-      ],
+      "targeting": { "mode": "random", "side": "enemy", "required": false },
+      "energy": { "consume": { "mode": "x", "amount": 0, "min_amount": 2, "color_filter": "any" } },
+      "effects": [{ "op": "random_damage_per_energy", "target": { "ref": "random_enemy" }, "amount": 5 }],
+      "color_interactions": {
+        "enchantment": { "can_be_enchanted": false, "generated_energy_color": "none", "self_effects": [] },
+        "finisher_color_effects": [
+          { "color_id": "color.red", "effects": [{ "op": "add_damage_per_hit", "amount_per_energy": 1 }], "stack_limit": 6 },
+          { "color_id": "color.yellow", "effects": [{ "op": "extra_casts", "amount": 1, "max_extra_casts": 1 }], "stack_limit": 1 },
+          { "color_id": "color.blue", "effects": [{ "op": "gain_block_from_final_damage", "ratio_percent": 35 }], "stack_limit": 6 },
+          { "color_id": "color.green", "effects": [{ "op": "heal_from_final_damage", "ratio_percent": 20, "capped_by_max_hp": true }], "stack_limit": 6 },
+          { "color_id": "color.purple", "effects": [{ "op": "add_random_hits", "amount": 2, "stack_limit": 1 }], "stack_limit": 1 }
+        ]
+      },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["starter", "attack", "high_cost", "chain_builder"],
-      "balance": { "role": "heavy_starter_attack", "tier": 0 }
+      "tags": ["mvp", "starting_pool", "finisher", "random", "multi_hit"],
+      "balance": { "role": "x_cost_barrage", "tier": 2 }
     },
     {
-      "id": "card.chain_cut",
+      "id": "card.revolver_reload_slash",
+      "weapon_id": "weapon.revolver_sword",
       "card_type": "action",
       "rarity": "common",
-      "vfx_asset": "asset.vfx.slash_speed_lines",
       "costs": [{ "resource": "action_point", "amount": 1 }],
       "requirements": [],
       "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "energy": { "generate": { "amount": 1, "color_source": "enchantment" } },
       "effects": [
         { "op": "damage", "target": { "ref": "selected_target" }, "amount": 7 },
-        { "op": "gain_resource", "resource": "chain", "amount": 1 }
+        { "op": "next_finisher_damage_bonus", "amount": 4, "duration": "this_turn" }
       ],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "add_damage", "amount": 3 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "gain_block_from_final_damage", "ratio_percent": 50 },
+            { "color_id": "color.green", "op": "heal_from_final_damage", "ratio_percent": 30, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "double_next_finisher_bonus", "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["reward", "attack", "chain_builder"],
-      "balance": { "role": "common_attack", "tier": 1 }
+      "tags": ["mvp", "starting_pool", "attack", "setup", "color_energy_generator"],
+      "balance": { "role": "finisher_setup", "tier": 1 }
     },
     {
-      "id": "card.flow_step",
-      "card_type": "action",
-      "rarity": "common",
-      "vfx_asset": "asset.vfx.slash_speed_lines",
-      "costs": [],
-      "requirements": [],
-      "targeting": { "mode": "single", "side": "enemy", "required": true },
-      "effects": [
-        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 4 },
-        { "op": "gain_resource", "resource": "chain", "amount": 1 }
-      ],
-      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["reward", "attack", "low_cost", "chain_builder"],
-      "balance": { "role": "low_cost_chain", "tier": 1 }
-    },
-    {
-      "id": "card.guard_break",
+      "id": "card.revolver_gunblade_calibration",
+      "weapon_id": "weapon.revolver_sword",
       "card_type": "action",
       "rarity": "uncommon",
-      "vfx_asset": "asset.vfx.heavy_strike_impact_frame",
+      "costs": [{ "resource": "action_point", "amount": 1 }],
+      "requirements": [],
+      "targeting": { "mode": "self", "side": "player", "required": false },
+      "energy": { "generate": { "amount": 1, "color_source": "enchantment" } },
+      "effects": [
+        { "op": "draw_cards", "target": { "ref": "self" }, "amount": 1 },
+        { "op": "reduce_next_finisher_energy_cost", "amount": 1, "minimum": 1, "duration": "this_turn" }
+      ],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "add_damage_to_next_finisher", "amount": 3 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "gain_block_from_final_effect", "ratio_percent": 50 },
+            { "color_id": "color.green", "op": "heal_from_final_effect", "ratio_percent": 25, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "double_cost_reduction", "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "draw", "setup", "color_energy_generator"],
+      "balance": { "role": "finisher_finder", "tier": 1 }
+    },
+    {
+      "id": "card.revolver_whirling_sword_dance",
+      "weapon_id": "weapon.revolver_sword",
+      "card_type": "action",
+      "rarity": "rare",
       "costs": [{ "resource": "action_point", "amount": 2 }],
       "requirements": [],
+      "targeting": { "mode": "all", "side": "enemy", "required": false },
+      "energy": { "generate": { "amount": 3, "color_source": "enchantment" } },
+      "effects": [{ "op": "multi_hit_damage", "target": { "ref": "all_enemies" }, "amount": 3, "hits": 2 }],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "add_damage_per_hit", "amount": 1 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "gain_block_from_final_damage", "ratio_percent": 35 },
+            { "color_id": "color.green", "op": "heal_from_final_damage", "ratio_percent": 20, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "double_hit_count", "extra_hits": 2, "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "attack", "aoe", "multi_hit", "color_energy_generator"],
+      "balance": { "role": "aoe_generator", "tier": 2 }
+    },
+    {
+      "id": "card.revolver_piercing_bullet_line",
+      "weapon_id": "weapon.revolver_sword",
+      "card_type": "action",
+      "rarity": "uncommon",
+      "costs": [{ "resource": "action_point", "amount": 1 }],
+      "requirements": [],
       "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "energy": { "generate": { "amount": 1, "color_source": "enchantment" } },
       "effects": [
-        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 15 },
-        { "op": "gain_resource", "resource": "chain", "amount": 1 }
+        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 7 },
+        { "op": "bonus_damage_if_target_has_negative_status", "target": { "ref": "selected_target" }, "amount": 5 }
       ],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "add_damage", "amount": 3 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "gain_block_from_final_damage", "ratio_percent": 50 },
+            { "color_id": "color.green", "op": "heal_from_final_damage", "ratio_percent": 30, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "double_negative_status_bonus", "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["reward", "attack", "high_cost", "chain_builder"],
-      "balance": { "role": "high_cost_attack", "tier": 2 }
+      "tags": ["mvp", "attack", "status_payoff", "color_energy_generator"],
+      "balance": { "role": "control_payoff", "tier": 1 }
     },
     {
-      "id": "card.basic_guard",
-      "card_type": "skill",
-      "rarity": "starter",
-      "vfx_asset": "asset.vfx.defense_shield_flash",
+      "id": "card.revolver_rift_quickdraw",
+      "weapon_id": "weapon.revolver_sword",
+      "card_type": "finisher",
+      "rarity": "rare",
       "costs": [],
       "requirements": [],
-      "targeting": { "mode": "self", "side": "player", "required": false },
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "energy": { "consume": { "mode": "fixed", "amount": 4, "min_amount": 4, "color_filter": "any" } },
       "effects": [
-        { "op": "gain_block", "target": { "ref": "self" }, "amount": 6 },
-        { "op": "gain_resource", "resource": "action_point", "amount": 1 }
+        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 28 },
+        { "op": "on_kill_draw_action_and_gain_action_point", "draw_action_cards": 1, "action_points": 1 }
       ],
+      "color_interactions": {
+        "enchantment": { "can_be_enchanted": false, "generated_energy_color": "none", "self_effects": [] },
+        "finisher_color_effects": [
+          { "color_id": "color.red", "effects": [{ "op": "add_damage", "amount_per_energy": 4 }], "stack_limit": 6 },
+          { "color_id": "color.yellow", "effects": [{ "op": "extra_casts", "amount": 1, "max_extra_casts": 1 }], "stack_limit": 1 },
+          { "color_id": "color.blue", "effects": [{ "op": "gain_block_from_final_damage", "ratio_percent": 50 }], "stack_limit": 6 },
+          { "color_id": "color.green", "effects": [{ "op": "heal_from_final_damage", "ratio_percent": 30, "capped_by_max_hp": true }], "stack_limit": 6 },
+          { "color_id": "color.purple", "effects": [{ "op": "multiply_final_damage", "multiplier_percent": 200, "stack_limit": 1 }], "stack_limit": 1 }
+        ]
+      },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["starter", "defense", "resource"],
-      "balance": { "role": "basic_defense", "tier": 0 }
+      "tags": ["mvp", "finisher", "single_target", "execute"],
+      "balance": { "role": "kill_reward_burst", "tier": 2 }
     },
     {
-      "id": "card.tactical_read",
-      "card_type": "skill",
-      "rarity": "starter",
-      "vfx_asset": "asset.vfx.chain_gain_spark",
-      "costs": [],
-      "requirements": [],
-      "targeting": { "mode": "self", "side": "player", "required": false },
-      "effects": [
-        { "op": "draw_cards", "target": { "ref": "self" }, "amount": 2 }
-      ],
-      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["starter", "draw"],
-      "balance": { "role": "starter_draw", "tier": 0 }
-    },
-    {
-      "id": "card.second_wind",
-      "card_type": "skill",
+      "id": "card.arm_guard",
+      "weapon_id": "weapon.mechanical_arm",
+      "card_type": "action",
       "rarity": "common",
-      "vfx_asset": "asset.vfx.defense_shield_flash",
-      "costs": [],
+      "costs": [{ "resource": "action_point", "amount": 1 }],
       "requirements": [],
       "targeting": { "mode": "self", "side": "player", "required": false },
+      "energy": { "generate": { "amount": 1, "color_source": "enchantment" } },
+      "effects": [{ "op": "gain_block", "target": { "ref": "self" }, "amount": 7 }],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "damage_from_block_gained", "ratio_percent": 50 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "increase_block_gained", "ratio_percent": 50 },
+            { "color_id": "color.green", "op": "heal_from_block_gained", "ratio_percent": 30, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "double_block_gained", "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "starting_pool", "defense", "color_energy_generator"],
+      "balance": { "role": "basic_defense_generator", "tier": 0 }
+    },
+    {
+      "id": "card.arm_bind",
+      "weapon_id": "weapon.mechanical_arm",
+      "card_type": "action",
+      "rarity": "common",
+      "costs": [{ "resource": "action_point", "amount": 1 }],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "energy": { "generate": { "amount": 1, "color_source": "enchantment" } },
+      "effects": [{ "op": "apply_status", "status": "bind", "target": { "ref": "selected_target" }, "duration_turns": 1 }],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "damage_on_control", "amount": 4 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "gain_block_from_control", "amount": 4 },
+            { "color_id": "color.green", "op": "heal_from_control", "amount": 2, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "extend_status_duration", "extra_turns": 1, "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "starting_pool", "control", "color_energy_generator"],
+      "balance": { "role": "single_target_control", "tier": 0 }
+    },
+    {
+      "id": "card.arm_crush",
+      "weapon_id": "weapon.mechanical_arm",
+      "card_type": "action",
+      "rarity": "uncommon",
+      "costs": [{ "resource": "action_point", "amount": 1 }],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "energy": { "generate": { "amount": 1, "color_source": "enchantment" } },
+      "effects": [{ "op": "apply_status", "status": "vulnerable", "target": { "ref": "selected_target" }, "duration_turns": 1, "damage_taken_bonus_percent": 25 }],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "damage_on_control", "amount": 4 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "gain_block_from_control", "amount": 4 },
+            { "color_id": "color.green", "op": "heal_from_control", "amount": 2, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "increase_status_value", "ratio_percent": 100, "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "starting_pool", "control", "damage_amp", "color_energy_generator"],
+      "balance": { "role": "burst_setup", "tier": 1 }
+    },
+    {
+      "id": "card.arm_army_sweep",
+      "weapon_id": "weapon.mechanical_arm",
+      "card_type": "finisher",
+      "rarity": "rare",
+      "costs": [],
+      "requirements": [],
+      "targeting": { "mode": "all", "side": "enemy", "required": false },
+      "energy": { "consume": { "mode": "fixed", "amount": 4, "min_amount": 4, "color_filter": "any" } },
+      "effects": [{ "op": "damage", "target": { "ref": "all_enemies" }, "amount": 14 }],
+      "color_interactions": {
+        "enchantment": { "can_be_enchanted": false, "generated_energy_color": "none", "self_effects": [] },
+        "finisher_color_effects": [
+          { "color_id": "color.red", "effects": [{ "op": "add_damage", "amount_per_energy": 3 }], "stack_limit": 6 },
+          { "color_id": "color.yellow", "effects": [{ "op": "extra_casts", "amount": 1, "max_extra_casts": 1 }], "stack_limit": 1 },
+          { "color_id": "color.blue", "effects": [{ "op": "gain_block_from_final_damage", "ratio_percent": 40 }], "stack_limit": 6 },
+          { "color_id": "color.green", "effects": [{ "op": "heal_from_final_damage", "ratio_percent": 20, "capped_by_max_hp": true }], "stack_limit": 6 },
+          { "color_id": "color.purple", "effects": [{ "op": "multiply_final_damage", "multiplier_percent": 200, "stack_limit": 1 }], "stack_limit": 1 }
+        ]
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "starting_pool", "finisher", "aoe"],
+      "balance": { "role": "mechanical_aoe_finisher", "tier": 2 }
+    },
+    {
+      "id": "card.arm_counter",
+      "weapon_id": "weapon.mechanical_arm",
+      "card_type": "finisher",
+      "rarity": "rare",
+      "costs": [],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "energy": { "consume": { "mode": "fixed", "amount": 2, "min_amount": 2, "color_filter": "any" } },
+      "effects": [{ "op": "damage_from_current_block", "target": { "ref": "selected_target" }, "ratio_percent": 100 }],
+      "color_interactions": {
+        "enchantment": { "can_be_enchanted": false, "generated_energy_color": "none", "self_effects": [] },
+        "finisher_color_effects": [
+          { "color_id": "color.red", "effects": [{ "op": "add_damage", "amount_per_energy": 3 }], "stack_limit": 6 },
+          { "color_id": "color.yellow", "effects": [{ "op": "extra_casts", "amount": 1, "max_extra_casts": 1 }], "stack_limit": 1 },
+          { "color_id": "color.blue", "effects": [{ "op": "gain_block_from_final_damage", "ratio_percent": 50 }], "stack_limit": 6 },
+          { "color_id": "color.green", "effects": [{ "op": "heal_from_final_damage", "ratio_percent": 30, "capped_by_max_hp": true }], "stack_limit": 6 },
+          { "color_id": "color.purple", "effects": [{ "op": "multiply_final_damage", "multiplier_percent": 200, "stack_limit": 1 }], "stack_limit": 1 }
+        ]
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "starting_pool", "finisher", "block_conversion"],
+      "balance": { "role": "block_to_damage", "tier": 2 }
+    },
+    {
+      "id": "card.arm_energy_veil",
+      "weapon_id": "weapon.mechanical_arm",
+      "card_type": "action",
+      "rarity": "rare",
+      "costs": [{ "resource": "action_point", "amount": 2 }],
+      "requirements": [],
+      "targeting": { "mode": "self", "side": "player", "required": false },
+      "energy": { "generate": { "amount": 2, "color_source": "enchantment" } },
+      "effects": [
+        { "op": "gain_block", "target": { "ref": "self" }, "amount": 14 },
+        { "op": "bonus_block_if_no_revolver_card_played_this_turn", "amount": 4 }
+      ],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "damage_from_block_gained", "ratio_percent": 50 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "increase_block_gained", "ratio_percent": 50 },
+            { "color_id": "color.green", "op": "heal_from_block_gained", "ratio_percent": 30, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "double_block_gained", "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "defense", "color_energy_generator"],
+      "balance": { "role": "high_block_generator", "tier": 2 }
+    },
+    {
+      "id": "card.arm_shock_palm",
+      "weapon_id": "weapon.mechanical_arm",
+      "card_type": "action",
+      "rarity": "common",
+      "costs": [{ "resource": "action_point", "amount": 1 }],
+      "requirements": [],
+      "targeting": { "mode": "all", "side": "enemy", "required": false },
+      "energy": { "generate": { "amount": 1, "color_source": "enchantment" } },
+      "effects": [
+        { "op": "damage", "target": { "ref": "all_enemies" }, "amount": 3 },
+        { "op": "apply_status", "status": "attack_down", "target": { "ref": "all_enemies" }, "amount": 2, "duration_turns": 1 }
+      ],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "add_damage", "amount": 2 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "gain_block_from_final_damage", "ratio_percent": 50 },
+            { "color_id": "color.green", "op": "heal_from_final_damage", "ratio_percent": 25, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "extend_status_duration", "extra_turns": 1, "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "starting_pool", "control", "aoe", "color_energy_generator"],
+      "balance": { "role": "aoe_mitigation", "tier": 0 }
+    },
+    {
+      "id": "card.arm_traction_grab",
+      "weapon_id": "weapon.mechanical_arm",
+      "card_type": "action",
+      "rarity": "uncommon",
+      "costs": [{ "resource": "action_point", "amount": 1 }],
+      "requirements": [],
+      "targeting": { "mode": "single", "side": "enemy", "required": true },
+      "energy": { "generate": { "amount": 1, "color_source": "enchantment" } },
+      "effects": [
+        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 4 },
+        { "op": "apply_status", "status": "traction", "target": { "ref": "selected_target" }, "duration": "this_turn", "next_single_target_damage_bonus_percent": 25 }
+      ],
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "add_damage", "amount": 3 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "gain_block_from_final_damage", "ratio_percent": 50 },
+            { "color_id": "color.green", "op": "heal_from_final_damage", "ratio_percent": 30, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "increase_status_value", "ratio_percent": 100, "stack_limit": 1 }
+          ]
+        },
+        "finisher_color_effects": []
+      },
+      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
+      "tags": ["mvp", "control", "setup", "color_energy_generator"],
+      "balance": { "role": "target_lock_setup", "tier": 1 }
+    },
+    {
+      "id": "card.arm_repair_protocol",
+      "weapon_id": "weapon.mechanical_arm",
+      "card_type": "action",
+      "rarity": "uncommon",
+      "costs": [{ "resource": "action_point", "amount": 1 }],
+      "requirements": [],
+      "targeting": { "mode": "self", "side": "player", "required": false },
+      "energy": { "generate": { "amount": 1, "color_source": "enchantment" } },
       "effects": [
         { "op": "gain_block", "target": { "ref": "self" }, "amount": 4 },
-        { "op": "gain_resource", "resource": "action_point", "amount": 1 }
+        { "op": "heal_if_low_hp", "target": { "ref": "self" }, "amount": 5, "hp_below_percent": 50, "capped_by_max_hp": true }
       ],
-      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["reward", "defense", "resource"],
-      "balance": { "role": "defense_refund", "tier": 1 }
-    },
-    {
-      "id": "card.deep_focus",
-      "card_type": "skill",
-      "rarity": "common",
-      "vfx_asset": "asset.vfx.chain_gain_spark",
-      "costs": [],
-      "requirements": [],
-      "targeting": { "mode": "self", "side": "player", "required": false },
-      "effects": [
-        { "op": "draw_cards", "target": { "ref": "self" }, "amount": 2 }
-      ],
-      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["reward", "draw"],
-      "balance": { "role": "common_draw", "tier": 1 }
-    },
-    {
-      "id": "card.setup_discount",
-      "card_type": "skill",
-      "rarity": "uncommon",
-      "vfx_asset": "asset.vfx.chain_gain_spark",
-      "costs": [],
-      "requirements": [],
-      "targeting": { "mode": "self", "side": "player", "required": false },
-      "effects": [
-        { "op": "temporary_discount", "target": { "ref": "hand_action_cards" }, "amount": 1 }
-      ],
-      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["reward", "discount"],
-      "balance": { "role": "discount_setup", "tier": 2 }
-    },
-    {
-      "id": "card.burst_finish",
-      "card_type": "finisher",
-      "rarity": "starter",
-      "vfx_asset": "asset.vfx.finisher_release_shockwave",
-      "costs": [],
-      "requirements": [{ "op": "resource_at_least", "resource": "chain", "amount": 3 }],
-      "targeting": { "mode": "single", "side": "enemy", "required": true },
-      "effects": [
-        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 18 },
-        {
-          "op": "conditional",
-          "if": { "op": "resource_at_least", "resource": "chain", "amount": 5 },
-          "then": [
-            { "op": "damage", "target": { "ref": "selected_target" }, "amount": 18 }
+      "color_interactions": {
+        "enchantment": {
+          "can_be_enchanted": true,
+          "generated_energy_color": "inherits_enchantment",
+          "self_effects": [
+            { "color_id": "color.red", "op": "damage_from_block_gained", "ratio_percent": 50 },
+            { "color_id": "color.yellow", "op": "extra_casts", "amount": 1, "max_extra_casts": 1 },
+            { "color_id": "color.blue", "op": "increase_block_gained", "ratio_percent": 50 },
+            { "color_id": "color.green", "op": "increase_heal", "ratio_percent": 50, "capped_by_max_hp": true },
+            { "color_id": "color.purple", "op": "double_heal_and_block", "stack_limit": 1 }
           ]
         },
-        { "op": "set_resource", "resource": "chain", "amount": 0 }
-      ],
+        "finisher_color_effects": []
+      },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["starter", "finisher", "single_target"],
-      "balance": { "role": "single_target_burst", "tier": 0 }
+      "tags": ["mvp", "defense", "heal", "color_energy_generator"],
+      "balance": { "role": "low_hp_recovery", "tier": 1 }
     },
     {
-      "id": "card.arc_sweep_finish",
+      "id": "card.arm_shield_overload",
+      "weapon_id": "weapon.mechanical_arm",
       "card_type": "finisher",
-      "rarity": "common",
-      "vfx_asset": "asset.vfx.group_sweep_arc_light",
+      "rarity": "rare",
       "costs": [],
-      "requirements": [{ "op": "resource_at_least", "resource": "chain", "amount": 3 }],
+      "requirements": [],
       "targeting": { "mode": "all", "side": "enemy", "required": false },
+      "energy": { "consume": { "mode": "all", "min_amount": 2, "color_filter": "any" } },
       "effects": [
-        { "op": "damage", "target": { "ref": "all_enemies" }, "amount": 10 },
-        {
-          "op": "conditional",
-          "if": { "op": "resource_at_least", "resource": "chain", "amount": 5 },
-          "then": [
-            { "op": "damage", "target": { "ref": "all_enemies" }, "amount": 6 }
-          ]
-        },
-        { "op": "set_resource", "resource": "chain", "amount": 0 }
+        { "op": "gain_block_per_energy", "target": { "ref": "self" }, "amount": 5 },
+        { "op": "damage_from_block_gained", "target": { "ref": "all_enemies" }, "ratio_percent": 50 }
       ],
+      "color_interactions": {
+        "enchantment": { "can_be_enchanted": false, "generated_energy_color": "none", "self_effects": [] },
+        "finisher_color_effects": [
+          { "color_id": "color.red", "effects": [{ "op": "increase_block_to_damage_ratio", "ratio_percent": 25 }], "stack_limit": 6 },
+          { "color_id": "color.yellow", "effects": [{ "op": "extra_casts", "amount": 1, "max_extra_casts": 1 }], "stack_limit": 1 },
+          { "color_id": "color.blue", "effects": [{ "op": "increase_block_gained", "ratio_percent": 50 }], "stack_limit": 6 },
+          { "color_id": "color.green", "effects": [{ "op": "heal_from_final_effect", "ratio_percent": 25, "capped_by_max_hp": true }], "stack_limit": 6 },
+          { "color_id": "color.purple", "effects": [{ "op": "multiply_final_effect", "multiplier_percent": 200, "stack_limit": 1 }], "stack_limit": 1 }
+        ]
+      },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["reward", "finisher", "aoe"],
-      "balance": { "role": "aoe_finisher", "tier": 1 }
-    },
-    {
-      "id": "card.refund_finish",
-      "card_type": "finisher",
-      "rarity": "uncommon",
-      "vfx_asset": "asset.vfx.finisher_release_shockwave",
-      "costs": [],
-      "requirements": [{ "op": "resource_at_least", "resource": "chain", "amount": 5 }],
-      "targeting": { "mode": "single", "side": "enemy", "required": true },
-      "effects": [
-        { "op": "damage", "target": { "ref": "selected_target" }, "amount": 14 },
-        { "op": "gain_resource", "resource": "action_point", "amount": 1 },
-        { "op": "set_resource", "resource": "chain", "amount": 0 }
-      ],
-      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["reward", "finisher", "resource"],
-      "balance": { "role": "resource_finisher", "tier": 2 }
-    },
-    {
-      "id": "card.bulwark_finish",
-      "card_type": "finisher",
-      "rarity": "uncommon",
-      "vfx_asset": "asset.vfx.defense_shield_flash",
-      "costs": [],
-      "requirements": [{ "op": "resource_at_least", "resource": "chain", "amount": 3 }],
-      "targeting": { "mode": "self", "side": "player", "required": false },
-      "effects": [
-        { "op": "gain_block", "target": { "ref": "self" }, "amount": 16 },
-        { "op": "set_resource", "resource": "chain", "amount": 0 }
-      ],
-      "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["reward", "finisher", "defense"],
-      "balance": { "role": "defense_finisher", "tier": 2 }
+      "tags": ["mvp", "finisher", "block_conversion", "aoe"],
+      "balance": { "role": "shield_finisher", "tier": 2 }
     }
   ]
 }

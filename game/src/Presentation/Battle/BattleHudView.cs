@@ -1,5 +1,6 @@
 using Godot;
 using RoguelikeCardGame.Application.Battle;
+using RoguelikeCardGame.Domain.Colors;
 using RoguelikeCardGame.Domain.Combat;
 using RoguelikeCardGame.Domain.Enemies;
 using RoguelikeCardGame.Domain.Runs;
@@ -20,7 +21,7 @@ public sealed class BattleHudView
     private Func<string, Font?>? loadFont;
     private bool showFocusedEnemyHud;
 
-    public Control? ChainPanel { get; private set; }
+    public Control? ColorEnergyPanel { get; private set; }
 
     public Control? BlockPanel { get; private set; }
 
@@ -46,14 +47,14 @@ public sealed class BattleHudView
         loadFont = fontLoader;
         showFocusedEnemyHud = combatState.Enemies.Count <= 1;
         ClearEnemyHud();
-        ChainPanel = null;
+        ColorEnergyPanel = null;
         BlockPanel = null;
         ActionPointPanel = null;
         DrawPilePanel = null;
         DiscardPilePanel = null;
 
         RenderPlayerHud(rootControl, combatState);
-        RenderChainHud(rootControl, combatState);
+        RenderColorEnergyHud(rootControl, combatState);
 
         ActionPointPanel = CreateActionPointBadge(combatState);
         AddAt(rootControl, ActionPointPanel, new Vector2(70, 760), new Vector2(156, 156));
@@ -172,44 +173,116 @@ public sealed class BattleHudView
         enemyHudNodes.Clear();
     }
 
-    private void RenderChainHud(Control root, CombatState combat)
+    private void RenderColorEnergyHud(Control root, CombatState combat)
     {
-        var chain = combat.Chain;
-        var chainText = chain > 8 ? $"连锁 {chain}/8+" : $"连锁 {chain}/8";
-        var title = CreateHudLabel(chainText, 31, new Color(0.10f, 0.06f, 0.035f), heavy: true, outlineColor: new Color(0.98f, 0.84f, 0.55f, 0.70f));
+        var title = CreateHudLabel($"彩能 {combat.ColorEnergy.Count}/{ColorEnergyPool.DefaultCapacity}", 31, new Color(0.10f, 0.06f, 0.035f), heavy: true, outlineColor: new Color(0.98f, 0.84f, 0.55f, 0.70f));
         title.HorizontalAlignment = HorizontalAlignment.Center;
         AddAt(root, title, new Vector2(790, 22), new Vector2(340, 42));
 
-        ChainPanel = new Control();
-        var meterPosition = new Vector2(0, 18);
-        var meterSize = new Vector2(640, 68);
-        var meter = CreateImage("asset.ui.battle.chain_meter_8_slots", meterSize, TextureRect.StretchModeEnum.Scale);
-        meter.Position = meterPosition;
-        meter.Size = meterSize;
-        ChainPanel.AddChild(meter);
-
-        var pointSize = new Vector2(33, 33);
-        var firstCenterX = 33f;
-        var slotStep = 81f;
-        for (var i = 0; i < Math.Min(chain, 8); i++)
+        ColorEnergyPanel = new Control
         {
-            var point = CreateImage("asset.ui.battle.chain_point_red", pointSize, TextureRect.StretchModeEnum.Scale);
-            point.Position = meterPosition + new Vector2(firstCenterX + slotStep * i - pointSize.X * 0.5f, 34f - pointSize.Y * 0.5f);
-            point.Size = pointSize;
-            point.CustomMinimumSize = pointSize;
-            ChainPanel.AddChild(point);
+            TooltipText = ColorEnergyTooltip(combat.ColorEnergy)
+        };
+        var slotSize = new Vector2(78, 58);
+        var slotGap = 16f;
+        var totalWidth = slotSize.X * ColorEnergyPool.DefaultCapacity + slotGap * (ColorEnergyPool.DefaultCapacity - 1);
+        var startX = (640f - totalWidth) * 0.5f;
+        for (var index = 0; index < ColorEnergyPool.DefaultCapacity; index++)
+        {
+            var color = index < combat.ColorEnergy.Slots.Count
+                ? combat.ColorEnergy.Slots[index].Color
+                : ColorType.Colorless;
+            var slot = CreateColorEnergySlot(color, filled: index < combat.ColorEnergy.Slots.Count);
+            slot.Position = new Vector2(startX + (slotSize.X + slotGap) * index, 18);
+            slot.Size = slotSize;
+            slot.CustomMinimumSize = slotSize;
+            ColorEnergyPanel.AddChild(slot);
         }
 
-        foreach (var (threshold, index) in new[] { (3, 2), (5, 4), (8, 7) })
+        AddAt(root, ColorEnergyPanel, new Vector2(640, 64), new Vector2(640, 104));
+    }
+
+    private Control CreateColorEnergySlot(ColorType color, bool filled)
+    {
+        var panel = new PanelContainer
         {
-            var hint = CreateHudLabel(threshold.ToString(), 14, chain >= threshold ? new Color(0.82f, 0.18f, 0.12f) : new Color(0.35f, 0.28f, 0.18f), heavy: false, outlineSize: 2);
-            hint.HorizontalAlignment = HorizontalAlignment.Center;
-            hint.Position = meterPosition + new Vector2(firstCenterX + slotStep * index - 16f, 77f);
-            hint.Size = new Vector2(32, 20);
-            ChainPanel.AddChild(hint);
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = filled ? ColorForEnergy(color) : new Color(0.78f, 0.72f, 0.62f, 0.52f),
+            BorderColor = filled ? new Color(0.12f, 0.08f, 0.04f, 0.92f) : new Color(0.28f, 0.22f, 0.14f, 0.72f),
+            BorderWidthLeft = 3,
+            BorderWidthRight = 3,
+            BorderWidthTop = 3,
+            BorderWidthBottom = 3,
+            CornerRadiusBottomLeft = 6,
+            CornerRadiusBottomRight = 6,
+            CornerRadiusTopLeft = 6,
+            CornerRadiusTopRight = 6
+        });
+
+        var label = CreateHudLabel(filled ? ShortColorName(color) : "", 20, TextColorForEnergy(color), heavy: true, outlineSize: 2);
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        panel.AddChild(label);
+        return panel;
+    }
+
+    private static string ColorEnergyTooltip(ColorEnergyPool pool)
+    {
+        if (pool.Count == 0)
+        {
+            return "当前没有彩能。行动牌会生成彩能，回合结束会清空。";
         }
 
-        AddAt(root, ChainPanel, new Vector2(640, 64), new Vector2(640, 104));
+        return "当前彩能：" + string.Join(" / ", pool.Slots.Select(slot => FullColorName(slot.Color)));
+    }
+
+    private static Color ColorForEnergy(ColorType color)
+    {
+        return color switch
+        {
+            ColorType.Red => new Color(0.78f, 0.13f, 0.10f, 0.94f),
+            ColorType.Yellow => new Color(0.95f, 0.72f, 0.13f, 0.94f),
+            ColorType.Blue => new Color(0.14f, 0.40f, 0.82f, 0.94f),
+            ColorType.Green => new Color(0.18f, 0.62f, 0.25f, 0.94f),
+            ColorType.Purple => new Color(0.52f, 0.22f, 0.78f, 0.94f),
+            _ => new Color(0.84f, 0.80f, 0.70f, 0.94f)
+        };
+    }
+
+    private static Color TextColorForEnergy(ColorType color)
+    {
+        return color == ColorType.Yellow || color == ColorType.Colorless
+            ? new Color(0.14f, 0.08f, 0.04f)
+            : new Color(1.0f, 0.94f, 0.78f);
+    }
+
+    private static string ShortColorName(ColorType color)
+    {
+        return color switch
+        {
+            ColorType.Red => "红",
+            ColorType.Yellow => "黄",
+            ColorType.Blue => "蓝",
+            ColorType.Green => "绿",
+            ColorType.Purple => "紫",
+            _ => "无"
+        };
+    }
+
+    private static string FullColorName(ColorType color)
+    {
+        return color switch
+        {
+            ColorType.Red => "红色",
+            ColorType.Yellow => "黄色",
+            ColorType.Blue => "蓝色",
+            ColorType.Green => "绿色",
+            ColorType.Purple => "紫色",
+            _ => "无色"
+        };
     }
 
     private Control CreateHudImagePanel(string assetId, string text, Vector2 size, Rect2 textRect, int fontSize)

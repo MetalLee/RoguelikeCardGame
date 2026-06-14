@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using RoguelikeCardGame.Domain.Combat;
+using RoguelikeCardGame.Domain.Colors;
 using RoguelikeCardGame.Domain.Effects;
 
 namespace RoguelikeCardGame.Domain.Cards;
@@ -6,7 +8,6 @@ namespace RoguelikeCardGame.Domain.Cards;
 public enum CardType
 {
     Action,
-    Skill,
     Finisher
 }
 
@@ -55,6 +56,9 @@ public sealed record CardDefinition
     [JsonPropertyName("type")]
     public CardType Type { get; init; }
 
+    [JsonPropertyName("weapon_id")]
+    public string WeaponId { get; init; } = string.Empty;
+
     [JsonPropertyName("cost")]
     public int Cost { get; init; }
 
@@ -62,7 +66,13 @@ public sealed record CardDefinition
     public int? MinChain { get; init; }
 
     [JsonPropertyName("default_chain_change")]
-    public required ChainChange DefaultChainChange { get; init; }
+    public ChainChange DefaultChainChange { get; init; } = ChainChange.None;
+
+    [JsonPropertyName("color_energy_generation")]
+    public ColorEnergyGeneration? ColorEnergyGeneration { get; init; }
+
+    [JsonPropertyName("color_energy_cost")]
+    public ColorEnergyCost? ColorEnergyCost { get; init; }
 
     [JsonPropertyName("target_rule")]
     public TargetRule TargetRule { get; init; }
@@ -78,4 +88,66 @@ public sealed record CardDefinition
 
     [JsonPropertyName("tags")]
     public List<string> Tags { get; init; } = new();
+}
+
+public enum ColorEnergyColorSource
+{
+    Colorless,
+    Enchantment,
+    FixedColor
+}
+
+public sealed record ColorEnergyGeneration
+{
+    [JsonPropertyName("amount")]
+    public int Amount { get; init; }
+
+    [JsonPropertyName("color_source")]
+    public ColorEnergyColorSource ColorSource { get; init; } = ColorEnergyColorSource.Enchantment;
+
+    [JsonPropertyName("fixed_color")]
+    public ColorType? FixedColor { get; init; }
+
+    public ColorType ResolveColor(CardEnchantment? enchantment)
+    {
+        return ColorSource switch
+        {
+            ColorEnergyColorSource.Enchantment => enchantment?.Color ?? ColorType.Colorless,
+            ColorEnergyColorSource.FixedColor => FixedColor ?? ColorType.Colorless,
+            _ => ColorType.Colorless
+        };
+    }
+}
+
+public sealed record ColorEnergyCost
+{
+    [JsonPropertyName("mode")]
+    public ColorEnergySpendMode Mode { get; init; }
+
+    [JsonPropertyName("amount")]
+    public int Amount { get; init; }
+
+    [JsonPropertyName("min_amount")]
+    public int MinAmount { get; init; }
+}
+
+public sealed record CardEnchantment
+{
+    [JsonPropertyName("card_instance_id")]
+    public required string CardInstanceId { get; init; }
+
+    [JsonPropertyName("color")]
+    public ColorType Color { get; init; }
+}
+
+public sealed record CardInstance
+{
+    [JsonPropertyName("instance_id")]
+    public required string InstanceId { get; init; }
+
+    [JsonPropertyName("definition_id")]
+    public required string DefinitionId { get; init; }
+
+    [JsonPropertyName("enchantment")]
+    public CardEnchantment? Enchantment { get; init; }
 }

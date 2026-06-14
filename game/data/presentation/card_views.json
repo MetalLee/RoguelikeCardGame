@@ -55,7 +55,7 @@
       "name_key": "card.basic_guard.name",
       "rules_key": "card.basic_guard.rules",
       "flavor_key": "card.basic_guard.flavor",
-      "template_asset": "asset.card.template.skill",
+      "template_asset": "asset.card.template.action",
       "art_asset": "asset.card.basic_guard.art"
     },
     {
@@ -63,7 +63,7 @@
       "name_key": "card.tactical_read.name",
       "rules_key": "card.tactical_read.rules",
       "flavor_key": "card.tactical_read.flavor",
-      "template_asset": "asset.card.template.skill",
+      "template_asset": "asset.card.template.action",
       "art_asset": "asset.card.tactical_read.art"
     },
     {
@@ -71,7 +71,7 @@
       "name_key": "card.second_wind.name",
       "rules_key": "card.second_wind.rules",
       "flavor_key": "card.second_wind.flavor",
-      "template_asset": "asset.card.template.skill",
+      "template_asset": "asset.card.template.action",
       "art_asset": "asset.card.second_wind.art"
     },
     {
@@ -79,7 +79,7 @@
       "name_key": "card.deep_focus.name",
       "rules_key": "card.deep_focus.rules",
       "flavor_key": "card.deep_focus.flavor",
-      "template_asset": "asset.card.template.skill",
+      "template_asset": "asset.card.template.action",
       "art_asset": "asset.card.deep_focus.art"
     },
     {
@@ -87,7 +87,7 @@
       "name_key": "card.setup_discount.name",
       "rules_key": "card.setup_discount.rules",
       "flavor_key": "card.setup_discount.flavor",
-      "template_asset": "asset.card.template.skill",
+      "template_asset": "asset.card.template.action",
       "art_asset": "asset.card.setup_discount.art"
     },
     {
@@ -124,3 +124,4 @@
     }
   ]
 }
+

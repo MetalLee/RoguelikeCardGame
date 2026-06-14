@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "res://data/schemas/gameplay/weapons.schema.json",
+  "title": "Sword Black Tower MVP Weapons",
+  "type": "object",
+  "required": ["schema", "content_version", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "sword_black_tower.weapons.v1" },
+    "content_version": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "starting_pool_id", "reward_pool_id", "main_hand_allowed", "off_hand_allowed", "tags"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^weapon\\.[a-z0-9_]+$" },
+          "starting_pool_id": { "type": "string", "pattern": "^card_pool\\.starting\\.[a-z0-9_]+$" },
+          "reward_pool_id": { "type": "string", "pattern": "^card_pool\\.reward\\.[a-z0-9_]+$" },
+          "main_hand_allowed": { "type": "boolean" },
+          "off_hand_allowed": { "type": "boolean" },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

@@ -3,7 +3,7 @@
   "content_version": "mvp.0.2",
   "items": [
     {
-      "id": "relic.mvp_chain_spark",
+      "id": "relic.mvp_color_spark",
       "rarity": "common",
       "trigger": "first_action_card_each_turn",
       "conditions": [
@@ -13,7 +13,7 @@
         { "op": "gain_block", "target": { "ref": "self" }, "amount": 2 }
       ],
       "stack_rule": "unique",
-      "tags": ["mvp", "defense", "chain_support"]
+      "tags": ["mvp", "defense", "color_energy_support"]
     }
   ]
 }

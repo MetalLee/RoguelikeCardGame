@@ -5,7 +5,6 @@ using RoguelikeCardGame.Domain.Combat;
 using RoguelikeCardGame.Domain.Effects;
 using RoguelikeCardGame.Domain.Enemies;
 using RoguelikeCardGame.Domain.Relics;
-using RoguelikeCardGame.Domain.Rewards;
 
 namespace RoguelikeCardGame.Infrastructure.Content;
 
@@ -46,15 +45,6 @@ public sealed record RelicViewDefinition
     public required string IconAsset { get; init; }
 }
 
-public sealed record RewardPackViewDefinition
-{
-    public required string Id { get; init; }
-
-    public required string NameKey { get; init; }
-
-    public required string IconAsset { get; init; }
-}
-
 public sealed record AssetDefinition
 {
     public required string Id { get; init; }
@@ -64,19 +54,66 @@ public sealed record AssetDefinition
     public required string Path { get; init; }
 }
 
+public sealed record WeaponContentDefinition
+{
+    public required string Id { get; init; }
+
+    public required string StartingPoolId { get; init; }
+
+    public required string RewardPoolId { get; init; }
+
+    public bool MainHandAllowed { get; init; }
+
+    public bool OffHandAllowed { get; init; }
+
+    public List<string> Tags { get; init; } = new();
+}
+
+public sealed record StartingPoolEntryDefinition
+{
+    public required string CardId { get; init; }
+
+    public int Count { get; init; }
+}
+
+public sealed record CardPoolContentDefinition
+{
+    public required string Id { get; init; }
+
+    public required string PoolType { get; init; }
+
+    public required string WeaponId { get; init; }
+
+    public List<StartingPoolEntryDefinition> StartingEntries { get; init; } = new();
+
+    public Dictionary<string, List<string>> RewardByRarity { get; init; } = new(StringComparer.Ordinal);
+
+    public List<string> Tags { get; init; } = new();
+
+    public List<string> ExpandedStartingCardIds()
+    {
+        return StartingEntries
+            .SelectMany(entry => Enumerable.Repeat(entry.CardId, entry.Count))
+            .ToList();
+    }
+}
+
 public sealed class GameContent
 {
     public IReadOnlyDictionary<string, CardDefinition> CardsById { get; private init; } =
         new Dictionary<string, CardDefinition>();
+
+    public IReadOnlyDictionary<string, WeaponContentDefinition> WeaponsById { get; private init; } =
+        new Dictionary<string, WeaponContentDefinition>();
+
+    public IReadOnlyDictionary<string, CardPoolContentDefinition> CardPoolsById { get; private init; } =
+        new Dictionary<string, CardPoolContentDefinition>();
 
     public IReadOnlyDictionary<string, EnemyDefinition> EnemiesById { get; private init; } =
         new Dictionary<string, EnemyDefinition>();
 
     public IReadOnlyDictionary<string, EncounterDefinition> EncountersById { get; private init; } =
         new Dictionary<string, EncounterDefinition>();
-
-    public IReadOnlyDictionary<string, RewardPackDefinition> RewardPacksById { get; private init; } =
-        new Dictionary<string, RewardPackDefinition>();
 
     public IReadOnlyDictionary<string, RelicDefinition> RelicsById { get; private init; } =
         new Dictionary<string, RelicDefinition>();
@@ -89,9 +126,6 @@ public sealed class GameContent
 
     public IReadOnlyDictionary<string, RelicViewDefinition> RelicViewsById { get; private init; } =
         new Dictionary<string, RelicViewDefinition>();
-
-    public IReadOnlyDictionary<string, RewardPackViewDefinition> RewardPackViewsById { get; private init; } =
-        new Dictionary<string, RewardPackViewDefinition>();
 
     public IReadOnlyDictionary<string, AssetDefinition> AssetsById { get; private init; } =
         new Dictionary<string, AssetDefinition>();
@@ -106,6 +140,21 @@ public sealed class GameContent
     public string CardName(string cardId) => T(CardViewsById[cardId].NameKey);
 
     public string CardRules(string cardId) => T(CardViewsById[cardId].RulesKey);
+
+    public string WeaponName(string weaponId) => T($"{weaponId}.name");
+
+    public string WeaponDescription(string weaponId) => T($"{weaponId}.description");
+
+    public IReadOnlyList<string> ExpandedStartingCardIdsForWeapon(string weaponId)
+    {
+        if (!WeaponsById.TryGetValue(weaponId, out var weapon) ||
+            !CardPoolsById.TryGetValue(weapon.StartingPoolId, out var pool))
+        {
+            return [];
+        }
+
+        return pool.ExpandedStartingCardIds();
+    }
 
     public string CardLabel(string cardId) => $"{CardName(cardId)}\n{CardRules(cardId)}";
 
@@ -123,8 +172,6 @@ public sealed class GameContent
 
     public string RelicRules(string relicId) => T(RelicViewsById[relicId].RulesKey);
 
-    public string RewardPackName(string packId) => T(RewardPackViewsById[packId].NameKey);
-
     public static GameContent LoadFromProject()
     {
         var root = ProjectSettings.GlobalizePath("res://data");
@@ -132,31 +179,34 @@ public sealed class GameContent
         var presentation = Path.Combine(root, "presentation");
 
         var cards = ReadItems(Path.Combine(gameplay, "cards", "cards.json"), ParseCard);
+        var weapons = ReadItems(Path.Combine(gameplay, "weapons", "weapons.json"), ParseWeapon);
+        var cardPools = ReadItems(Path.Combine(gameplay, "card_pools", "card_pools.json"), ParseCardPool);
         var enemies = ReadItems(Path.Combine(gameplay, "enemies", "enemies.json"), ParseEnemy);
         var encounters = ReadItems(Path.Combine(gameplay, "encounters", "encounters.json"), ParseEncounter);
-        var rewardPacks = ReadItems(Path.Combine(gameplay, "rewards", "reward_packs.json"), ParseRewardPack);
         var relics = ReadItems(Path.Combine(gameplay, "relics", "relics.json"), ParseRelic);
 
         var cardViews = ReadItems(Path.Combine(presentation, "card_views.json"), ParseCardView);
         var enemyViews = ReadItems(Path.Combine(presentation, "enemy_views.json"), ParseEnemyView);
         var relicViews = ReadItems(Path.Combine(presentation, "relic_views.json"), ParseRelicView);
-        var rewardPackViews = ReadItems(Path.Combine(presentation, "reward_pack_views.json"), ParseRewardPackView);
         var assets = ReadItems(Path.Combine(presentation, "assets.json"), ParseAsset);
 
         var text = ReadLocalization(Path.Combine(root, "localization", "zh_hans.json"));
         var run = ReadRunSequence(Path.Combine(gameplay, "runs", "mvp_run.json"));
+        var allCardViews = cardViews.Concat(CreateFallbackCardViews(cards)).ToList();
 
         return new GameContent
         {
             CardsById = cards.ToDictionary(card => card.Id, StringComparer.Ordinal),
+            WeaponsById = weapons.ToDictionary(weapon => weapon.Id, StringComparer.Ordinal),
+            CardPoolsById = cardPools.ToDictionary(pool => pool.Id, StringComparer.Ordinal),
             EnemiesById = enemies.ToDictionary(enemy => enemy.Id, StringComparer.Ordinal),
             EncountersById = encounters.ToDictionary(encounter => encounter.Id, StringComparer.Ordinal),
-            RewardPacksById = rewardPacks.ToDictionary(pack => pack.Id, StringComparer.Ordinal),
             RelicsById = relics.ToDictionary(relic => relic.Id, StringComparer.Ordinal),
-            CardViewsById = cardViews.ToDictionary(view => view.Id, StringComparer.Ordinal),
+            CardViewsById = allCardViews
+                .GroupBy(view => view.Id, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.Last(), StringComparer.Ordinal),
             EnemyViewsById = enemyViews.ToDictionary(view => view.Id, StringComparer.Ordinal),
             RelicViewsById = relicViews.ToDictionary(view => view.Id, StringComparer.Ordinal),
-            RewardPackViewsById = rewardPackViews.ToDictionary(view => view.Id, StringComparer.Ordinal),
             AssetsById = assets.ToDictionary(asset => asset.Id, StringComparer.Ordinal),
             Text = text,
             MvpRun = run
@@ -213,69 +263,167 @@ public sealed class GameContent
         };
     }
 
+    private static IEnumerable<CardViewDefinition> CreateFallbackCardViews(IEnumerable<CardDefinition> cards)
+    {
+        foreach (var card in cards)
+        {
+            yield return new CardViewDefinition
+            {
+                Id = card.Id,
+                NameKey = $"{card.Id}.name",
+                RulesKey = $"{card.Id}.rules",
+                FlavorKey = $"{card.Id}.flavor",
+                TemplateAsset = card.Type == CardType.Finisher ? "asset.card.template.finisher" : "asset.card.template.action",
+                ArtAsset = card.Type == CardType.Finisher
+                    ? card.WeaponId == "weapon.mechanical_arm" ? "asset.card.bulwark_finish.art" : "asset.card.burst_finish.art"
+                    : card.WeaponId == "weapon.mechanical_arm" ? "asset.card.basic_guard.art" : "asset.card.basic_strike.art"
+            };
+        }
+    }
+
     private static CardDefinition ParseCard(JsonElement item)
     {
-        var effects = item.GetProperty("effects").EnumerateArray().ToList();
+        var energy = item.GetProperty("energy");
         return new CardDefinition
         {
             Id = item.GetProperty("id").GetStringRequired("id"),
+            WeaponId = item.GetProperty("weapon_id").GetStringRequired("weapon_id"),
             Type = ParseCardType(item.GetProperty("card_type").GetStringRequired("card_type")),
             Cost = ParseActionPointCost(item),
-            MinChain = ParseMinChain(item),
-            DefaultChainChange = ParseDefaultChainChange(effects),
-            TargetRule = ParseTargetRule(item.GetProperty("targeting")),
-            Effects = effects.SelectMany(ParseCardEffect).ToList(),
+            MinChain = null,
+            DefaultChainChange = ChainChange.None,
+            ColorEnergyGeneration = TryParseColorEnergyGeneration(energy),
+            ColorEnergyCost = TryParseColorEnergyCost(energy),
+            TargetRule = ParseCardTargetRule(item.GetProperty("targeting")),
+            Effects = item.GetProperty("effects").EnumerateArray().SelectMany(ParseCardEffect).ToList(),
             Rarity = ParseCardRarity(item.GetProperty("rarity").GetStringRequired("rarity")),
-            VfxAsset = item.TryGetProperty("vfx_asset", out var vfxAsset) && vfxAsset.ValueKind != JsonValueKind.Null
-                ? vfxAsset.GetString()
-                : null,
             Tags = ReadStringList(item, "tags")
+        };
+    }
+
+    private static ColorEnergyGeneration? TryParseColorEnergyGeneration(JsonElement energy)
+    {
+        if (!energy.TryGetProperty("generate", out var generate) || generate.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var source = generate.GetProperty("color_source").GetStringRequired("color_source") switch
+        {
+            "enchantment" => ColorEnergyColorSource.Enchantment,
+            "fixed_color" => ColorEnergyColorSource.FixedColor,
+            _ => ColorEnergyColorSource.Colorless
+        };
+
+        return new ColorEnergyGeneration
+        {
+            Amount = generate.GetProperty("amount").GetInt32(),
+            ColorSource = source
+        };
+    }
+
+    private static ColorEnergyCost? TryParseColorEnergyCost(JsonElement energy)
+    {
+        if (!energy.TryGetProperty("consume", out var consume) || consume.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var mode = consume.GetProperty("mode").GetStringRequired("mode") switch
+        {
+            "fixed" => ColorEnergySpendMode.Fixed,
+            "x" => ColorEnergySpendMode.X,
+            "all" => ColorEnergySpendMode.All,
+            var value => throw new InvalidOperationException($"Unknown color energy consume mode '{value}'.")
+        };
+
+        return new ColorEnergyCost
+        {
+            Mode = mode,
+            Amount = consume.TryGetProperty("amount", out var amount) ? amount.GetInt32() : 0,
+            MinAmount = consume.GetProperty("min_amount").GetInt32()
         };
     }
 
     private static IEnumerable<EffectDefinition> ParseCardEffect(JsonElement item)
     {
         var op = item.GetProperty("op").GetStringRequired("op");
-        if (op == "gain_resource" && item.GetProperty("resource").GetString() == "chain")
+        var target = ParseTargetRef(item);
+        return op switch
         {
-            return [];
-        }
-
-        if (op == "set_resource" && item.GetProperty("resource").GetString() == "chain")
-        {
-            return [];
-        }
-
-        if (op == "gain_resource" && item.GetProperty("resource").GetString() == "action_point")
-        {
-            return [new EffectDefinition
+            "damage" => [new EffectDefinition { Type = "damage", Target = target, Value = ReadOptionalInt(item, "amount") }],
+            "multi_hit_damage" => [new EffectDefinition
             {
-                Type = "gain_action_points",
-                Target = "self",
-                Value = item.GetProperty("amount").GetInt32()
-            }];
-        }
+                Type = "damage",
+                Target = target,
+                Value = Math.Max(0, ReadOptionalInt(item, "amount") ?? 0) * Math.Max(1, ReadOptionalInt(item, "hits") ?? 1)
+            }],
+            "random_damage_per_energy" => [new EffectDefinition { Type = "damage", Target = "all_enemies", Value = ReadOptionalInt(item, "amount") }],
+            "gain_block" or "gain_block_per_energy" => [new EffectDefinition { Type = "block", Target = "self", Value = ReadOptionalInt(item, "amount") }],
+            "draw_cards" => [new EffectDefinition { Type = "draw_cards", Target = "self", Value = ReadOptionalInt(item, "amount") }],
+            _ => [new EffectDefinition { Type = op, Target = target, Value = ReadOptionalInt(item, "amount") }]
+        };
+    }
 
-        if (op == "conditional")
-        {
-            var condition = item.GetProperty("if");
-            var threshold = condition.GetProperty("amount").GetInt32();
-            var nested = item.GetProperty("then").EnumerateArray().SelectMany(ParseCardEffect).FirstOrDefault();
-            return nested is null
-                ? []
-                : [new EffectDefinition { Type = "chain_threshold_bonus", Threshold = threshold, Effect = nested }];
-        }
+    private static int? ReadOptionalInt(JsonElement item, string propertyName)
+    {
+        return item.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.Number
+            ? value.GetInt32()
+            : null;
+    }
 
-        return [new EffectDefinition
+    private static TargetRule ParseCardTargetRule(JsonElement targeting)
+    {
+        var mode = targeting.GetProperty("mode").GetStringRequired("targeting.mode");
+        var side = targeting.GetProperty("side").GetStringRequired("targeting.side");
+        return (mode, side) switch
         {
-            Type = op switch
-            {
-                "gain_block" => "block",
-                _ => op
-            },
-            Target = ParseTargetRef(item),
-            Value = item.TryGetProperty("amount", out var amount) ? amount.GetInt32() : null
-        }];
+            ("single", "enemy") => TargetRule.SingleEnemy,
+            ("all", "enemy") => TargetRule.AllEnemies,
+            ("random", "enemy") => TargetRule.AllEnemies,
+            ("self", "player") => TargetRule.Self,
+            ("none", _) => TargetRule.None,
+            _ => throw new InvalidOperationException($"Unknown targeting rule '{mode}/{side}'.")
+        };
+    }
+
+    private static WeaponContentDefinition ParseWeapon(JsonElement item)
+    {
+        return new WeaponContentDefinition
+        {
+            Id = item.GetProperty("id").GetStringRequired("id"),
+            StartingPoolId = item.GetProperty("starting_pool_id").GetStringRequired("starting_pool_id"),
+            RewardPoolId = item.GetProperty("reward_pool_id").GetStringRequired("reward_pool_id"),
+            MainHandAllowed = item.GetProperty("main_hand_allowed").GetBoolean(),
+            OffHandAllowed = item.GetProperty("off_hand_allowed").GetBoolean(),
+            Tags = ReadStringList(item, "tags")
+        };
+    }
+
+    private static CardPoolContentDefinition ParseCardPool(JsonElement item)
+    {
+        var rewardByRarity = item.GetProperty("reward_by_rarity")
+            .EnumerateObject()
+            .ToDictionary(
+                entry => entry.Name,
+                entry => entry.Value.EnumerateArray().Select(value => value.GetStringRequired(entry.Name)).ToList(),
+                StringComparer.Ordinal);
+
+        return new CardPoolContentDefinition
+        {
+            Id = item.GetProperty("id").GetStringRequired("id"),
+            PoolType = item.GetProperty("pool_type").GetStringRequired("pool_type"),
+            WeaponId = item.GetProperty("weapon_id").GetStringRequired("weapon_id"),
+            StartingEntries = item.GetProperty("starting_entries").EnumerateArray()
+                .Select(entry => new StartingPoolEntryDefinition
+                {
+                    CardId = entry.GetProperty("card_id").GetStringRequired("card_id"),
+                    Count = entry.GetProperty("count").GetInt32()
+                })
+                .ToList(),
+            RewardByRarity = rewardByRarity,
+            Tags = ReadStringList(item, "tags")
+        };
     }
 
     private static EnemyDefinition ParseEnemy(JsonElement item)
@@ -342,21 +490,6 @@ public sealed class GameContent
             },
             TeachingGoalKey = item.GetProperty("teaching_goal_key").GetStringRequired("teaching_goal_key"),
             DifficultyNote = item.GetProperty("difficulty_note").GetStringRequired("difficulty_note")
-        };
-    }
-
-    private static RewardPackDefinition ParseRewardPack(JsonElement item)
-    {
-        var pick = item.GetProperty("pick");
-        return new RewardPackDefinition
-        {
-            Id = item.GetProperty("id").GetStringRequired("id"),
-            PackType = ParseCardType(item.GetProperty("pack_type").GetStringRequired("pack_type")),
-            CandidateIds = ReadStringList(item, "candidate_ids"),
-            MinPick = pick.GetProperty("min").GetInt32(),
-            MaxPick = pick.GetProperty("max").GetInt32(),
-            GuaranteeRule = item.GetProperty("guarantee_rule").GetStringRequired("guarantee_rule"),
-            RepeatRule = ParseRepeatRule(item.GetProperty("repeat_rule").GetStringRequired("repeat_rule"))
         };
     }
 
@@ -427,16 +560,6 @@ public sealed class GameContent
         };
     }
 
-    private static RewardPackViewDefinition ParseRewardPackView(JsonElement item)
-    {
-        return new RewardPackViewDefinition
-        {
-            Id = item.GetProperty("id").GetStringRequired("id"),
-            NameKey = item.GetProperty("name_key").GetStringRequired("name_key"),
-            IconAsset = item.GetProperty("icon_asset").GetStringRequired("icon_asset")
-        };
-    }
-
     private static AssetDefinition ParseAsset(JsonElement item)
     {
         return new AssetDefinition
@@ -460,45 +583,6 @@ public sealed class GameContent
         return 0;
     }
 
-    private static int? ParseMinChain(JsonElement item)
-    {
-        foreach (var requirement in item.GetProperty("requirements").EnumerateArray())
-        {
-            if (requirement.GetProperty("op").GetString() == "resource_at_least" &&
-                requirement.GetProperty("resource").GetString() == "chain")
-            {
-                return requirement.GetProperty("amount").GetInt32();
-            }
-        }
-
-        return null;
-    }
-
-    private static ChainChange ParseDefaultChainChange(IReadOnlyList<JsonElement> effects)
-    {
-        foreach (var effect in effects)
-        {
-            var op = effect.GetProperty("op").GetString();
-            if (op == "set_resource" &&
-                effect.GetProperty("resource").GetString() == "chain" &&
-                effect.GetProperty("amount").GetInt32() == 0)
-            {
-                return ChainChange.ConsumeAll;
-            }
-        }
-
-        foreach (var effect in effects)
-        {
-            var op = effect.GetProperty("op").GetString();
-            if (op == "gain_resource" && effect.GetProperty("resource").GetString() == "chain")
-            {
-                return ChainChange.Gain(effect.GetProperty("amount").GetInt32());
-            }
-        }
-
-        return ChainChange.None;
-    }
-
     private static string? ParseTargetRef(JsonElement item)
     {
         if (!item.TryGetProperty("target", out var target) || target.ValueKind != JsonValueKind.Object)
@@ -511,6 +595,7 @@ public sealed class GameContent
         {
             "all_enemies" => "all_enemies",
             "selected_target" => "selected_enemy",
+            "random_enemy" => "all_enemies",
             "self" => "self",
             "player" => "player",
             "hand_action_cards" => "hand_action_cards",
@@ -528,7 +613,6 @@ public sealed class GameContent
     private static CardType ParseCardType(string value) => value switch
     {
         "action" => CardType.Action,
-        "skill" => CardType.Skill,
         "finisher" => CardType.Finisher,
         _ => throw new InvalidOperationException($"Unknown card type '{value}'.")
     };
@@ -585,13 +669,6 @@ public sealed class GameContent
         "elite" => EncounterNodeType.Elite,
         "boss" => EncounterNodeType.Boss,
         _ => throw new InvalidOperationException($"Unknown encounter node type '{value}'.")
-    };
-
-    private static RewardRepeatRule ParseRepeatRule(string value) => value switch
-    {
-        "repeatable" => RewardRepeatRule.Repeatable,
-        "unique_until_seen" => RewardRepeatRule.UniqueUntilSeen,
-        _ => throw new InvalidOperationException($"Unknown reward repeat rule '{value}'.")
     };
 
     private static RelicRarity ParseRelicRarity(string value) => value switch

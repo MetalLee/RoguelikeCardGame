@@ -117,7 +117,7 @@
       "tags": ["post_elite"]
     },
     {
-      "id": "enemy.chain_warden",
+      "id": "enemy.black_tower_warden",
       "rank": "boss",
       "stats": { "max_hp": 84 },
       "ai": {

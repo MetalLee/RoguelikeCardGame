@@ -15,17 +15,17 @@ public sealed record PlaytestCombatMetrics
 
     public required string Outcome { get; init; }
 
-    public int HighestChain { get; init; }
+    public int PeakColorEnergy { get; init; }
 
-    public int ChainThreshold3ReachedCount { get; init; }
+    public Dictionary<string, int> ColorEnergyGeneratedByColor { get; init; } = new(StringComparer.Ordinal);
 
-    public int ChainThreshold5ReachedCount { get; init; }
+    public Dictionary<string, int> FinisherColorSpendByColor { get; init; } = new(StringComparer.Ordinal);
 
-    public int ChainThreshold8ReachedCount { get; init; }
+    public int ActionUseCount { get; init; }
+
+    public int EnchantedActionUseCount { get; init; }
 
     public int FinisherUseCount { get; init; }
-
-    public int FinisherBonusTriggerCount { get; init; }
 }
 
 public sealed record PlaytestRewardChoiceMetric
@@ -34,13 +34,24 @@ public sealed record PlaytestRewardChoiceMetric
 
     public required string EncounterId { get; init; }
 
-    public required string RewardPackId { get; init; }
+    public required string ColorShard { get; init; }
 
-    public required string RewardPackType { get; init; }
+    public string? EnchantedCardInstanceId { get; init; }
 
-    public int PickedCount { get; init; }
+    public string? EnchantedCardDefinitionId { get; init; }
 
-    public List<string> CardIds { get; init; } = new();
+    public List<string> WeaponCardCandidateIds { get; init; } = new();
+
+    public required string SelectedWeaponCardId { get; init; }
+}
+
+public sealed record PlaytestBuildRouteMetrics
+{
+    public int BlueGreenHeavyCannonSignals { get; init; }
+
+    public int RedMechanicalCounterSignals { get; init; }
+
+    public int YellowPurpleBarrageSignals { get; init; }
 }
 
 public sealed record PlaytestRelicGrantMetric
@@ -63,6 +74,10 @@ public sealed record PlaytestMetricsReport
     public List<PlaytestRewardChoiceMetric> Rewards { get; init; } = new();
 
     public List<PlaytestRelicGrantMetric> Relics { get; init; } = new();
+
+    public double EnchantmentUsageRate { get; init; }
+
+    public required PlaytestBuildRouteMetrics BuildRoutes { get; init; }
 
     public required string FinalState { get; init; }
 
@@ -99,6 +114,8 @@ public sealed class PlaytestMetricsService
             Combats = combatMetrics,
             Rewards = rewardChoices.ToList(),
             Relics = relicGrants.ToList(),
+            EnchantmentUsageRate = CalculateEnchantmentUsageRate(combatMetrics),
+            BuildRoutes = BuildRouteMetrics(runState, combatMetrics),
             FinalState = runState.Status.ToString(),
             FinalNodeEncounterId = ResolveFinalNode(runState, combats),
             TotalDurationSeconds = Math.Max(0, (endedAt - startedAt).TotalSeconds)
@@ -107,15 +124,9 @@ public sealed class PlaytestMetricsService
 
     private static PlaytestCombatMetrics BuildCombatMetrics(CombatState combat, IReadOnlyList<string> nodeOrder)
     {
-        var chainTransitions = combat.Log
-            .Select(item => (
-                Before: TryGetNumeric(item, "chain_before") ?? TryGetNumeric(item, "chain_before_play") ?? 0,
-                After: TryGetNumeric(item, "chain_after") ?? TryGetNumeric(item, "chain_before") ?? TryGetNumeric(item, "chain_before_play") ?? 0))
-            .ToList();
-        var highestChain = chainTransitions.Count == 0
-            ? combat.Chain
-            : Math.Max(combat.Chain, chainTransitions.Max(item => Math.Max(item.Before, item.After)));
         var turnCount = Math.Max(combat.TurnNumber, combat.Log.Select(item => item.TurnNumber).DefaultIfEmpty(0).Max());
+        var actionUseCount = combat.Log.Count(IsActionPlayed);
+        var enchantedActionUseCount = combat.Log.Count(IsEnchantedActionPlayed);
 
         return new PlaytestCombatMetrics
         {
@@ -126,12 +137,12 @@ public sealed class PlaytestMetricsService
                 .Where(item => item.EventType == CombatLogEventType.EnemyIntentResolved)
                 .Sum(item => TryGetNumeric(item, "hp_damage") ?? 0),
             Outcome = combat.Status.ToString(),
-            HighestChain = highestChain,
-            ChainThreshold3ReachedCount = CountThresholdCrossings(chainTransitions, 3),
-            ChainThreshold5ReachedCount = CountThresholdCrossings(chainTransitions, 5),
-            ChainThreshold8ReachedCount = CountThresholdCrossings(chainTransitions, 8),
-            FinisherUseCount = combat.Log.Count(IsFinisherPlayed),
-            FinisherBonusTriggerCount = combat.Log.Count(IsTriggeredFinisherBonus)
+            PeakColorEnergy = PeakColorEnergy(combat),
+            ColorEnergyGeneratedByColor = ColorEnergyGeneratedByColor(combat),
+            FinisherColorSpendByColor = FinisherColorSpendByColor(combat),
+            ActionUseCount = actionUseCount,
+            EnchantedActionUseCount = enchantedActionUseCount,
+            FinisherUseCount = combat.Log.Count(IsFinisherPlayed)
         };
     }
 
@@ -151,11 +162,6 @@ public sealed class PlaytestMetricsService
         return null;
     }
 
-    private static int CountThresholdCrossings(IEnumerable<(int Before, int After)> transitions, int threshold)
-    {
-        return transitions.Count(item => item.Before < threshold && item.After >= threshold);
-    }
-
     private static int? TryGetNumeric(CombatLogEvent logEvent, string key)
     {
         return logEvent.NumericChanges.TryGetValue(key, out var value) ? value : null;
@@ -168,12 +174,98 @@ public sealed class PlaytestMetricsService
                string.Equals(cardType, "Finisher", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsTriggeredFinisherBonus(CombatLogEvent logEvent)
+    private static bool IsActionPlayed(CombatLogEvent logEvent)
     {
-        return logEvent.EventType == CombatLogEventType.EffectResolved &&
-               logEvent.Metadata.TryGetValue("effect_type", out var effectType) &&
-               string.Equals(effectType, "chain_threshold_bonus", StringComparison.Ordinal) &&
-               logEvent.NumericChanges.TryGetValue("triggered", out var triggered) &&
-               triggered == 1;
+        return logEvent.EventType == CombatLogEventType.CardPlayed &&
+               logEvent.Metadata.TryGetValue("card_type", out var cardType) &&
+               string.Equals(cardType, "Action", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsEnchantedActionPlayed(CombatLogEvent logEvent)
+    {
+        return IsActionPlayed(logEvent) &&
+               logEvent.Metadata.TryGetValue("enchantment_color", out var color) &&
+               !string.IsNullOrWhiteSpace(color) &&
+               !string.Equals(color, "Colorless", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int PeakColorEnergy(CombatState combat)
+    {
+        return combat.Log
+            .SelectMany(item => item.NumericChanges)
+            .Where(item => item.Key.StartsWith("color_energy_", StringComparison.Ordinal) &&
+                           (item.Key.Contains("after", StringComparison.Ordinal) ||
+                            item.Key.Contains("before", StringComparison.Ordinal)))
+            .Select(item => item.Value)
+            .DefaultIfEmpty(0)
+            .Max();
+    }
+
+    private static Dictionary<string, int> ColorEnergyGeneratedByColor(CombatState combat)
+    {
+        var result = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var logEvent in combat.Log.Where(item =>
+                     item.EventType == CombatLogEventType.EffectResolved &&
+                     item.Metadata.TryGetValue("effect_type", out var effectType) &&
+                     string.Equals(effectType, "gain_color_energy", StringComparison.Ordinal)))
+        {
+            var color = logEvent.Metadata.TryGetValue("color", out var value) ? value : "Colorless";
+            result[color] = result.GetValueOrDefault(color) + (TryGetNumeric(logEvent, "color_energy_generated") ?? 0);
+        }
+
+        return result;
+    }
+
+    private static Dictionary<string, int> FinisherColorSpendByColor(CombatState combat)
+    {
+        var result = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var logEvent in combat.Log.Where(IsFinisherPlayed))
+        {
+            if (!logEvent.Metadata.TryGetValue("spent_colors", out var spentColors))
+            {
+                continue;
+            }
+
+            foreach (var color in spentColors.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                result[color] = result.GetValueOrDefault(color) + 1;
+            }
+        }
+
+        return result;
+    }
+
+    private static double CalculateEnchantmentUsageRate(IReadOnlyList<PlaytestCombatMetrics> combats)
+    {
+        var actionUses = combats.Sum(combat => combat.ActionUseCount);
+        if (actionUses <= 0)
+        {
+            return 0;
+        }
+
+        return combats.Sum(combat => combat.EnchantedActionUseCount) / (double)actionUses;
+    }
+
+    private static PlaytestBuildRouteMetrics BuildRouteMetrics(
+        RunState runState,
+        IReadOnlyList<PlaytestCombatMetrics> combats)
+    {
+        var enchantmentColors = runState.MasterDeckInstances
+            .Select(instance => instance.Enchantment?.Color.ToString())
+            .Where(color => !string.IsNullOrWhiteSpace(color))
+            .Cast<string>()
+            .ToList();
+        var spentColors = combats
+            .SelectMany(combat => combat.FinisherColorSpendByColor)
+            .SelectMany(item => Enumerable.Repeat(item.Key, item.Value))
+            .ToList();
+        var colors = enchantmentColors.Concat(spentColors).ToList();
+
+        return new PlaytestBuildRouteMetrics
+        {
+            BlueGreenHeavyCannonSignals = colors.Count(color => color is "Blue" or "Green"),
+            RedMechanicalCounterSignals = colors.Count(color => color == "Red"),
+            YellowPurpleBarrageSignals = colors.Count(color => color is "Yellow" or "Purple")
+        };
     }
 }

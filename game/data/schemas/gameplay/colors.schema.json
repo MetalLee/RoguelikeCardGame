@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "res://data/schemas/gameplay/colors.schema.json",
+  "title": "Sword Black Tower MVP Colors",
+  "type": "object",
+  "required": ["schema", "content_version", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "sword_black_tower.colors.v1" },
+    "content_version": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "role", "base_effect_template", "stack_rule", "tags"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^color\\.(red|yellow|blue|green|purple)$" },
+          "role": { "type": "string" },
+          "base_effect_template": { "type": "object" },
+          "stack_rule": {
+            "type": "object",
+            "required": ["mode", "max_per_card"],
+            "additionalProperties": false,
+            "properties": {
+              "mode": { "type": "string", "enum": ["additive", "capped_additive", "multiplier"] },
+              "max_per_card": { "type": "integer", "minimum": 1 }
+            }
+          },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

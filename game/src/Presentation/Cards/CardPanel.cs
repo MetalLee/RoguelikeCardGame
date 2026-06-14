@@ -1,7 +1,10 @@
 using Godot;
 using System.Text;
 using System.Text.RegularExpressions;
+using RoguelikeCardGame.Application.Battle;
 using RoguelikeCardGame.Domain.Cards;
+using RoguelikeCardGame.Domain.Colors;
+using RoguelikeCardGame.Domain.Combat;
 using RoguelikeCardGame.Infrastructure.Content;
 
 namespace RoguelikeCardGame.Presentation.Cards;
@@ -25,7 +28,9 @@ public static class CardPanel
 		Func<string, Texture2D?> loadTexture,
 		Func<string, Font?> loadFont,
 		float width,
-		bool dimmed = false)
+		bool dimmed = false,
+		CardEnchantment? enchantment = null,
+		CardPlayPreview? preview = null)
 	{
 		var displaySize = SizeForWidth(width);
 		var root = new Control
@@ -111,6 +116,8 @@ public static class CardPanel
 			60,
 			mediumFont,
 			heavyFont));
+
+		canvas.AddChild(CreateEnergyBadge(card, enchantment, preview, layout.MetaRect, mediumFont, heavyFont));
 
 		if (dimmed)
 		{
@@ -233,10 +240,9 @@ public static class CardPanel
 		var escaped = EscapeBbcode(text);
 		escaped = escaped
 			.Replace("行动牌", "[color=#8f1c16]行动牌[/color]", StringComparison.Ordinal)
-			.Replace("技能牌", "[color=#1f7188]技能牌[/color]", StringComparison.Ordinal)
 			.Replace("终结牌", "[color=#6b35a8]终结牌[/color]", StringComparison.Ordinal)
 			.Replace("行动点", "[color=#a06a12]行动点[/color]", StringComparison.Ordinal)
-			.Replace("连锁", "[color=#6b35a8]连锁[/color]", StringComparison.Ordinal)
+			.Replace("彩能", "[color=#6b35a8]彩能[/color]", StringComparison.Ordinal)
 			.Replace("防御", "[color=#247a90]防御[/color]", StringComparison.Ordinal)
 			.Replace("伤害", "[color=#a61f17]伤害[/color]", StringComparison.Ordinal)
 			.Replace("抽", "[color=#247a90]抽[/color]", StringComparison.Ordinal);
@@ -270,7 +276,15 @@ public static class CardPanel
 
 		if (card.Type == CardType.Finisher)
 		{
-			text = card.MinChain?.ToString() ?? "?";
+			text = card.ColorEnergyCost is null
+				? "?"
+				: card.ColorEnergyCost.Mode switch
+				{
+					ColorEnergySpendMode.Fixed => card.ColorEnergyCost.Amount.ToString(),
+					ColorEnergySpendMode.X => "X",
+					ColorEnergySpendMode.All => "全",
+					_ => "?"
+				};
 			return true;
 		}
 
@@ -285,24 +299,102 @@ public static class CardPanel
 				ArtRect: new Rect2(88, 236, 842, 717),
 				CostRect: new Rect2(82, 82, 142, 132),
 				NameRect: new Rect2(286, 100, 640, 120),
-				RulesRect: new Rect2(126, 1032, 772, 300)),
-			CardType.Skill => new CardLayout(
-				ArtRect: new Rect2(93, 257, 839, 710),
-				CostRect: new Rect2(),
-				NameRect: new Rect2(116, 105, 790, 125),
-				RulesRect: new Rect2(126, 1034, 772, 300)),
+				RulesRect: new Rect2(126, 1032, 772, 300),
+				MetaRect: new Rect2(126, 950, 772, 68)),
 			CardType.Finisher => new CardLayout(
 				ArtRect: new Rect2(91, 243, 842, 707),
 				CostRect: new Rect2(108, 88, 158, 138),
 				NameRect: new Rect2(310, 100, 592, 120),
-				RulesRect: new Rect2(126, 1034, 772, 300)),
+				RulesRect: new Rect2(126, 1034, 772, 300),
+				MetaRect: new Rect2(126, 952, 772, 68)),
 			_ => new CardLayout(
 				ArtRect: new Rect2(90, 244, 842, 710),
 				CostRect: new Rect2(),
 				NameRect: new Rect2(116, 86, 790, 112),
-				RulesRect: new Rect2(126, 1034, 772, 300))
+				RulesRect: new Rect2(126, 1034, 772, 300),
+				MetaRect: new Rect2(126, 952, 772, 68))
 		};
 	}
 
-	private readonly record struct CardLayout(Rect2 ArtRect, Rect2 CostRect, Rect2 NameRect, Rect2 RulesRect);
+	private static Control CreateEnergyBadge(CardDefinition card, CardEnchantment? enchantment, CardPlayPreview? preview, Rect2 rect, Font? mediumFont, Font? heavyFont)
+	{
+		var panel = new PanelContainer
+		{
+			Position = rect.Position,
+			Size = rect.Size,
+			CustomMinimumSize = rect.Size,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		var badgeColor = card.Type == CardType.Action
+			? ColorForEnergy(enchantment?.Color ?? ColorType.Colorless)
+			: new Color(0.56f, 0.34f, 0.76f, 0.82f);
+		panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+		{
+			BgColor = new Color(badgeColor.R, badgeColor.G, badgeColor.B, 0.28f),
+			BorderColor = new Color(badgeColor.R, badgeColor.G, badgeColor.B, 0.80f),
+			BorderWidthLeft = 2,
+			BorderWidthRight = 2,
+			BorderWidthTop = 2,
+			BorderWidthBottom = 2,
+			CornerRadiusBottomLeft = 6,
+			CornerRadiusBottomRight = 6,
+			CornerRadiusTopLeft = 6,
+			CornerRadiusTopRight = 6,
+			ContentMarginLeft = 10,
+			ContentMarginRight = 10,
+			ContentMarginTop = 4,
+			ContentMarginBottom = 4
+		});
+
+		var text = card.Type == CardType.Action
+			? $"附魔 {ColorName(enchantment?.Color ?? ColorType.Colorless)} / 生成 {preview?.GeneratedColorEnergyAmount ?? card.ColorEnergyGeneration?.Amount ?? 0} {ColorName(preview?.GeneratedColorEnergyColor ?? enchantment?.Color ?? ColorType.Colorless)}彩能"
+			: $"消耗 {FinisherCostText(card)} 彩能 / 当前可消耗 {preview?.ColorEnergyCost ?? 0}";
+		var label = CreateImpactLabel(text, new Rect2(Vector2.Zero, rect.Size), 35, InkText, 2, mediumFont ?? heavyFont);
+		panel.AddChild(label);
+		return panel;
+	}
+
+	private static string FinisherCostText(CardDefinition card)
+	{
+		if (card.ColorEnergyCost is null)
+		{
+			return "?";
+		}
+
+		return card.ColorEnergyCost.Mode switch
+		{
+			ColorEnergySpendMode.Fixed => card.ColorEnergyCost.Amount.ToString(),
+			ColorEnergySpendMode.X => $"X 至少 {card.ColorEnergyCost.MinAmount}",
+			ColorEnergySpendMode.All => $"全部 至少 {card.ColorEnergyCost.MinAmount}",
+			_ => "?"
+		};
+	}
+
+	private static Color ColorForEnergy(ColorType color)
+	{
+		return color switch
+		{
+			ColorType.Red => new Color(0.78f, 0.13f, 0.10f),
+			ColorType.Yellow => new Color(0.94f, 0.70f, 0.12f),
+			ColorType.Blue => new Color(0.15f, 0.42f, 0.86f),
+			ColorType.Green => new Color(0.20f, 0.62f, 0.28f),
+			ColorType.Purple => new Color(0.55f, 0.22f, 0.82f),
+			_ => new Color(0.64f, 0.58f, 0.48f)
+		};
+	}
+
+	private static string ColorName(ColorType color)
+	{
+		return color switch
+		{
+			ColorType.Red => "红色",
+			ColorType.Yellow => "黄色",
+			ColorType.Blue => "蓝色",
+			ColorType.Green => "绿色",
+			ColorType.Purple => "紫色",
+			_ => "无色"
+		};
+	}
+
+	private readonly record struct CardLayout(Rect2 ArtRect, Rect2 CostRect, Rect2 NameRect, Rect2 RulesRect, Rect2 MetaRect);
 }

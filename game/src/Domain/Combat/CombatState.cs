@@ -67,6 +67,9 @@ public sealed record CombatState
     [JsonPropertyName("chain")]
     public int Chain { get; init; }
 
+    [JsonPropertyName("color_energy")]
+    public ColorEnergyPool ColorEnergy { get; init; } = ColorEnergyPool.Empty();
+
     [JsonPropertyName("deck_zones")]
     public DeckZones DeckZones { get; init; } = new();
 

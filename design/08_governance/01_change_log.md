@@ -17,6 +17,9 @@
 
 ### 2026-06-14
 
+- 将 `game/data/gameplay_v2/` 的武器、色彩、卡牌和武器卡池数据转正合并到 `game/data/gameplay/`；运行时代码与数据校验器不再读取 `gameplay_v2`，旧卡牌包奖励数据从正式 gameplay 数据中移除，`card_pack_ids` 仅作为空兼容字段保留。
+- 清理新版 MVP 主流程中的旧连锁 / 技能牌 / 卡牌包残留：`GameContent` 正式以 `gameplay/` 下的武器、色彩、卡牌和卡池作为运行时卡牌入口，不再合并旧原型卡牌；`RewardService` 主 API 收束为色彩碎片附魔 + 武器卡三选一；Debug / Metrics 改为彩能峰值、颜色构成、终结牌颜色消费、附魔使用率和三条早期构筑路线统计。旧卡牌包与连锁原型数据不再作为正式 gameplay 数据共存。
+- 删除设计文档中旧阴暗厚重视觉描述，统一改为黑白手绘漫画线稿、明亮纸张、清晰墨线和克制机制色的视觉约束。
 - 补充通用色彩附魔机制，明确色彩不是职业标签，而是卡牌用途的改写器；所有颜色可以增强所有卡牌，而不是只服务固定牌型。同步更新 [[design/01_core_gameplay/03_card_system|卡牌系统]] 与 [[design/01_core_gameplay/04_resource_economy|资源与经济]]。
 - 将左轮剑和机械臂卡池扩展为合计 20 个独立设计，并补充 MVP 初始池与奖励池建议。同步更新 [[design/01_core_gameplay/03_card_system|卡牌系统]]。
 - 补充 3 种 MVP 构筑原型：蓝绿重炮流、红色机械防反流、黄紫弹幕调色流。同步更新 [[design/02_content_systems/01_characters_and_archetypes|角色与构筑原型]]。
@@ -27,6 +30,13 @@
 - 根据开发者补充确认，黄色附魔效果收束为“增加卡牌释放次数”，不提供抽牌、返还行动点或回能量；同步修正黄紫构筑、资源经济、平衡原则、音频反馈和术语表。
 - 根据开发者补充确认，设计文档中战斗对手的正式通称统一为“魔物”，取代旧“恶魔”相关设定；系统实现和数据 ID 可继续使用 `enemy` 命名空间，但玩家可见文本、世界观语境、视觉方向和内容设计优先使用“魔物”。
 - 根据 `design/03_experience/assets/` 下现有角色、魔物、Boss、背景和特效资源，锁定第一版 MVP 占位美术为黑白手绘漫画线稿风格；后续通过 `gpt-image-2` 生成的 MVP 占位资源必须以这些参考图为最高准则。同步更新 [[design/03_experience/01_visual_direction|视觉方向]]、[[design/03_experience/00_ui_ux|界面与交互]]、[[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]，并新增 [[design/08_governance/2026-06-14_mvp_placeholder_art_style_lock|锁定 MVP 占位美术风格参考]] 决策记录。
+- 在 `game/data/gameplay_v2/` 建立《剑与黑塔》新版武器、色彩、卡牌和武器卡池目标数据轨道，并扩展数据校验器，将旧 `gameplay/` 连锁 / 技能牌原型标记为历史兼容数据，避免与新版彩能 / 色彩 / 武器卡池设计混淆。关联 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]] 与 [[design/08_governance/2026-06-13_sword_black_tower_color_energy_core|彩能、色彩与武器卡池核心]]。
+- 在规则层新增武器、五色、彩能槽、彩能池、卡牌实例和附魔模型，并让 `CardDefinition`、`CombatState` 与 `RunState` 能表达《剑与黑塔》的主副武器、行动牌彩能生成、行动牌附魔和终结牌彩能消耗；旧 `Chain` 字段暂作为历史出牌结算兼容层保留，后续服务迁移到彩能结算。关联 [[design/06_technical_production/00_technical_requirements|技术需求]] 与 [[design/01_core_gameplay/03_card_system|卡牌系统]]。
+- 将 `CardPlayService` 的实际出牌结算从旧连锁迁移为彩能 / 色彩系统：行动牌生成附魔色彩能，终结牌按彩能消耗结算逐色追加，3 / 5 / 8 阈值不再参与规则层出牌判断；同步更新规则测试覆盖五色 MVP 边界。
+- 将新版 MVP 左轮剑 / 机械臂 20 张独立卡牌录入 `game/data/gameplay_v2/`，并按武器配置 8 张起始池与按稀有度组织的奖励池；旧连锁原型卡仍保留在历史 `gameplay/` 数据中，但不进入新版 MVP 卡池。
+- 接入新版 MVP 开局流程：开始游戏后先选择主手 / 副手武器，再从主手起始池 8 选 6、副手起始池 8 选 4 创建 10 张 `CardInstance` 初始卡组；固定 `starter_deck` 仅作为旧数据 / 调试兼容入口保留，不再驱动新版 MVP 开局。
+- 将正式战后奖励流程从旧行动 / 技能 / 终结卡牌包替换为“随机色彩碎片 + 武器卡三选一”：色彩碎片进入 `RunState.PendingColorShards`，应用后写入目标 `CardInstance.Enchantment`；武器卡奖励每次必须选择 1 张并作为新实例加入牌组。
+- 将战斗表现层从旧连锁 UI 迁移到彩能 / 色彩预览：HUD 使用 6 格彩能槽显示颜色构成，手牌 tooltip 和卡面标记展示附魔、彩能生成、终结牌消耗与逐色追加预估，战斗日志补充彩能获得 / 消耗、黄色额外释放和紫色放大提示；旧连锁阈值资源不再作为 active UI 核心反馈。
 
 ### 2026-06-13
 

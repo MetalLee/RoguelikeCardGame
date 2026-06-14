@@ -1,7 +1,9 @@
 using Godot;
 using RoguelikeCardGame.Application.Battle;
 using RoguelikeCardGame.Domain.Cards;
+using RoguelikeCardGame.Domain.Colors;
 using RoguelikeCardGame.Domain.Combat;
+using RoguelikeCardGame.Domain.Runs;
 using RoguelikeCardGame.Infrastructure.Content;
 using RoguelikeCardGame.Presentation.Cards;
 
@@ -14,6 +16,7 @@ public sealed partial class BattleHandView : Control
     private readonly Dictionary<int, HandCardInteraction> handCardsByIndex = new();
 
     private CombatState? combat;
+    private RunState? run;
     private GameContent? content;
     private CardPlayService? cardPlayService;
     private BattleTargetingOverlay? targetingOverlay;
@@ -28,6 +31,7 @@ public sealed partial class BattleHandView : Control
 
     public void Render(
         CombatState combatState,
+        RunState runState,
         GameContent gameContent,
         CardPlayService playService,
         BattleTargetingOverlay targeting,
@@ -35,6 +39,7 @@ public sealed partial class BattleHandView : Control
         Func<string, Font?> fontLoader)
     {
         combat = combatState;
+        run = runState;
         content = gameContent;
         cardPlayService = playService;
         targetingOverlay = targeting;
@@ -131,7 +136,9 @@ public sealed partial class BattleHandView : Control
     {
         var card = RequireContent().CardsById[cardId];
         var canPlay = PreviewCanPlayCard(card, handIndex);
-        var panel = CardPanel.Create(card, RequireContent(), RequireTextureLoader(), RequireFontLoader(), width: 220, dimmed: !canPlay.Succeeded);
+        var enchantment = ResolveEnchantmentForCard(card.Id);
+        var preview = RequireCardPlayService().PreviewCard(RequireCombat(), card, null, enchantment);
+        var panel = CardPanel.Create(card, RequireContent(), RequireTextureLoader(), RequireFontLoader(), width: 220, dimmed: !canPlay.Succeeded, enchantment: enchantment, preview: preview);
         panel.MouseFilter = MouseFilterEnum.Ignore;
         return panel;
     }
@@ -140,13 +147,9 @@ public sealed partial class BattleHandView : Control
     {
         var card = RequireContent().CardsById[cardId];
         var canPlay = PreviewCanPlayCard(card, handIndex);
-        var typeText = card.Type switch
-        {
-            CardType.Action => $"行动牌 / {card.Cost} 费 / +1 连锁",
-            CardType.Skill => "技能牌 / 0 费",
-            CardType.Finisher => $"终结牌 / 需 {card.MinChain} 连锁",
-            _ => card.Type.ToString()
-        };
+        var enchantment = ResolveEnchantmentForCard(card.Id);
+        var preview = RequireCardPlayService().PreviewCard(RequireCombat(), card, card.TargetRule == TargetRule.SingleEnemy ? RequireCombat().Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId : null, enchantment);
+        var typeText = BuildCardTooltip(card, preview, canPlay);
         var interaction = new HandCardInteraction(
             panel,
             cardId,
@@ -184,7 +187,93 @@ public sealed partial class BattleHandView : Control
         var previewTarget = card.TargetRule == TargetRule.SingleEnemy
             ? activeCombat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId
             : null;
-        return RequireCardPlayService().CanPlayCard(activeCombat, card, previewTarget, handIndex);
+        return RequireCardPlayService().CanPlayCard(activeCombat, card, previewTarget, handIndex, ResolveEnchantmentForCard(card.Id));
+    }
+
+    private static string ColorEnergyCostText(CardDefinition card)
+    {
+        if (card.ColorEnergyCost is null)
+        {
+            return "?";
+        }
+
+        return card.ColorEnergyCost.Mode switch
+        {
+            ColorEnergySpendMode.Fixed => card.ColorEnergyCost.Amount.ToString(),
+            ColorEnergySpendMode.X => $"X，至少 {card.ColorEnergyCost.MinAmount}",
+            ColorEnergySpendMode.All => $"全部，至少 {card.ColorEnergyCost.MinAmount}",
+            _ => "?"
+        };
+    }
+
+    private string BuildCardTooltip(CardDefinition card, CardPlayPreview preview, PlayCardResult canPlay)
+    {
+        var builder = new List<string>();
+        if (card.Type == CardType.Action)
+        {
+            builder.Add($"行动牌 / {card.Cost} 费");
+            builder.Add($"附魔：{ColorName(preview.EnchantmentColor ?? ColorType.Colorless)}");
+            builder.Add($"生成：{preview.GeneratedColorEnergyAmount} 点 {ColorName(preview.GeneratedColorEnergyColor)}彩能");
+            var colorLines = preview.ColorEffects.Count == 0
+                ? "颜色追加：无"
+                : "颜色追加：" + string.Join("，", preview.ColorEffects.Select(ColorEffectText));
+            builder.Add(colorLines);
+        }
+        else
+        {
+            builder.Add($"终结牌 / 需 {ColorEnergyCostText(card)} 彩能");
+            builder.Add($"将消耗：{preview.ColorEnergyCost} 点");
+            builder.Add(preview.ConsumedColors.Count == 0
+                ? "颜色构成：无"
+                : "颜色构成：" + string.Join(" / ", preview.ConsumedColors.Select(ColorName)));
+            builder.Add("基础效果：" + string.Join("，", preview.BaseEffects.Select(effect => $"{effect.EffectType} {effect.Value}")));
+            builder.Add(preview.ColorEffects.Count == 0
+                ? "逐色追加：无"
+                : "逐色追加：" + string.Join("；", preview.ColorEffects.Select(ColorEffectText)));
+            builder.Add($"预估：伤害 {preview.EstimatedDamage} / 防御 {preview.EstimatedBlock} / 回复 {preview.EstimatedHealing} / 额外释放 {preview.EstimatedExtraCasts}");
+        }
+
+        if (!canPlay.Succeeded)
+        {
+            builder.Add(BattleScreen.FailureText(canPlay));
+        }
+
+        return string.Join("\n", builder);
+    }
+
+    private CardEnchantment? ResolveEnchantmentForCard(string cardId)
+    {
+        return run?.MasterDeckInstances
+            .FirstOrDefault(instance =>
+                string.Equals(instance.DefinitionId, cardId, StringComparison.Ordinal) &&
+                instance.Enchantment is not null)
+            ?.Enchantment;
+    }
+
+    private static string ColorEffectText(ColorEffectPreview effect)
+    {
+        return effect.EffectType switch
+        {
+            "red_damage_bonus" => $"{ColorName(effect.Color)} +{effect.Value} 伤害",
+            "extra_casts" => $"{ColorName(effect.Color)} +{effect.Value} 次释放",
+            "gain_block" => $"{ColorName(effect.Color)} +{effect.Value} 防御",
+            "heal" => $"{ColorName(effect.Color)} 回复 {effect.Value}",
+            "double_final_value" => $"{ColorName(effect.Color)} 放大 {effect.Value} 次",
+            _ => $"{ColorName(effect.Color)} {effect.EffectType} {effect.Value}"
+        };
+    }
+
+    private static string ColorName(ColorType color)
+    {
+        return color switch
+        {
+            ColorType.Red => "红色",
+            ColorType.Yellow => "黄色",
+            ColorType.Blue => "蓝色",
+            ColorType.Green => "绿色",
+            ColorType.Purple => "紫色",
+            _ => "无色"
+        };
     }
 
     private void OnCardGuiInput(HandCardInteraction card, InputEvent input)
@@ -267,7 +356,7 @@ public sealed partial class BattleHandView : Control
 
             RequireTargetingOverlay().UpdateEnemyHighlights(hoveredEnemy);
             var canPlay = hoveredEnemy is not null &&
-                RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, hoveredEnemy, card.HandIndex).Succeeded;
+                RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, hoveredEnemy, card.HandIndex, ResolveEnchantmentForCard(card.CardId)).Succeeded;
             SetValidTargetMask(card, canPlay);
             RequireTargetingOverlay().ShowArrowFromViewport(CurrentCardAnchorInViewport(card), viewportMouse, canPlay);
             return;
@@ -283,7 +372,7 @@ public sealed partial class BattleHandView : Control
         RequireTargetingOverlay().HideArrow();
         RequireTargetingOverlay().UpdateEnemyHighlights(null);
         var overReleaseZone = RequireTargetingOverlay().IsPointerOverReleaseZone(viewportMouse);
-        var canReleasePlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, null, card.HandIndex).Succeeded;
+        var canReleasePlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, null, card.HandIndex, ResolveEnchantmentForCard(card.CardId)).Succeeded;
         RequireTargetingOverlay().HideReleaseZone();
         SetValidTargetMask(card, overReleaseZone && canReleasePlay);
     }
@@ -304,12 +393,12 @@ public sealed partial class BattleHandView : Control
         if (card.Card.TargetRule == TargetRule.SingleEnemy)
         {
             targetEnemyId = RequireTargetingOverlay().EnemyUnderMouse(RequireCombat().Enemies, viewportMouse);
-            canPlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, targetEnemyId, card.HandIndex);
+            canPlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, targetEnemyId, card.HandIndex, ResolveEnchantmentForCard(card.CardId));
             shouldRequest = targetEnemyId is not null && canPlay.Succeeded;
             if (!shouldRequest)
             {
                 var feedback = canPlay.FailureReason == PlayCardFailureReason.TargetMissing
-                    ? "需要将箭头指向一个敌人目标"
+                    ? "需要将箭头指向一个魔物目标"
                     : BattleScreen.FailureText(canPlay);
                 FeedbackRequested?.Invoke(feedback);
             }
@@ -317,7 +406,7 @@ public sealed partial class BattleHandView : Control
         else
         {
             var overReleaseZone = RequireTargetingOverlay().IsPointerOverReleaseZone(viewportMouse);
-            canPlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, null, card.HandIndex);
+            canPlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, null, card.HandIndex, ResolveEnchantmentForCard(card.CardId));
             shouldRequest = overReleaseZone && canPlay.Succeeded;
             if (overReleaseZone && !canPlay.Succeeded)
             {
@@ -374,6 +463,11 @@ public sealed partial class BattleHandView : Control
     private CombatState RequireCombat()
     {
         return combat ?? throw new InvalidOperationException("BattleHandView requires an active combat state.");
+    }
+
+    private RunState RequireRun()
+    {
+        return run ?? throw new InvalidOperationException("BattleHandView requires an active run state.");
     }
 
     private GameContent RequireContent()

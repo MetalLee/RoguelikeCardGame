@@ -5,6 +5,7 @@ using RoguelikeCardGame.Application.Debug;
 using RoguelikeCardGame.Application.Rewards;
 using RoguelikeCardGame.Application.Runs;
 using RoguelikeCardGame.Domain.Cards;
+using RoguelikeCardGame.Domain.Colors;
 using RoguelikeCardGame.Domain.Combat;
 using RoguelikeCardGame.Domain.Effects;
 using RoguelikeCardGame.Domain.Enemies;
@@ -23,9 +24,11 @@ options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLow
 var strike = new CardDefinition
 {
     Id = "card.basic_strike",
+    WeaponId = "weapon.revolver_sword",
     Type = CardType.Action,
     Cost = 1,
     DefaultChainChange = ChainChange.Gain(1),
+    ColorEnergyGeneration = new ColorEnergyGeneration { Amount = 1, ColorSource = ColorEnergyColorSource.Enchantment },
     TargetRule = TargetRule.SingleEnemy,
     Effects = [new EffectDefinition { Type = "damage", Target = "selected_enemy", Value = 6 }],
     Rarity = CardRarity.Starter,
@@ -36,22 +39,26 @@ var strike = new CardDefinition
 var finisher = new CardDefinition
 {
     Id = "card.burst_finish",
+    WeaponId = "weapon.revolver_sword",
     Type = CardType.Finisher,
     Cost = 0,
     MinChain = 3,
     DefaultChainChange = ChainChange.ConsumeAll,
+    ColorEnergyCost = new ColorEnergyCost { Mode = ColorEnergySpendMode.Fixed, Amount = 3, MinAmount = 3 },
     TargetRule = TargetRule.SingleEnemy,
     Effects = [new EffectDefinition { Type = "damage", Target = "selected_enemy", Value = 18 }],
     Rarity = CardRarity.Starter,
     Tags = ["starter", "finisher"]
 };
 
-var guardSkill = new CardDefinition
+var guardAction = new CardDefinition
 {
     Id = "card.basic_guard",
-    Type = CardType.Skill,
+    WeaponId = "weapon.mechanical_arm",
+    Type = CardType.Action,
     Cost = 0,
     DefaultChainChange = ChainChange.None,
+    ColorEnergyGeneration = new ColorEnergyGeneration { Amount = 1, ColorSource = ColorEnergyColorSource.Enchantment },
     TargetRule = TargetRule.Self,
     Effects =
     [
@@ -62,37 +69,43 @@ var guardSkill = new CardDefinition
     Tags = ["starter", "defense"]
 };
 
-var drawSkill = new CardDefinition
+var drawAction = new CardDefinition
 {
     Id = "card.focus_draw",
-    Type = CardType.Skill,
+    WeaponId = "weapon.mechanical_arm",
+    Type = CardType.Action,
     Cost = 0,
     DefaultChainChange = ChainChange.None,
+    ColorEnergyGeneration = new ColorEnergyGeneration { Amount = 1, ColorSource = ColorEnergyColorSource.Enchantment },
     TargetRule = TargetRule.Self,
     Effects = [new EffectDefinition { Type = "draw_cards", Target = "self", Value = 1 }],
     Rarity = CardRarity.Common,
-    Tags = ["skill", "draw"]
+    Tags = ["action", "draw"]
 };
 
-var discountSkill = new CardDefinition
+var discountAction = new CardDefinition
 {
     Id = "card.setup_discount",
-    Type = CardType.Skill,
+    WeaponId = "weapon.mechanical_arm",
+    Type = CardType.Action,
     Cost = 0,
     DefaultChainChange = ChainChange.None,
+    ColorEnergyGeneration = new ColorEnergyGeneration { Amount = 1, ColorSource = ColorEnergyColorSource.Enchantment },
     TargetRule = TargetRule.Self,
     Effects = [new EffectDefinition { Type = "temporary_discount", Target = "hand", Value = 1 }],
     Rarity = CardRarity.Common,
-    Tags = ["skill", "discount"]
+    Tags = ["action", "discount"]
 };
 
 var arcSweepFinisher = new CardDefinition
 {
     Id = "card.arc_sweep_finish",
+    WeaponId = "weapon.mechanical_arm",
     Type = CardType.Finisher,
     Cost = 0,
     MinChain = 3,
     DefaultChainChange = ChainChange.ConsumeAll,
+    ColorEnergyCost = new ColorEnergyCost { Mode = ColorEnergySpendMode.Fixed, Amount = 3, MinAmount = 3 },
     TargetRule = TargetRule.AllEnemies,
     Effects = [new EffectDefinition { Type = "damage", Target = "all_enemies", Value = 4 }],
     Rarity = CardRarity.Common,
@@ -102,10 +115,12 @@ var arcSweepFinisher = new CardDefinition
 var refundFinisher = new CardDefinition
 {
     Id = "card.refund_finish",
+    WeaponId = "weapon.revolver_sword",
     Type = CardType.Finisher,
     Cost = 0,
     MinChain = 5,
     DefaultChainChange = ChainChange.ConsumeAll,
+    ColorEnergyCost = new ColorEnergyCost { Mode = ColorEnergySpendMode.Fixed, Amount = 3, MinAmount = 3 },
     TargetRule = TargetRule.SingleEnemy,
     Effects =
     [
@@ -118,7 +133,7 @@ var refundFinisher = new CardDefinition
 
 var relic = new RelicDefinition
 {
-    Id = "relic.mvp_chain_spark",
+    Id = "relic.mvp_color_spark",
     Rarity = RelicRarity.Common,
     Trigger = "first_action_card_each_turn",
     Conditions = [new RelicConditionDefinition { Type = "combat_turn", Value = "player_turn" }],
@@ -171,44 +186,11 @@ var encounter = new EncounterDefinition
     Enemies = [new EncounterEnemyDefinition { InstanceId = "enemy_01", EnemyId = enemy.Id }],
     RewardProfile = new EncounterRewardProfileDefinition
     {
-        CardPackIds = ["reward_pack.mvp.action", "reward_pack.mvp.skill", "reward_pack.mvp.finisher"],
+        CardPackIds = [],
         RelicId = null
     },
     TeachingGoalKey = "encounter.mvp.normal_01.goal",
     DifficultyNote = "Smoke test encounter."
-};
-
-var rewardPack = new RewardPackDefinition
-{
-    Id = "reward_pack.mvp.action",
-    PackType = CardType.Action,
-    CandidateIds = [strike.Id, "card.quick_jab", "card.heavy_strike"],
-    MinPick = 0,
-    MaxPick = 3,
-    GuaranteeRule = "fixed_three_candidates",
-    RepeatRule = RewardRepeatRule.Repeatable
-};
-
-var skillRewardPack = new RewardPackDefinition
-{
-    Id = "reward_pack.mvp.skill",
-    PackType = CardType.Skill,
-    CandidateIds = [guardSkill.Id, drawSkill.Id, discountSkill.Id],
-    MinPick = 0,
-    MaxPick = 3,
-    GuaranteeRule = "fixed_three_candidates",
-    RepeatRule = RewardRepeatRule.Repeatable
-};
-
-var finisherRewardPack = new RewardPackDefinition
-{
-    Id = "reward_pack.mvp.finisher",
-    PackType = CardType.Finisher,
-    CandidateIds = [arcSweepFinisher.Id, refundFinisher.Id, finisher.Id],
-    MinPick = 0,
-    MaxPick = 3,
-    GuaranteeRule = "fixed_three_candidates_with_aoe_finisher",
-    RepeatRule = RewardRepeatRule.Repeatable
 };
 
 var eliteEncounter = new EncounterDefinition
@@ -218,7 +200,7 @@ var eliteEncounter = new EncounterDefinition
     Enemies = [new EncounterEnemyDefinition { InstanceId = "enemy_01", EnemyId = sequenceEnemy.Id }],
     RewardProfile = new EncounterRewardProfileDefinition
     {
-        CardPackIds = ["reward_pack.mvp.action", "reward_pack.mvp.skill", "reward_pack.mvp.finisher"],
+        CardPackIds = [],
         RelicId = relic.Id
     },
     TeachingGoalKey = "encounter.mvp.elite_01.goal",
@@ -245,13 +227,6 @@ var enemiesById = new Dictionary<string, EnemyDefinition>
     [sequenceEnemy.Id] = sequenceEnemy
 };
 
-var rewardPacksById = new Dictionary<string, RewardPackDefinition>
-{
-    [rewardPack.Id] = rewardPack,
-    [skillRewardPack.Id] = skillRewardPack,
-    [finisherRewardPack.Id] = finisherRewardPack
-};
-
 var relicsById = new Dictionary<string, RelicDefinition>
 {
     [relic.Id] = relic
@@ -260,7 +235,8 @@ var relicsById = new Dictionary<string, RelicDefinition>
 var serializedCard = JsonSerializer.Serialize(strike, options);
 var deserializedCard = JsonSerializer.Deserialize<CardDefinition>(serializedCard, options);
 AssertEqual(strike.Id, deserializedCard?.Id, "CardDefinition serializes and deserializes");
-AssertEqual(ChainChangeMode.FixedDelta, deserializedCard?.DefaultChainChange.Mode, "CardDefinition keeps chain change mode");
+AssertEqual(strike.WeaponId, deserializedCard?.WeaponId, "CardDefinition keeps weapon ownership");
+AssertEqual(1, deserializedCard?.ColorEnergyGeneration?.Amount, "CardDefinition keeps action color energy generation");
 AssertEqual(strike.VfxAsset, deserializedCard?.VfxAsset, "CardDefinition keeps card VFX asset");
 
 var runFactory = new RunStateFactory();
@@ -271,12 +247,163 @@ var run = runFactory.CreateNewRun(
     baseActionPoints: 3,
     cardsPerTurn: 5,
     starterDeck: [strike.Id, strike.Id, strike.Id, strike.Id, finisher.Id],
-    encounterSequence: [encounter.Id, eliteEncounter.Id, bossEncounter.Id]);
+    encounterSequence: [encounter.Id, eliteEncounter.Id, bossEncounter.Id],
+    mainHandWeaponId: "weapon.revolver_sword",
+    offHandWeaponId: "weapon.mechanical_arm");
 
 AssertEqual(RunStatus.InProgress, run.Status, "RunStateFactory starts run in progress");
 AssertEqual(60, run.PlayerHp, "RunStateFactory starts at full HP");
 AssertEqual(5, run.MasterDeck.Count, "RunStateFactory copies starter deck");
+AssertEqual(5, run.MasterDeckInstances.Count, "RunStateFactory creates card instances for the master deck");
 AssertEqual(12345, run.Seed, "RunStateFactory records the run seed");
+AssertEqual("weapon.revolver_sword", run.MainHandWeaponId, "RunState records main-hand weapon");
+AssertEqual("weapon.mechanical_arm", run.OffHandWeaponId, "RunState records off-hand weapon");
+
+var enchantedRun = runFactory.EnchantCard(run, run.MasterDeckInstances[0].InstanceId, ColorType.Blue);
+var blueEnchantedStrike = enchantedRun.MasterDeckInstances[0];
+AssertEqual(ColorType.Blue, blueEnchantedStrike.Enchantment?.Color, "CardInstance records blue enchantment");
+AssertEqual(1, enchantedRun.CardEnchantments.Count, "RunState exposes card enchantment state");
+var generatedColor = strike.ColorEnergyGeneration?.ResolveColor(blueEnchantedStrike.Enchantment);
+AssertEqual(ColorType.Blue, generatedColor, "Enchanted action card can theoretically generate blue color energy");
+var blueEnergyPool = ColorEnergyPool.Empty().Add(generatedColor ?? ColorType.Colorless, strike.ColorEnergyGeneration?.Amount ?? 0);
+AssertEqual(1, blueEnergyPool.Count, "ColorEnergyPool accepts generated color energy");
+AssertEqual(ColorType.Blue, blueEnergyPool.Slots[0].Color, "Generated color energy keeps blue color");
+Assert(finisher.ColorEnergyCost is { Mode: ColorEnergySpendMode.Fixed, Amount: 3, MinAmount: 3 }, "Finisher can define fixed 3 color energy cost");
+var serializedRun = JsonSerializer.Serialize(enchantedRun, options);
+var deserializedRun = JsonSerializer.Deserialize<RunState>(serializedRun, options);
+AssertEqual(ColorType.Blue, deserializedRun?.MasterDeckInstances[0].Enchantment?.Color, "RunState serializes card instance enchantment");
+
+var startingDeckSelectionService = new StartingDeckSelectionService();
+var revolverStartingPool = new WeaponStartingPoolDefinition
+{
+    WeaponId = "weapon.revolver_sword",
+    CardIds =
+    [
+        "card.revolver_slash",
+        "card.revolver_slash",
+        "card.revolver_slash",
+        "card.revolver_double_slash",
+        "card.revolver_quick_thrust",
+        "card.revolver_reload_slash",
+        "card.revolver_heavy_cannon",
+        "card.revolver_bullet_storm"
+    ]
+};
+var armStartingPool = new WeaponStartingPoolDefinition
+{
+    WeaponId = "weapon.mechanical_arm",
+    CardIds =
+    [
+        "card.arm_guard",
+        "card.arm_guard",
+        "card.arm_guard",
+        "card.arm_bind",
+        "card.arm_crush",
+        "card.arm_shock_palm",
+        "card.arm_counter",
+        "card.arm_army_sweep"
+    ]
+};
+var startingPools = new[] { revolverStartingPool, armStartingPool };
+var revolverMainSelection = new StartingDeckSelection
+{
+    MainHandWeaponId = revolverStartingPool.WeaponId,
+    OffHandWeaponId = armStartingPool.WeaponId,
+    MainHandCardIds =
+    [
+        "card.revolver_slash",
+        "card.revolver_slash",
+        "card.revolver_double_slash",
+        "card.revolver_quick_thrust",
+        "card.revolver_reload_slash",
+        "card.revolver_heavy_cannon"
+    ],
+    OffHandCardIds =
+    [
+        "card.arm_guard",
+        "card.arm_guard",
+        "card.arm_bind",
+        "card.arm_counter"
+    ]
+};
+var revolverMainValidation = startingDeckSelectionService.Validate(revolverMainSelection, startingPools);
+Assert(revolverMainValidation.IsValid, "Revolver sword main-hand 6 plus mechanical arm off-hand 4 is a valid start");
+AssertEqual(10, revolverMainValidation.SelectedCardIds.Count, "Starting deck selection creates a 10-card starter deck");
+var revolverMainRun = runFactory.CreateNewRunFromWeaponSelection(
+    "run_revolver_main",
+    22222,
+    60,
+    3,
+    5,
+    revolverMainSelection.MainHandWeaponId,
+    revolverMainSelection.OffHandWeaponId,
+    revolverMainValidation.SelectedCardIds,
+    [encounter.Id]);
+AssertEqual("weapon.revolver_sword", revolverMainRun.MainHandWeaponId, "Run can start with revolver sword as main hand");
+AssertEqual("weapon.mechanical_arm", revolverMainRun.OffHandWeaponId, "Run can start with mechanical arm as off hand");
+AssertEqual(10, revolverMainRun.MasterDeckInstances.Count, "Weapon-selected run creates card instances for all starter cards");
+
+var armMainSelection = new StartingDeckSelection
+{
+    MainHandWeaponId = armStartingPool.WeaponId,
+    OffHandWeaponId = revolverStartingPool.WeaponId,
+    MainHandCardIds =
+    [
+        "card.arm_guard",
+        "card.arm_guard",
+        "card.arm_bind",
+        "card.arm_crush",
+        "card.arm_shock_palm",
+        "card.arm_counter"
+    ],
+    OffHandCardIds =
+    [
+        "card.revolver_slash",
+        "card.revolver_double_slash",
+        "card.revolver_quick_thrust",
+        "card.revolver_heavy_cannon"
+    ]
+};
+var armMainValidation = startingDeckSelectionService.Validate(armMainSelection, startingPools);
+Assert(armMainValidation.IsValid, "Mechanical arm main-hand 6 plus revolver sword off-hand 4 is a valid start");
+var armMainRun = runFactory.CreateNewRunFromWeaponSelection(
+    "run_arm_main",
+    22223,
+    60,
+    3,
+    5,
+    armMainSelection.MainHandWeaponId,
+    armMainSelection.OffHandWeaponId,
+    armMainValidation.SelectedCardIds,
+    [encounter.Id]);
+AssertEqual("weapon.mechanical_arm", armMainRun.MainHandWeaponId, "Run can start with mechanical arm as main hand");
+AssertEqual("weapon.revolver_sword", armMainRun.OffHandWeaponId, "Run can start with revolver sword as off hand");
+
+var underPicked = startingDeckSelectionService.Validate(revolverMainSelection with
+{
+    MainHandCardIds = revolverMainSelection.MainHandCardIds.Take(5).ToList()
+}, startingPools);
+Assert(!underPicked.IsValid, "Under-picking main-hand starting cards cannot start a run");
+
+var overPicked = startingDeckSelectionService.Validate(revolverMainSelection with
+{
+    OffHandCardIds = revolverMainSelection.OffHandCardIds.Concat(["card.arm_shock_palm"]).ToList()
+}, startingPools);
+Assert(!overPicked.IsValid, "Over-picking off-hand starting cards cannot start a run");
+
+var outsidePoolPick = startingDeckSelectionService.Validate(revolverMainSelection with
+{
+    MainHandCardIds =
+    [
+        "card.revolver_slash",
+        "card.revolver_slash",
+        "card.revolver_double_slash",
+        "card.revolver_quick_thrust",
+        "card.revolver_reload_slash",
+        "card.arm_guard"
+    ]
+}, startingPools);
+Assert(!outsidePoolPick.IsValid, "A card outside the selected weapon starting pool cannot be selected");
 
 var combatFactory = new CombatStateFactory();
 var damagedRunReadyForCombat = run with { PlayerHp = 1 };
@@ -315,10 +442,16 @@ AssertEqual("intent.attack", openingIntentViews[0].IntentId, "GetEnemyIntentView
 AssertEqual(EnemyIntentType.Attack, openingIntentViews[0].IntentType, "GetEnemyIntentViews exposes intent type");
 AssertEqual(5, openingIntentViews[0].EffectPreviews[0].Value, "GetEnemyIntentViews exposes damage preview value");
 
-var endedTurn = turnService.EndPlayerTurn(combat with { ActionPoints = 2, Chain = 3, PlayerBlock = 7 });
+var endedTurn = turnService.EndPlayerTurn(combat with
+{
+    ActionPoints = 2,
+    Chain = 3,
+    ColorEnergy = ColorEnergyPool.Empty().Add(ColorType.Blue, 2),
+    PlayerBlock = 7
+});
 AssertEqual(CombatStatus.EnemyTurn, endedTurn.Status, "EndPlayerTurn enters enemy turn");
 AssertEqual(0, endedTurn.ActionPoints, "EndPlayerTurn clears unused action points");
-AssertEqual(0, endedTurn.Chain, "EndPlayerTurn clears chain");
+AssertEqual(0, endedTurn.ColorEnergy.Count, "EndPlayerTurn clears color energy");
 AssertEqual(0, endedTurn.DeckZones.HandCount, "EndPlayerTurn discards hand");
 AssertEqual(run.CardsPerTurn, endedTurn.DeckZones.DiscardPileCount, "EndPlayerTurn moves hand into discard pile");
 AssertEqual(7, endedTurn.PlayerBlock, "EndPlayerTurn keeps block until next turn start");
@@ -436,17 +569,45 @@ var cardPlayService = new CardPlayService(turnService);
 var playableAction = cardPlayService.PlayCard(CreatePlayableCombat([strike.Id], actionPoints: 1), strike, "enemy_01");
 Assert(playableAction.Succeeded, "Action card can be played with enough action points and a valid target");
 AssertEqual(0, playableAction.Combat.ActionPoints, "Action card consumes action points");
-AssertEqual(1, playableAction.Combat.Chain, "Action card default adds one chain");
 AssertEqual(18, playableAction.Combat.Enemies[0].CurrentHp, "Damage effect reduces target enemy HP");
+AssertEqual(1, playableAction.Combat.ColorEnergy.Count, "Unenchanted action card generates colorless energy");
+AssertEqual(ColorType.Colorless, playableAction.Combat.ColorEnergy.Slots[0].Color, "Unenchanted action card energy is colorless");
+AssertEqual(ColorType.Colorless, playableAction.Preview?.GeneratedColorEnergyColor, "Action preview exposes generated colorless energy");
 AssertEqual(0, playableAction.Combat.DeckZones.HandCount, "Played card leaves hand");
 AssertEqual(strike.Id, playableAction.Combat.DeckZones.DiscardPile.Single(), "Played card enters discard pile");
 Assert(playableAction.Events.Any(item => item.EventType == CombatLogEventType.CardPlayed), "Successful card play emits a card-play log event");
 Assert(playableAction.Events.Any(item => item.Metadata.TryGetValue("effect_type", out var effectType) && effectType == "damage"), "Successful card play emits an effect log event");
 
-var duplicateSlotResult = cardPlayService.PlayCard(CreatePlayableCombat([strike.Id, guardSkill.Id, strike.Id], actionPoints: 1), strike, "enemy_01", handIndex: 2);
+var blueEnchantment = new CardEnchantment { CardInstanceId = "test_instance_blue", Color = ColorType.Blue };
+var blueAction = cardPlayService.PlayCard(
+    CreatePlayableCombat([strike.Id], actionPoints: 1),
+    strike,
+    "enemy_01",
+    handIndex: null,
+    enchantment: blueEnchantment);
+Assert(blueAction.Succeeded, "Blue-enchanted action card can be played");
+AssertEqual(ColorType.Blue, blueAction.Combat.ColorEnergy.Slots.Single().Color, "Blue-enchanted action generates blue color energy");
+AssertEqual(3, blueAction.Combat.PlayerBlock, "Blue action enhancement grants block from final damage");
+AssertEqual(ColorType.Blue, blueAction.Preview?.EnchantmentColor, "Action preview exposes enchantment color");
+AssertEqual(ColorType.Blue, blueAction.Preview?.GeneratedColorEnergyColor, "Action preview exposes generated blue energy");
+Assert(blueAction.Preview?.ColorEffects.Any(effect => effect.Color == ColorType.Blue && effect.EffectType == "gain_block") == true, "Action preview lists blue enhancement");
+
+var cappedEnergyAction = cardPlayService.PlayCard(
+    CreatePlayableCombat(
+        [strike.Id],
+        actionPoints: 1,
+        colorEnergy: ColorEnergyPool.Empty().Add(ColorType.Blue, 5)),
+    strike,
+    "enemy_01",
+    handIndex: null,
+    enchantment: blueEnchantment);
+Assert(cappedEnergyAction.Succeeded, "Action can be played while color energy pool has one empty slot");
+AssertEqual(ColorEnergyPool.DefaultCapacity, cappedEnergyAction.Combat.ColorEnergy.Count, "Color energy pool caps at six slots");
+
+var duplicateSlotResult = cardPlayService.PlayCard(CreatePlayableCombat([strike.Id, guardAction.Id, strike.Id], actionPoints: 1), strike, "enemy_01", handIndex: 2);
 Assert(duplicateSlotResult.Succeeded, "Duplicate card can be played from a specific hand slot");
 AssertEqual(strike.Id, duplicateSlotResult.Combat.DeckZones.Hand[0], "Playing duplicate slot keeps earlier same-id card in hand");
-AssertEqual(guardSkill.Id, duplicateSlotResult.Combat.DeckZones.Hand[1], "Playing duplicate slot removes the clicked slot");
+AssertEqual(guardAction.Id, duplicateSlotResult.Combat.DeckZones.Hand[1], "Playing duplicate slot removes the clicked slot");
 Assert(duplicateSlotResult.Events.Any(item =>
 	item.EventType == CombatLogEventType.CardPlayed &&
 	item.NumericChanges.TryGetValue("hand_index", out var handIndex) &&
@@ -459,34 +620,48 @@ AssertEqual(1, costFailure.RequiredActionPoints, "Cost failure exposes required 
 AssertEqual(0, costFailure.CurrentActionPoints, "Cost failure exposes current action points");
 Assert(costFailure.Events.Any(item => item.EventType == CombatLogEventType.CardPlayRejected), "Cost failure emits a rejection log event");
 
-var chainFailure = cardPlayService.PlayCard(CreatePlayableCombat([finisher.Id], actionPoints: 0, chain: 2), finisher, "enemy_01");
-Assert(!chainFailure.Succeeded, "Finisher cannot be played below min_chain");
-AssertEqual(PlayCardFailureReason.InsufficientChain, chainFailure.FailureReason, "Chain failure exposes UI-readable reason");
-AssertEqual(3, chainFailure.RequiredChain, "Chain failure exposes required chain");
-AssertEqual(2, chainFailure.CurrentChain, "Chain failure exposes current chain");
+var colorEnergyFailure = cardPlayService.PlayCard(
+    CreatePlayableCombat([finisher.Id], actionPoints: 0, colorEnergy: ColorEnergyPool.Empty().Add(ColorType.Red, 2)),
+    finisher,
+    "enemy_01");
+Assert(!colorEnergyFailure.Succeeded, "Finisher cannot be played without enough color energy");
+AssertEqual(PlayCardFailureReason.InsufficientColorEnergy, colorEnergyFailure.FailureReason, "Color energy failure exposes UI-readable reason");
+AssertEqual(3, colorEnergyFailure.RequiredColorEnergy, "Color energy failure exposes required energy");
+AssertEqual(2, colorEnergyFailure.CurrentColorEnergy, "Color energy failure exposes current energy");
 
 var missingTarget = cardPlayService.PlayCard(CreatePlayableCombat([strike.Id], actionPoints: 1), strike);
 Assert(!missingTarget.Succeeded, "Single-enemy card cannot be played without a target");
 AssertEqual(PlayCardFailureReason.TargetMissing, missingTarget.FailureReason, "Target failure exposes UI-readable reason");
 AssertEqual(TargetRule.SingleEnemy.ToString(), missingTarget.RequiredTargetRule, "Target failure exposes required target rule");
 
-var skillResult = cardPlayService.PlayCard(CreatePlayableCombat([guardSkill.Id], actionPoints: 0, chain: 2), guardSkill);
-Assert(skillResult.Succeeded, "Skill card can be played without action points");
-AssertEqual(1, skillResult.Combat.ActionPoints, "Gain-action-points effect resolves during the current turn");
-AssertEqual(2, skillResult.Combat.Chain, "Skill card default does not add chain");
-AssertEqual(5, skillResult.Combat.PlayerBlock, "Block effect increases player block");
+var supportActionResult = cardPlayService.PlayCard(CreatePlayableCombat([guardAction.Id], actionPoints: 0), guardAction);
+Assert(supportActionResult.Succeeded, "Zero-cost support action can be played without action points");
+AssertEqual(1, supportActionResult.Combat.ActionPoints, "Gain-action-points effect resolves during the current turn");
+AssertEqual(5, supportActionResult.Combat.PlayerBlock, "Block effect increases player block");
+AssertEqual(1, supportActionResult.Combat.ColorEnergy.Count, "Support action also follows action-card color energy generation");
 
-var finisherResult = cardPlayService.PlayCard(CreatePlayableCombat([finisher.Id], actionPoints: 0, chain: 3), finisher, "enemy_01");
-Assert(finisherResult.Succeeded, "Finisher can be played when min_chain is met");
+var redBlueGreenEnergy = ColorEnergyPool.Empty()
+    .Add(ColorType.Red, 1)
+    .Add(ColorType.Blue, 1)
+    .Add(ColorType.Green, 1);
+var finisherResult = cardPlayService.PlayCard(
+    CreatePlayableCombat([finisher.Id], actionPoints: 0, playerHp: 50, colorEnergy: redBlueGreenEnergy),
+    finisher,
+    "enemy_01");
+Assert(finisherResult.Succeeded, "Finisher can be played when color energy cost is met");
 AssertEqual(0, finisherResult.Combat.ActionPoints, "Finisher default does not consume action points");
-AssertEqual(0, finisherResult.Combat.Chain, "Finisher default clears chain");
-AssertEqual(6, finisherResult.Combat.Enemies[0].CurrentHp, "Finisher damage resolves");
+AssertEqual(0, finisherResult.Combat.ColorEnergy.Count, "Finisher consumes spent color energy");
+AssertEqual(3, finisherResult.Combat.Enemies[0].CurrentHp, "Red finisher enhancement increases damage");
+AssertEqual(10, finisherResult.Combat.PlayerBlock, "Blue finisher enhancement grants block from final damage");
+AssertEqual(60, finisherResult.Combat.PlayerHp, "Green finisher enhancement heals without exceeding max HP");
+AssertSequenceEqual(new[] { ColorType.Red, ColorType.Blue, ColorType.Green }, finisherResult.Preview?.ConsumedColors ?? new List<ColorType>(), "Finisher preview exposes consumed colors in spend order");
+Assert(finisherResult.Preview?.ColorEffects.Any(effect => effect.Color == ColorType.Red && effect.EffectType == "red_damage_bonus") == true, "Finisher preview lists red enhancement");
 
 var allEnemiesResult = cardPlayService.PlayCard(
     CreatePlayableCombat(
         [arcSweepFinisher.Id],
         actionPoints: 0,
-        chain: 3,
+        colorEnergy: ColorEnergyPool.Empty().Add(ColorType.Colorless, 3),
         enemies:
         [
             CreateEnemyState("enemy_01", currentHp: 10, maxHp: 10),
@@ -498,16 +673,79 @@ AssertEqual(6, allEnemiesResult.Combat.Enemies[0].CurrentHp, "All-enemies damage
 AssertEqual(8, allEnemiesResult.Combat.Enemies[1].CurrentHp, "All-enemies damage hits the second enemy");
 
 var drawResult = cardPlayService.PlayCard(
-    CreatePlayableCombat([drawSkill.Id], actionPoints: 0, chain: 1, drawPile: [strike.Id]),
-    drawSkill);
-Assert(drawResult.Succeeded, "Draw skill can be played");
+    CreatePlayableCombat([drawAction.Id], actionPoints: 0, drawPile: [strike.Id]),
+    drawAction);
+Assert(drawResult.Succeeded, "Draw action can be played");
 Assert(drawResult.Combat.DeckZones.Hand.Contains(strike.Id), "Draw effect adds drawn cards to hand");
-AssertEqual(1, drawResult.Combat.Chain, "Draw skill default does not add chain");
-Assert(drawResult.Events.Any(item => item.EventType == CombatLogEventType.CardsDrawn), "Draw skill includes draw log events in the result");
+Assert(drawResult.Events.Any(item => item.EventType == CombatLogEventType.CardsDrawn), "Draw action includes draw log events in the result");
 
-var discountResult = cardPlayService.PlayCard(CreatePlayableCombat([discountSkill.Id], actionPoints: 0, chain: 1), discountSkill);
-Assert(discountResult.Succeeded, "Temporary discount placeholder skill can be played");
+var discountResult = cardPlayService.PlayCard(CreatePlayableCombat([discountAction.Id], actionPoints: 0), discountAction);
+Assert(discountResult.Succeeded, "Temporary discount placeholder action can be played");
 Assert(discountResult.Events.Any(item => item.Metadata.TryGetValue("effect_type", out var effectType) && effectType == "temporary_discount_placeholder"), "Temporary discount placeholder emits an effect log event");
+
+var yellowEnchantment = new CardEnchantment { CardInstanceId = "test_instance_yellow", Color = ColorType.Yellow };
+var yellowStrike = cardPlayService.PlayCard(
+    CreatePlayableCombat([strike.Id], actionPoints: 1, enemies: [CreateEnemyState("enemy_01", currentHp: 24, maxHp: 24)]),
+    strike,
+    "enemy_01",
+    handIndex: null,
+    enchantment: yellowEnchantment);
+Assert(yellowStrike.Succeeded, "Yellow-enchanted action card can be played");
+AssertEqual(12, yellowStrike.Combat.Enemies[0].CurrentHp, "Yellow enhancement adds one extra damage release");
+AssertEqual(1, yellowStrike.Preview?.EstimatedExtraCasts, "Yellow preview exposes capped extra cast count");
+
+var yellowUtility = new CardDefinition
+{
+    Id = "card.yellow_utility_boundary",
+    WeaponId = "weapon.mechanical_arm",
+    Type = CardType.Action,
+    Cost = 0,
+    ColorEnergyGeneration = new ColorEnergyGeneration { Amount = 1, ColorSource = ColorEnergyColorSource.Enchantment },
+    TargetRule = TargetRule.Self,
+    Effects =
+    [
+        new EffectDefinition { Type = "draw_cards", Target = "self", Value = 1 },
+        new EffectDefinition { Type = "gain_action_points", Target = "self", Value = 1 },
+        new EffectDefinition { Type = "gain_resource", Target = "self", Value = 1 }
+    ],
+    Rarity = CardRarity.Common
+};
+var yellowUtilityResult = cardPlayService.PlayCard(
+    CreatePlayableCombat([yellowUtility.Id], actionPoints: 0, drawPile: [strike.Id, finisher.Id]),
+    yellowUtility,
+    targetEnemyInstanceId: null,
+    handIndex: null,
+    enchantment: yellowEnchantment);
+Assert(yellowUtilityResult.Succeeded, "Yellow utility action can be played");
+AssertEqual(1, yellowUtilityResult.Combat.DeckZones.HandCount, "Yellow extra release does not repeat draw effects");
+AssertEqual(1, yellowUtilityResult.Combat.ActionPoints, "Yellow extra release does not repeat action point gain");
+AssertEqual(1, yellowUtilityResult.Combat.ColorEnergy.Count, "Yellow extra release does not repeat energy generation");
+AssertEqual(1, yellowUtilityResult.Events.Count(item => item.Metadata.TryGetValue("effect_type", out var effectType) && effectType == "gain_action_points"), "Yellow only resolves AP gain once");
+
+var greenCapResult = cardPlayService.PlayCard(
+    CreatePlayableCombat(
+        [finisher.Id],
+        actionPoints: 0,
+        playerHp: 59,
+        enemies: [CreateEnemyState("enemy_01", currentHp: 100, maxHp: 100)],
+        colorEnergy: ColorEnergyPool.Empty().Add(ColorType.Green, 3)),
+    finisher,
+    "enemy_01");
+Assert(greenCapResult.Succeeded, "Green finisher can be played");
+AssertEqual(60, greenCapResult.Combat.PlayerHp, "Green healing cannot exceed max HP");
+
+var purpleResult = cardPlayService.PlayCard(
+    CreatePlayableCombat(
+        [finisher.Id],
+        actionPoints: 0,
+        enemies: [CreateEnemyState("enemy_01", currentHp: 100, maxHp: 100)],
+        colorEnergy: ColorEnergyPool.Empty().Add(ColorType.Purple, 4)),
+    finisher,
+    "enemy_01");
+Assert(purpleResult.Succeeded, "Purple finisher can be played");
+AssertEqual(64, purpleResult.Combat.Enemies[0].CurrentHp, "Purple enhancement doubles once and does not loop infinitely");
+AssertEqual(1, purpleResult.Combat.ColorEnergy.Count, "Fixed-cost finisher leaves unspent color energy in the pool");
+Assert(purpleResult.Events.Count < 20, "Purple enhancement emits a bounded number of log events");
 
 var sequenceCombat = CreateEnemyTurnCombat(
     enemies: [CreateEnemyState("enemy_01", currentHp: 20, maxHp: 20, enemyId: sequenceEnemy.Id)],
@@ -560,26 +798,124 @@ AssertEqual(0, failedRun.PlayerHp, "Run failure stores zero player HP");
 AssertEqual(run.CurrentEncounterIndex, failedRun.CurrentEncounterIndex, "Run failure does not advance to a retry node");
 
 var rewardService = new RewardService();
-var availablePacks = rewardService.GetAvailableCardPacks(encounter, rewardPacksById);
-AssertEqual(3, availablePacks.Count, "Normal combat victory offers three reward pack types");
-Assert(availablePacks.Any(pack => pack.PackType == CardType.Action), "Reward choice includes action pack");
-Assert(availablePacks.Any(pack => pack.PackType == CardType.Skill), "Reward choice includes skill pack");
-Assert(availablePacks.Any(pack => pack.PackType == CardType.Finisher), "Reward choice includes finisher pack");
+var generatedShard = rewardService.GenerateColorShard(_ => 1);
+AssertEqual(ColorType.Yellow, generatedShard, "Reward service can generate a random yellow color shard");
 
-var openedActionPack = rewardService.OpenRewardPack(rewardPack.Id, rewardPacksById);
-AssertEqual(3, openedActionPack.CandidateIds.Count, "Opening a reward pack exposes exactly three candidates");
-Assert(openedActionPack.CandidateIds.All(cardId => rewardPack.CandidateIds.Contains(cardId)), "Opened pack exposes the selected pack candidates");
+var cardsById = new Dictionary<string, CardDefinition>
+{
+    [strike.Id] = strike,
+    [finisher.Id] = finisher,
+    [guardAction.Id] = guardAction,
+    [drawAction.Id] = drawAction,
+    [discountAction.Id] = discountAction,
+    [arcSweepFinisher.Id] = arcSweepFinisher,
+    [refundFinisher.Id] = refundFinisher
+};
 
-var skippedRewardRun = rewardService.ClaimCards(run, openedActionPack, []);
-AssertEqual(run.MasterDeck.Count, skippedRewardRun.MasterDeck.Count, "Skipping reward cards leaves deck unchanged");
+var shardRun = rewardService.AddPendingColorShard(run, ColorType.Yellow);
+AssertEqual(1, shardRun.PendingColorShards.Count, "Generated color shard enters RunState as a pending shard");
+var enchantableCards = rewardService.ListEnchantableActionCards(shardRun, cardsById);
+AssertEqual(4, enchantableCards.Count, "Only unenchanted action card instances are listed for color shards");
+Assert(enchantableCards.All(instance => cardsById[instance.DefinitionId].Type == CardType.Action), "Finisher instances are not listed as enchantable");
 
-var multiPickRun = rewardService.ClaimCards(run, openedActionPack, [strike.Id, "card.quick_jab"]);
-AssertEqual(run.MasterDeck.Count + 2, multiPickRun.MasterDeck.Count, "Reward claim can add multiple cards");
-AssertEqual("card.quick_jab", multiPickRun.MasterDeck[^1], "Reward claim appends selected cards to the master deck");
+var yellowEnchantedRun = rewardService.ApplyColorShard(shardRun, ColorType.Yellow, enchantableCards[0].InstanceId, cardsById);
+AssertEqual(0, yellowEnchantedRun.PendingColorShards.Count, "Applying a color shard consumes the pending shard");
+AssertEqual(ColorType.Yellow, yellowEnchantedRun.MasterDeckInstances[0].Enchantment?.Color, "Color shard is recorded on the selected CardInstance");
+AssertEqual(1, yellowEnchantedRun.CardEnchantments.Count, "RunState exposes the applied card enchantment");
+var yellowGeneratedColor = strike.ColorEnergyGeneration?.ResolveColor(yellowEnchantedRun.MasterDeckInstances[0].Enchantment);
+AssertEqual(ColorType.Yellow, yellowGeneratedColor, "Enchanted action card generates matching color energy");
 
-var duplicatePickRun = rewardService.ClaimCards(run, openedActionPack, [strike.Id, strike.Id]);
-AssertEqual(run.MasterDeck.Count + 2, duplicatePickRun.MasterDeck.Count, "Reward claim allows duplicate card ids when pack is repeatable");
-AssertEqual(6, duplicatePickRun.MasterDeck.Count(cardId => cardId == strike.Id), "Duplicate reward cards can coexist with existing deck copies");
+var alreadyEnchantedRun = rewardService.AddPendingColorShard(yellowEnchantedRun, ColorType.Blue);
+AssertThrows(
+    () => rewardService.ApplyColorShard(alreadyEnchantedRun, ColorType.Blue, alreadyEnchantedRun.MasterDeckInstances[0].InstanceId, cardsById),
+    "Already enchanted action cards cannot receive a normal color shard again");
+AssertThrows(
+    () => rewardService.ApplyColorShard(alreadyEnchantedRun, ColorType.Blue, alreadyEnchantedRun.MasterDeckInstances[^1].InstanceId, cardsById),
+    "Finishers cannot be enchanted by color shards");
+
+var weaponRewardPools = new[]
+{
+    new WeaponRewardPoolDefinition
+    {
+        WeaponId = "weapon.revolver_sword",
+        CardIdsByRarity = new Dictionary<CardRarity, List<string>>
+        {
+            [CardRarity.Common] = [strike.Id],
+            [CardRarity.Uncommon] = [drawAction.Id],
+            [CardRarity.Rare] = [finisher.Id]
+        }
+    },
+    new WeaponRewardPoolDefinition
+    {
+        WeaponId = "weapon.mechanical_arm",
+        CardIdsByRarity = new Dictionary<CardRarity, List<string>>
+        {
+            [CardRarity.Common] = [guardAction.Id],
+            [CardRarity.Uncommon] = [discountAction.Id],
+            [CardRarity.Rare] = [arcSweepFinisher.Id]
+        }
+    }
+};
+var weaponCandidates = rewardService.GenerateWeaponCardCandidates(run, weaponRewardPools, cardsById, _ => 0);
+AssertEqual(3, weaponCandidates.Count, "Weapon card reward generates three candidates");
+AssertEqual(3, weaponCandidates.Distinct().Count(), "Weapon card candidates are distinct within one offer");
+AssertThrows(
+    () => rewardService.ClaimWeaponCardChoice(run, weaponCandidates, []),
+    "Weapon card reward cannot be skipped");
+AssertThrows(
+    () => rewardService.ClaimWeaponCardChoice(run, weaponCandidates, [weaponCandidates[0], weaponCandidates[1]]),
+    "Weapon card reward cannot pick multiple cards");
+var oneCardRewardRun = rewardService.ClaimWeaponCardChoice(run, weaponCandidates, [weaponCandidates[0]]);
+AssertEqual(run.MasterDeck.Count + 1, oneCardRewardRun.MasterDeck.Count, "Weapon card reward adds exactly one card");
+AssertEqual(run.MasterDeckInstances.Count + 1, oneCardRewardRun.MasterDeckInstances.Count, "Reward card is added as a new CardInstance");
+AssertEqual(weaponCandidates[0], oneCardRewardRun.MasterDeckInstances[^1].DefinitionId, "Reward CardInstance points to the selected card definition");
+var duplicateRewardRun = rewardService.ClaimWeaponCardChoice(run, [strike.Id, guardAction.Id, finisher.Id], [strike.Id]);
+AssertEqual(5, duplicateRewardRun.MasterDeck.Count(cardId => cardId == strike.Id), "Same-name weapon card rewards add a new deck copy");
+AssertEqual(5, duplicateRewardRun.MasterDeckInstances.Count(instance => instance.DefinitionId == strike.Id), "Same-name reward cards coexist as separate instances");
+
+var mvpRegressionCardsById = new Dictionary<string, CardDefinition>
+{
+    ["card.revolver_slash"] = strike with { Id = "card.revolver_slash" },
+    ["card.revolver_double_slash"] = strike with { Id = "card.revolver_double_slash" },
+    ["card.revolver_quick_thrust"] = strike with { Id = "card.revolver_quick_thrust", Cost = 0 },
+    ["card.revolver_reload_slash"] = strike with { Id = "card.revolver_reload_slash" },
+    ["card.revolver_heavy_cannon"] = finisher with { Id = "card.revolver_heavy_cannon" },
+    ["card.arm_guard"] = guardAction with { Id = "card.arm_guard" },
+    ["card.arm_bind"] = strike with { Id = "card.arm_bind", WeaponId = "weapon.mechanical_arm" },
+    ["card.arm_counter"] = finisher with { Id = "card.arm_counter", WeaponId = "weapon.mechanical_arm" }
+};
+var mvpSelectedRun = revolverMainRun with
+{
+    EncounterSequence = [encounter.Id, eliteEncounter.Id, bossEncounter.Id],
+    CurrentEncounterIndex = 0
+};
+var mvpOpeningCombat = turnService.StartCombat(combatFactory.CreateCombat(
+    "combat_mvp_regression_01",
+    mvpSelectedRun,
+    encounter,
+    enemiesById));
+AssertEqual(CombatStatus.PlayerTurn, mvpOpeningCombat.Status, "Full MVP regression can enter combat after weapon starting deck selection");
+AssertEqual(10, mvpSelectedRun.MasterDeckInstances.Count, "Full MVP regression starts from 10 weapon-selected CardInstances");
+
+var mvpPostCombatRun = runProgressService.ApplyCombatResult(
+    mvpSelectedRun,
+    CreateCombatResult(encounter.Id, CombatStatus.Victory, playerHp: 42),
+    encounter);
+var mvpShardRun = rewardService.AddPendingColorShard(mvpPostCombatRun, ColorType.Blue);
+var mvpEnchantTarget = rewardService.ListEnchantableActionCards(mvpShardRun, mvpRegressionCardsById).First();
+var mvpEnchantedRun = rewardService.ApplyColorShard(mvpShardRun, ColorType.Blue, mvpEnchantTarget.InstanceId, mvpRegressionCardsById);
+string[] mvpRewardCandidates = ["card.revolver_slash", "card.arm_guard", "card.revolver_heavy_cannon"];
+var mvpRewardedRun = rewardService.ClaimWeaponCardChoice(mvpEnchantedRun, mvpRewardCandidates, ["card.arm_guard"]);
+AssertEqual(0, mvpRewardedRun.PendingColorShards.Count, "Full MVP regression consumes the post-combat color shard");
+AssertEqual(mvpSelectedRun.MasterDeckInstances.Count + 1, mvpRewardedRun.MasterDeckInstances.Count, "Full MVP regression adds one weapon reward card instance");
+var mvpNextRun = runProgressService.AdvanceAfterRewards(mvpRewardedRun, encounter);
+AssertEqual(1, mvpNextRun.CurrentEncounterIndex, "Full MVP regression advances to the next combat after rewards");
+var mvpNextCombat = turnService.StartCombat(combatFactory.CreateCombat(
+    "combat_mvp_regression_02",
+    mvpNextRun,
+    eliteEncounter,
+    enemiesById));
+AssertEqual(CombatStatus.PlayerTurn, mvpNextCombat.Status, "Full MVP regression can enter the next combat");
 
 var eliteRelicRun = rewardService.GrantEncounterRelic(run, eliteEncounter, relicsById);
 Assert(eliteRelicRun.RelicIds.Contains(relic.Id), "Elite encounter grants its fixed relic");
@@ -618,7 +954,10 @@ var debugStart = debugRunService.StartDebugEncounter(
         EncounterId = eliteEncounter.Id,
         StarterDeckOverride = [finisher.Id],
         AdditionalCardIds = [strike.Id],
-        RewardPackPreviewIds = [finisherRewardPack.Id]
+        MainHandWeaponId = "weapon.revolver_sword",
+        OffHandWeaponId = "weapon.mechanical_arm",
+        ColorShardPreviewRoll = 2,
+        WeaponCardPreviewIds = [strike.Id, guardAction.Id, finisher.Id]
     },
     new Dictionary<string, EncounterDefinition>
     {
@@ -627,14 +966,15 @@ var debugStart = debugRunService.StartDebugEncounter(
         [bossEncounter.Id] = bossEncounter
     },
     enemiesById,
-    rewardPacksById);
+    cardsById,
+    weaponRewardPools);
 AssertEqual(98765, debugStart.RunState.Seed, "Debug run entry preserves requested seed");
 AssertEqual(eliteEncounter.Id, debugStart.Encounter.Id, "Debug run entry can enter a selected fixed encounter directly");
 AssertEqual(1, debugStart.RunState.CurrentEncounterIndex, "Debug run entry sets current encounter index for selected encounter");
 AssertEqual(2, debugStart.RunState.MasterDeck.Count, "Debug run entry supports starter deck override plus added cards");
 AssertEqual(strike.Id, debugStart.RunState.MasterDeck[^1], "Debug run entry appends requested card ids");
-AssertEqual(1, debugStart.RewardPackPreviews.Count, "Debug run entry supports selected reward pack preview");
-AssertEqual(3, debugStart.RewardPackPreviews[0].CandidateIds.Count, "Debug reward pack preview exposes three candidates");
+AssertEqual(ColorType.Blue, debugStart.ColorShardPreview, "Debug run entry previews a color shard");
+AssertEqual(3, debugStart.WeaponCardPreviews.Count, "Debug run entry previews three weapon card candidates");
 
 var metricsCombat = CreateCombatResult(encounter.Id, CombatStatus.Victory, playerHp: 51) with
 {
@@ -648,17 +988,17 @@ var metricsCombat = CreateCombatResult(encounter.Id, CombatStatus.Victory, playe
             EventType = CombatLogEventType.CardPlayed,
             TurnNumber = 1,
             SourceId = strike.Id,
-            NumericChanges = new Dictionary<string, int> { ["chain_before"] = 2 },
-            Metadata = new Dictionary<string, string> { ["card_type"] = CardType.Action.ToString() }
+            NumericChanges = new Dictionary<string, int> { ["color_energy_before"] = 0, ["color_energy_after"] = 1 },
+            Metadata = new Dictionary<string, string> { ["card_type"] = CardType.Action.ToString(), ["enchantment_color"] = ColorType.Blue.ToString() }
         },
         new CombatLogEvent
         {
-            EventId = "metrics_chain_3",
+            EventId = "metrics_color_energy_generated",
             EventType = CombatLogEventType.EffectResolved,
             TurnNumber = 1,
             SourceId = strike.Id,
-            NumericChanges = new Dictionary<string, int> { ["chain_before"] = 2, ["chain_after"] = 3 },
-            Metadata = new Dictionary<string, string> { ["effect_type"] = "default_chain_change" }
+            NumericChanges = new Dictionary<string, int> { ["color_energy_generated"] = 1, ["color_energy_after"] = 1 },
+            Metadata = new Dictionary<string, string> { ["effect_type"] = "gain_color_energy", ["color"] = ColorType.Blue.ToString() }
         },
         new CombatLogEvent
         {
@@ -666,17 +1006,8 @@ var metricsCombat = CreateCombatResult(encounter.Id, CombatStatus.Victory, playe
             EventType = CombatLogEventType.CardPlayed,
             TurnNumber = 2,
             SourceId = finisher.Id,
-            NumericChanges = new Dictionary<string, int> { ["chain_before"] = 5 },
-            Metadata = new Dictionary<string, string> { ["card_type"] = CardType.Finisher.ToString() }
-        },
-        new CombatLogEvent
-        {
-            EventId = "metrics_finisher_bonus",
-            EventType = CombatLogEventType.EffectResolved,
-            TurnNumber = 2,
-            SourceId = finisher.Id,
-            NumericChanges = new Dictionary<string, int> { ["threshold"] = 5, ["chain_before_play"] = 5, ["triggered"] = 1 },
-            Metadata = new Dictionary<string, string> { ["effect_type"] = "chain_threshold_bonus" }
+            NumericChanges = new Dictionary<string, int> { ["color_energy_before"] = 3, ["color_energy_spent"] = 3 },
+            Metadata = new Dictionary<string, string> { ["card_type"] = CardType.Finisher.ToString(), ["spent_colors"] = "Red,Blue,Green" }
         },
         new CombatLogEvent
         {
@@ -699,10 +1030,11 @@ var metricsReport = metricsService.BuildReport(
         {
             NodeOrder = 1,
             EncounterId = encounter.Id,
-            RewardPackId = rewardPack.Id,
-            RewardPackType = rewardPack.PackType.ToString(),
-            PickedCount = 2,
-            CardIds = [strike.Id, "card.quick_jab"]
+            ColorShard = ColorType.Blue.ToString(),
+            EnchantedCardInstanceId = run.MasterDeckInstances[0].InstanceId,
+            EnchantedCardDefinitionId = strike.Id,
+            WeaponCardCandidateIds = [strike.Id, guardAction.Id, finisher.Id],
+            SelectedWeaponCardId = guardAction.Id
         }
     ],
     [
@@ -719,11 +1051,14 @@ AssertEqual(run.Seed, metricsReport.RunSeed, "Metrics report stores run seed");
 AssertEqual(3, metricsReport.NodeOrder.Count, "Metrics report stores node order");
 AssertEqual(2, metricsReport.Combats[0].TurnCount, "Metrics report stores combat turn count");
 AssertEqual(4, metricsReport.Combats[0].DamageTaken, "Metrics report sums damage taken");
-AssertEqual(5, metricsReport.Combats[0].HighestChain, "Metrics report stores highest chain");
-AssertEqual(1, metricsReport.Combats[0].ChainThreshold3ReachedCount, "Metrics report counts chain threshold 3 crossings");
+AssertEqual(3, metricsReport.Combats[0].PeakColorEnergy, "Metrics report stores peak color energy");
+AssertEqual(1, metricsReport.Combats[0].ColorEnergyGeneratedByColor[ColorType.Blue.ToString()], "Metrics report stores generated color composition");
+AssertEqual(1, metricsReport.Combats[0].FinisherColorSpendByColor[ColorType.Red.ToString()], "Metrics report stores finisher red spend");
+AssertEqual(1, metricsReport.Combats[0].EnchantedActionUseCount, "Metrics report counts enchanted action usage");
 AssertEqual(1, metricsReport.Combats[0].FinisherUseCount, "Metrics report counts finisher use");
-AssertEqual(1, metricsReport.Combats[0].FinisherBonusTriggerCount, "Metrics report counts triggered finisher bonus effects");
-AssertEqual(2, metricsReport.Rewards[0].PickedCount, "Metrics report stores reward pick count");
+AssertEqual(1.0, metricsReport.EnchantmentUsageRate, "Metrics report stores enchantment use rate");
+AssertEqual(2, metricsReport.BuildRoutes.BlueGreenHeavyCannonSignals, "Metrics report stores blue-green route signals");
+AssertEqual(guardAction.Id, metricsReport.Rewards[0].SelectedWeaponCardId, "Metrics report stores selected weapon card");
 AssertEqual(relic.Id, metricsReport.Relics[0].RelicId, "Metrics report stores relic grants");
 AssertEqual(90, (int)metricsReport.TotalDurationSeconds, "Metrics report stores total duration");
 
@@ -737,11 +1072,10 @@ Assert(File.ReadAllText(metricsPath).Contains("run_seed"), "Exported metrics use
 
 var serializedBundle = JsonSerializer.Serialize(new
 {
-    Cards = new[] { strike, finisher, guardSkill, drawSkill, discountSkill, arcSweepFinisher, refundFinisher },
+    Cards = new[] { strike, finisher, guardAction, drawAction, discountAction, arcSweepFinisher, refundFinisher },
     Relics = new[] { relic },
     Enemies = new[] { enemy, sequenceEnemy },
     Encounters = new[] { encounter, eliteEncounter, bossEncounter },
-    Rewards = new[] { rewardPack, skillRewardPack, finisherRewardPack },
     Run = run,
     Combat = combat
 }, options);
@@ -761,11 +1095,27 @@ static void AssertSequenceEqual<T>(IEnumerable<T> expected, IEnumerable<T> actua
     }
 }
 
+static void AssertThrows(Action action, string message)
+{
+    try
+    {
+        action();
+    }
+    catch (InvalidOperationException)
+    {
+        return;
+    }
+
+    throw new InvalidOperationException($"Assertion failed: {message}.");
+}
+
 static CombatState CreatePlayableCombat(
     IEnumerable<string> hand,
     int actionPoints = 3,
     int chain = 0,
+    int playerHp = 60,
     int playerBlock = 0,
+    ColorEnergyPool? colorEnergy = null,
     IEnumerable<string>? drawPile = null,
     IEnumerable<string>? discardPile = null,
     List<CombatEnemyState>? enemies = null)
@@ -777,12 +1127,13 @@ static CombatState CreatePlayableCombat(
         Status = CombatStatus.PlayerTurn,
         TurnNumber = 1,
         PlayerMaxHp = 60,
-        PlayerHp = 60,
+        PlayerHp = playerHp,
         PlayerBlock = playerBlock,
         BaseActionPoints = 3,
         CardsPerTurn = 5,
         ActionPoints = actionPoints,
         Chain = chain,
+        ColorEnergy = colorEnergy ?? ColorEnergyPool.Empty(),
         DeckZones = new DeckZones
         {
             DrawPile = drawPile?.ToList() ?? [],

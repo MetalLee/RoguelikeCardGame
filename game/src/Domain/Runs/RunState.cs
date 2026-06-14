@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using RoguelikeCardGame.Domain.Cards;
+using RoguelikeCardGame.Domain.Colors;
 
 namespace RoguelikeCardGame.Domain.Runs;
 
@@ -33,8 +35,26 @@ public sealed record RunState
     [JsonPropertyName("cards_per_turn")]
     public int CardsPerTurn { get; init; }
 
+    [JsonPropertyName("main_hand_weapon_id")]
+    public string? MainHandWeaponId { get; init; }
+
+    [JsonPropertyName("off_hand_weapon_id")]
+    public string? OffHandWeaponId { get; init; }
+
     [JsonPropertyName("master_deck")]
     public List<string> MasterDeck { get; init; } = new();
+
+    [JsonPropertyName("master_deck_instances")]
+    public List<CardInstance> MasterDeckInstances { get; init; } = new();
+
+    [JsonPropertyName("card_enchantments")]
+    public List<CardEnchantment> CardEnchantments { get; init; } = new();
+
+    [JsonPropertyName("held_color_shards")]
+    public List<ColorType> HeldColorShards { get; init; } = new();
+
+    [JsonPropertyName("pending_color_shards")]
+    public List<ColorType> PendingColorShards { get; init; } = new();
 
     [JsonPropertyName("relic_ids")]
     public List<string> RelicIds { get; init; } = new();

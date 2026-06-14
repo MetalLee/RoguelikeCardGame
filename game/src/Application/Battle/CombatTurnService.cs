@@ -75,7 +75,7 @@ public sealed class CombatTurnService
 			NumericChanges = new Dictionary<string, int>
 			{
 				["action_points_before_clear"] = combat.ActionPoints,
-				["chain_before_clear"] = combat.Chain
+				["color_energy_before_clear"] = combat.ColorEnergy.Count
 			}
 		});
 
@@ -84,6 +84,7 @@ public sealed class CombatTurnService
 			Status = CombatStatus.EnemyTurn,
 			ActionPoints = 0,
 			Chain = 0,
+			ColorEnergy = combat.ColorEnergy.Clear(),
 			DeckZones = combat.DeckZones with
 			{
 				Hand = [],
@@ -227,6 +228,7 @@ public sealed class CombatTurnService
 			PlayerBlock = 0,
 			ActionPoints = combat.BaseActionPoints,
 			Chain = 0,
+			ColorEnergy = combat.ColorEnergy.Clear(),
 			Log = log
 		};
 

@@ -25,7 +25,7 @@ public partial class BattleScreen : ComicScreen
     private BattleEnemyView? battleEnemyView;
     private BattleHandView? battleHandView;
     private Control? playerNode;
-    private Control? chainPanel;
+    private Control? colorEnergyPanel;
     private Control? blockPanel;
     private Control? actionPointPanel;
     private Control? handNode;
@@ -59,7 +59,7 @@ public partial class BattleScreen : ComicScreen
         battleEnemyView = null;
         battleHandView = null;
         playerNode = null;
-        chainPanel = null;
+        colorEnergyPanel = null;
         blockPanel = null;
         actionPointPanel = null;
         handNode = null;
@@ -81,7 +81,7 @@ public partial class BattleScreen : ComicScreen
             SetInteractionsLocked(true);
             EndTurnRequested?.Invoke();
         });
-        chainPanel = battleHudView.ChainPanel;
+        colorEnergyPanel = battleHudView.ColorEnergyPanel;
         blockPanel = battleHudView.BlockPanel;
         actionPointPanel = battleHudView.ActionPointPanel;
         drawPilePanel = battleHudView.DrawPilePanel;
@@ -105,7 +105,7 @@ public partial class BattleScreen : ComicScreen
         };
         battleHandView.FeedbackRequested += ShowDragFeedback;
         battleHandView.SingleEnemyDragTargetChanged += OnSingleEnemyDragTargetChanged;
-        battleHandView.Render(combat, RequireContent(), cardPlayService, targetingOverlay, LoadTexture, LoadFont);
+        battleHandView.Render(combat, run, RequireContent(), cardPlayService, targetingOverlay, LoadTexture, LoadFont);
         handNode = battleHandView;
         AddAt(root, battleHandView, new Vector2(475, 742), new Vector2(950, 360));
 
@@ -152,8 +152,8 @@ public partial class BattleScreen : ComicScreen
         return result.FailureReason switch
         {
             PlayCardFailureReason.InsufficientActionPoints => $"行动点不足：需要 {result.RequiredActionPoints}，当前 {result.CurrentActionPoints}",
-            PlayCardFailureReason.InsufficientChain => $"连锁不足：需要 {result.RequiredChain}，当前 {result.CurrentChain}",
-            PlayCardFailureReason.TargetMissing => "需要将箭头指向一个敌人目标",
+            PlayCardFailureReason.InsufficientColorEnergy => $"彩能不足：需要 {result.RequiredColorEnergy}，当前 {result.CurrentColorEnergy}",
+            PlayCardFailureReason.TargetMissing => "需要将箭头指向一个魔物目标",
             PlayCardFailureReason.NotPlayerTurn => "当前不是玩家回合",
             PlayCardFailureReason.CardNotInHand => "这张牌不在手牌中",
             _ => "无法打出"
@@ -218,11 +218,59 @@ public partial class BattleScreen : ComicScreen
 
     private static string LogLine(CombatLogEvent item)
     {
+        if (item.Metadata.TryGetValue("effect_type", out var effectType))
+        {
+            if (effectType == "gain_color_energy")
+            {
+                var color = item.Metadata.TryGetValue("color", out var colorName) ? colorName : "Colorless";
+                var gained = item.NumericChanges.GetValueOrDefault("color_energy_generated");
+                return $"获得彩能 {ColorText(color)} x{gained}";
+            }
+
+            if (effectType == "yellow_extra_casts")
+            {
+                return $"黄色追加释放 +{item.NumericChanges.GetValueOrDefault("extra_casts")}";
+            }
+
+            if (effectType == "blue_gain_block")
+            {
+                return $"蓝色追加防御 +{item.NumericChanges.GetValueOrDefault("block_gained")}";
+            }
+
+            if (effectType == "green_heal")
+            {
+                return $"绿色追加回复 +{item.NumericChanges.GetValueOrDefault("healed")}";
+            }
+        }
+
+        if (item.EventType == CombatLogEventType.CardPlayed && item.NumericChanges.GetValueOrDefault("color_energy_spent") > 0)
+        {
+            return $"消耗彩能 {item.NumericChanges.GetValueOrDefault("color_energy_spent")}：{item.Metadata.GetValueOrDefault("spent_colors")}";
+        }
+
+        if (item.NumericChanges.GetValueOrDefault("purple_multiplier") > 1)
+        {
+            return $"紫色放大 x{item.NumericChanges.GetValueOrDefault("purple_multiplier")}";
+        }
+
         var source = string.IsNullOrWhiteSpace(item.SourceId) ? "" : $" {item.SourceId}";
         var numbers = item.NumericChanges.Count == 0
             ? ""
             : " " + string.Join(", ", item.NumericChanges.Select(pair => $"{pair.Key}:{pair.Value}"));
         return $"{item.EventType}{source}{numbers}";
+    }
+
+    private static string ColorText(string color)
+    {
+        return color switch
+        {
+            "Red" => "红色",
+            "Yellow" => "黄色",
+            "Blue" => "蓝色",
+            "Green" => "绿色",
+            "Purple" => "紫色",
+            _ => "无色"
+        };
     }
 
     public void HidePlayedCard(int handIndex)
@@ -257,7 +305,7 @@ public partial class BattleScreen : ComicScreen
     {
         return new BattleAnimationTargets(
             playerNode,
-            chainPanel,
+            colorEnergyPanel,
             blockPanel,
             actionPointPanel,
             handNode,

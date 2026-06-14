@@ -1,0 +1,86 @@
+{
+  "schema": "sword_black_tower.card_pools.v1",
+  "content_version": "mvp.1.0-draft",
+  "items": [
+    {
+      "id": "card_pool.starting.revolver_sword",
+      "pool_type": "starting",
+      "weapon_id": "weapon.revolver_sword",
+      "starting_entries": [
+        { "card_id": "card.revolver_slash", "count": 3 },
+        { "card_id": "card.revolver_double_slash", "count": 1 },
+        { "card_id": "card.revolver_quick_thrust", "count": 1 },
+        { "card_id": "card.revolver_reload_slash", "count": 1 },
+        { "card_id": "card.revolver_heavy_cannon", "count": 1 },
+        { "card_id": "card.revolver_bullet_storm", "count": 1 }
+      ],
+      "reward_by_rarity": { "common": [], "uncommon": [], "rare": [] },
+      "tags": ["mvp", "starting_pool", "main_or_off_hand_selectable"]
+    },
+    {
+      "id": "card_pool.reward.revolver_sword",
+      "pool_type": "reward",
+      "weapon_id": "weapon.revolver_sword",
+      "starting_entries": [],
+      "reward_by_rarity": {
+        "common": [
+          "card.revolver_slash",
+          "card.revolver_quick_thrust",
+          "card.revolver_reload_slash"
+        ],
+        "uncommon": [
+          "card.revolver_double_slash",
+          "card.revolver_gunblade_calibration",
+          "card.revolver_piercing_bullet_line"
+        ],
+        "rare": [
+          "card.revolver_whirling_sword_dance",
+          "card.revolver_heavy_cannon",
+          "card.revolver_bullet_storm",
+          "card.revolver_rift_quickdraw"
+        ]
+      },
+      "tags": ["mvp", "reward_pool", "weapon_card_three_choice"]
+    },
+    {
+      "id": "card_pool.starting.mechanical_arm",
+      "pool_type": "starting",
+      "weapon_id": "weapon.mechanical_arm",
+      "starting_entries": [
+        { "card_id": "card.arm_guard", "count": 3 },
+        { "card_id": "card.arm_bind", "count": 1 },
+        { "card_id": "card.arm_crush", "count": 1 },
+        { "card_id": "card.arm_shock_palm", "count": 1 },
+        { "card_id": "card.arm_counter", "count": 1 },
+        { "card_id": "card.arm_army_sweep", "count": 1 }
+      ],
+      "reward_by_rarity": { "common": [], "uncommon": [], "rare": [] },
+      "tags": ["mvp", "starting_pool", "main_or_off_hand_selectable"]
+    },
+    {
+      "id": "card_pool.reward.mechanical_arm",
+      "pool_type": "reward",
+      "weapon_id": "weapon.mechanical_arm",
+      "starting_entries": [],
+      "reward_by_rarity": {
+        "common": [
+          "card.arm_guard",
+          "card.arm_bind",
+          "card.arm_shock_palm"
+        ],
+        "uncommon": [
+          "card.arm_crush",
+          "card.arm_traction_grab",
+          "card.arm_repair_protocol"
+        ],
+        "rare": [
+          "card.arm_energy_veil",
+          "card.arm_counter",
+          "card.arm_army_sweep",
+          "card.arm_shield_overload"
+        ]
+      },
+      "tags": ["mvp", "reward_pool", "weapon_card_three_choice"]
+    }
+  ]
+}

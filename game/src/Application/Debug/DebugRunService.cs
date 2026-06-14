@@ -1,9 +1,10 @@
 using RoguelikeCardGame.Application.Battle;
 using RoguelikeCardGame.Application.Rewards;
 using RoguelikeCardGame.Application.Runs;
+using RoguelikeCardGame.Domain.Cards;
+using RoguelikeCardGame.Domain.Colors;
 using RoguelikeCardGame.Domain.Combat;
 using RoguelikeCardGame.Domain.Enemies;
-using RoguelikeCardGame.Domain.Rewards;
 using RoguelikeCardGame.Domain.Runs;
 using RoguelikeCardGame.Infrastructure.Randomness;
 
@@ -34,7 +35,13 @@ public sealed record DebugRunConfiguration
 
     public List<string> AdditionalCardIds { get; init; } = new();
 
-    public List<string> RewardPackPreviewIds { get; init; } = new();
+    public string? MainHandWeaponId { get; init; }
+
+    public string? OffHandWeaponId { get; init; }
+
+    public int ColorShardPreviewRoll { get; init; }
+
+    public List<string> WeaponCardPreviewIds { get; init; } = new();
 }
 
 public sealed record DebugRunStartResult
@@ -45,7 +52,9 @@ public sealed record DebugRunStartResult
 
     public required CombatState Combat { get; init; }
 
-    public List<RewardPackDefinition> RewardPackPreviews { get; init; } = new();
+    public ColorType ColorShardPreview { get; init; }
+
+    public List<string> WeaponCardPreviews { get; init; } = new();
 }
 
 public sealed class DebugRunService
@@ -69,13 +78,15 @@ public sealed class DebugRunService
         DebugRunConfiguration configuration,
         IReadOnlyDictionary<string, EncounterDefinition> encountersById,
         IReadOnlyDictionary<string, EnemyDefinition> enemiesById,
-        IReadOnlyDictionary<string, RewardPackDefinition> rewardPacksById)
+        IReadOnlyDictionary<string, CardDefinition> cardsById,
+        IEnumerable<WeaponRewardPoolDefinition> weaponRewardPools)
     {
         ArgumentNullException.ThrowIfNull(defaults);
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(encountersById);
         ArgumentNullException.ThrowIfNull(enemiesById);
-        ArgumentNullException.ThrowIfNull(rewardPacksById);
+        ArgumentNullException.ThrowIfNull(cardsById);
+        ArgumentNullException.ThrowIfNull(weaponRewardPools);
 
         var encounterId = configuration.EncounterId ?? defaults.EncounterSequence.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(encounterId) || !encountersById.TryGetValue(encounterId, out var encounter))
@@ -93,7 +104,9 @@ public sealed class DebugRunService
             baseActionPoints: defaults.BaseActionPoints,
             cardsPerTurn: defaults.CardsPerTurn,
             starterDeck: starterDeck,
-            encounterSequence: defaults.EncounterSequence);
+            encounterSequence: defaults.EncounterSequence,
+            mainHandWeaponId: configuration.MainHandWeaponId,
+            offHandWeaponId: configuration.OffHandWeaponId);
 
         var encounterIndex = defaults.EncounterSequence.FindIndex(id => string.Equals(id, encounter.Id, StringComparison.Ordinal));
         run = run with
@@ -108,19 +121,23 @@ public sealed class DebugRunService
             encounter: encounter,
             enemiesById: enemiesById);
 
-        var previewIds = configuration.RewardPackPreviewIds.Count > 0
-            ? configuration.RewardPackPreviewIds
-            : encounter.RewardProfile.CardPackIds;
-        var rewardPreviews = previewIds
-            .Select(packId => rewardService.OpenRewardPack(packId, rewardPacksById))
-            .ToList();
+        var colorShardPreview = rewardService.GenerateColorShard(max =>
+            Math.Clamp(configuration.ColorShardPreviewRoll, 0, Math.Max(0, max - 1)));
+        var weaponPreviewIds = configuration.WeaponCardPreviewIds.Count == 3
+            ? configuration.WeaponCardPreviewIds.ToList()
+            : rewardService.GenerateWeaponCardCandidates(
+                run,
+                weaponRewardPools,
+                cardsById,
+                _ => 0).ToList();
 
         return new DebugRunStartResult
         {
             RunState = run,
             Encounter = encounter,
             Combat = combat,
-            RewardPackPreviews = rewardPreviews
+            ColorShardPreview = colorShardPreview,
+            WeaponCardPreviews = weaponPreviewIds
         };
     }
 }
