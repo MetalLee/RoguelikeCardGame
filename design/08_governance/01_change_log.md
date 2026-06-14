@@ -1,4 +1,4 @@
-# 变更日志
+﻿# 变更日志
 
 状态：持续维护  
 上级索引：[[design/README|Design Knowledge Base]]
@@ -25,42 +25,44 @@
 - 新增 [[design/08_governance/2026-06-14_universal_color_enchantment_and_mvp_archetypes|通用色彩附魔与 MVP 构筑原型]] 决策记录，并更新 [[design/08_governance/00_decision_log|决策记录]]。
 - 根据开发者补充确认，第一版 MVP 不固定左轮剑为主手、机械臂为副手；MVP 必须实现主副武器选择界面与起始卡牌选择界面，玩家从主手武器 8 选 6、副手武器 8 选 4 组成初始卡组。同步更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/03_experience/00_ui_ux|界面与交互]]、[[design/06_technical_production/00_technical_requirements|技术需求]] 与 [[design/07_production/00_roadmap_milestones|开发路线图与里程碑]]。
 - 根据开发者补充确认，黄色附魔效果收束为“增加卡牌释放次数”，不提供抽牌、返还行动点或回能量；同步修正黄紫构筑、资源经济、平衡原则、音频反馈和术语表。
+- 根据开发者补充确认，设计文档中战斗对手的正式通称统一为“魔物”，取代旧“恶魔”相关设定；系统实现和数据 ID 可继续使用 `enemy` 命名空间，但玩家可见文本、世界观语境、视觉方向和内容设计优先使用“魔物”。
+- 根据 `design/03_experience/assets/` 下现有角色、魔物、Boss、背景和特效资源，锁定第一版 MVP 占位美术为黑白手绘漫画线稿风格；后续通过 `gpt-image-2` 生成的 MVP 占位资源必须以这些参考图为最高准则。同步更新 [[design/03_experience/01_visual_direction|视觉方向]]、[[design/03_experience/00_ui_ux|界面与交互]]、[[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]，并新增 [[design/08_governance/2026-06-14_mvp_placeholder_art_style_lock|锁定 MVP 占位美术风格参考]] 决策记录。
 
 ### 2026-06-13
 
 - 根据 [[inspiration/2026-06-13_background_story|对游戏背景设定的补充以及卡牌、战斗机制的重新设计]] 及开发者确认，正式确立游戏名《剑与黑塔》，并将核后失色世界、黑塔、勇者联盟、左与茵纳入当前设计基线；同步更新 [[design/00_product/00_game_concept|游戏概述]]、[[design/05_narrative_world/00_world_and_tone|世界观与语气]] 与 [[design/05_narrative_world/01_story_delivery|叙事投放]]。
-- 将角色旅途与黑塔谜团提升为重要卖点，但仍不压过卡牌战斗；明确剧情主要通过事件、卡牌、遗物、敌人、Boss 和结算文本隐晦表达，采用碎片化叙事。
+- 将角色旅途与黑塔谜团提升为重要卖点，但仍不压过卡牌战斗；明确剧情主要通过事件、卡牌、遗物、魔物、Boss 和结算文本隐晦表达，采用碎片化叙事。
 - 将旧“连锁层数”替换为世界观化的「彩能」表达，并取消 3 / 5 / 8 固定阈值；终结牌改为按自身标注消耗固定数量、X 数量或全部彩能。同步更新 [[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]]、[[design/04_balance_data/00_balance_principles|平衡原则]] 与 [[design/08_governance/02_glossary|术语表]]。
 - 删除“技能牌”作为正式卡牌类型，卡牌类型收束为行动牌和终结牌；防御、控制、过牌、回费和减费职责归入行动牌或终结牌。
 - 将第一版 MVP 起始结构改为武器选牌：从主手武器 8 选 6、副手武器 8 选 4，组成 10 张初始卡组；明确武器是角色机制和卡池入口，不是传统装备系统。同步更新 [[design/02_content_systems/01_characters_and_archetypes|角色与构筑原型]]、[[design/01_core_gameplay/03_card_system|卡牌系统]] 与 [[design/07_production/03_mvp_project_status|MVP 项目状态]]。
 - 将普通战斗后旧卡牌包奖励替换为“随机色彩碎片 + 武器卡牌三选一”，并将五色机制纳入基础战斗与 MVP 范围；精英保留普通遗物奖励，Boss 加入简化 Boss 奖励。同步更新 [[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]、[[design/01_core_gameplay/00_core_loop|核心循环]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]。
-- 将第一版 MVP 敌人与 Boss 的设计语境统一到黑塔世界观，并明确事件系统暂不进入当前 MVP，但作为 MVP 战斗打磨后的下一阶段优先项，高于商店和路线图。同步更新 [[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]]、[[design/02_content_systems/04_events_and_encounters|事件与遭遇]] 与 [[design/07_production/00_roadmap_milestones|开发路线图与里程碑]]。
+- 将第一版 MVP 魔物与 Boss 的设计语境统一到黑塔世界观，并明确事件系统暂不进入当前 MVP，但作为 MVP 战斗打磨后的下一阶段优先项，高于商店和路线图。同步更新 [[design/02_content_systems/02_enemies_and_bosses|魔物与 Boss]]、[[design/02_content_systems/04_events_and_encounters|事件与遭遇]] 与 [[design/07_production/00_roadmap_milestones|开发路线图与里程碑]]。
 - 新增 [[design/08_governance/2026-06-13_sword_black_tower_color_energy_core|确立《剑与黑塔》的彩能、色彩与武器卡池核心]] 决策记录，并将 [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|以连锁层数作为 combo 爽感兑现机制]] 标记为已替代。
 
 ### 2026-06-11
 
 - 落地并记录第一版 MVP Run seed 随机系统：每次新 Run 生成并保存不同 seed，抽牌堆初始洗牌和弃牌堆重洗改由 `deck` 随机流驱动，预留 `map`、`reward`、`encounter` 独立随机流，并在 [[design/06_technical_production/00_technical_requirements|技术需求]] 中补充以 Deck 为例的随机产生、推进、隔离和复现流程。
-- 更新第一版 MVP 战斗敌人目标展示：删除点击敌人预先选取目标，右上敌人 HUD 默认隐藏，仅在鼠标悬停存活敌人或单体目标卡牌箭头指向有效敌人时显示；单体目标出牌必须由拖拽释放时的明确敌人 ID 决定。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
+- 更新第一版 MVP 战斗魔物目标展示：删除点击魔物预先选取目标，右上魔物 HUD 默认隐藏，仅在鼠标悬停存活魔物或单体目标卡牌箭头指向有效魔物时显示；单体目标出牌必须由拖拽释放时的明确魔物 ID 决定。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
 - 收敛根目录 [[README|README]] 为开源项目入口，只保留项目简介、环境要求、启动方式、重构建说明、验证命令、目录结构和文档入口；新增 [[design/07_production/03_mvp_project_status|MVP 项目状态]] 承接原 README 中的阶段状态、MVP 范围、核心规则摘要、技术方向和下一步建议，并更新 [[design/README|Design Knowledge Base]] 文档地图。
-- 更新第一版 MVP 战斗手牌交互：手牌悬停时抬升并置顶，所有卡牌改为拖拽释放出牌；非单体目标卡牌需要释放到中场区域，单体敌人目标卡牌需要通过漫画风箭头指向有效敌人。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]，明确表现层只负责 hover、drag、箭头、释放区和目标高亮，费用、连锁、目标合法性和结算仍由规则层处理。
+- 更新第一版 MVP 战斗手牌交互：手牌悬停时抬升并置顶，所有卡牌改为拖拽释放出牌；非单体目标卡牌需要释放到中场区域，单体魔物目标卡牌需要通过漫画风箭头指向有效魔物。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]，明确表现层只负责 hover、drag、箭头、释放区和目标高亮，费用、连锁、目标合法性和结算仍由规则层处理。
 - 调整第一版 MVP 奖励包选择表现：三类卡牌包替换为透明背景的明亮手绘纸质包装图，奖励包选择控件移除黑色底板，跳过拿牌 / 进入下一战按钮改为纸质次级按钮，并补充卡牌包入场与打开动效规则。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
 - 修复第一版 MVP 奖励选择交互：卡牌包 hover / 点击改为按 PNG alpha 非透明区域命中，不再由覆盖整块透明矩形触发；候选奖励卡补充 hover 抬升与置顶反馈。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
-- 修复第一版 MVP 战斗敌人 HUD 显示规则：右上敌人名称、生命、防御和意图改为常驻显示，默认聚焦第一个存活敌人，hover 或单体目标箭头只临时切换焦点。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
-- 调整第一版 MVP 多敌人信息呈现：每个存活敌人头顶新增常驻轻量状态条，显示敌人名称、生命、防御和当前意图摘要；右上敌人 HUD 改为当前焦点详情，避免多敌人战斗时只看到单个敌人的信息。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
-- 收敛第一版 MVP 敌人信息布局：单敌人遭遇只使用右上完整敌人 HUD，不显示头顶状态；多敌人遭遇关闭右上敌人 HUD，在每个敌人头顶显示缩小版敌人 HUD，避免重复展示和多敌人信息缺失。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
-- 优化第一版 MVP 多敌人头顶 HUD：将意图从右侧小角标改为独立第三行展示，形成“名称 / 生命防御 / 意图”的三行结构，提升攻击、防御和压迫意图的可读性。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
+- 修复第一版 MVP 战斗魔物 HUD 显示规则：右上魔物名称、生命、防御和意图改为常驻显示，默认聚焦第一个存活魔物，hover 或单体目标箭头只临时切换焦点。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
+- 调整第一版 MVP 多魔物信息呈现：每个存活魔物头顶新增常驻轻量状态条，显示魔物名称、生命、防御和当前意图摘要；右上魔物 HUD 改为当前焦点详情，避免多魔物战斗时只看到单个魔物的信息。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
+- 收敛第一版 MVP 魔物信息布局：单魔物遭遇只使用右上完整魔物 HUD，不显示头顶状态；多魔物遭遇关闭右上魔物 HUD，在每个魔物头顶显示缩小版魔物 HUD，避免重复展示和多魔物信息缺失。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
+- 优化第一版 MVP 多魔物头顶 HUD：将意图从右侧小角标改为独立第三行展示，形成“名称 / 生命防御 / 意图”的三行结构，提升攻击、防御和压迫意图的可读性。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
 
 ### 2026-06-09
 
-- 确认 `design/03_experience/assets/battle_ui_effect_concept_2026-06-09_v2.png` 为第一版 MVP 战斗场景设计标准，并同步更新 [[design/03_experience/00_ui_ux|界面与交互]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/00_technical_requirements|技术需求]]；明确战斗界面采用明亮手绘漫画书气氛、无头像顶部 HUD、预留更大角色 / 敌人垂直舞台空间、底部扇形手牌，以及 `8` 格连锁点进度。
-- 接入第一版 MVP 轻量动效：战斗界面根据 `CombatLogEvent` 播放出牌、伤害、防御、连锁提升、阈值达成、终结牌、敌人行动、抽弃牌和死亡反馈；奖励界面新增卡包打开、候选卡入场和选卡确认动效。该变更同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 与 [[design/03_experience/01_visual_direction|视觉方向]]，明确当前阶段使用 Tween / VFX 方案，不扩展完整角色动作或动画时间轴。
-- 调整战斗界面敌人呈现：敌人立绘不再包裹在大面积黑色面板中，改为透明舞台层叠加轻量状态条，并将敌人组整体右移以改善敌我构图；同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 的敌人立绘承载规则。
+- 确认 `design/03_experience/assets/battle_ui_effect_concept_2026-06-09_v2.png` 为第一版 MVP 战斗场景设计标准，并同步更新 [[design/03_experience/00_ui_ux|界面与交互]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/00_technical_requirements|技术需求]]；明确战斗界面采用明亮手绘漫画书气氛、无头像顶部 HUD、预留更大角色 / 魔物垂直舞台空间、底部扇形手牌，以及 `8` 格连锁点进度。
+- 接入第一版 MVP 轻量动效：战斗界面根据 `CombatLogEvent` 播放出牌、伤害、防御、连锁提升、阈值达成、终结牌、魔物行动、抽弃牌和死亡反馈；奖励界面新增卡包打开、候选卡入场和选卡确认动效。该变更同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 与 [[design/03_experience/01_visual_direction|视觉方向]]，明确当前阶段使用 Tween / VFX 方案，不扩展完整角色动作或动画时间轴。
+- 调整战斗界面魔物呈现：魔物立绘不再包裹在大面积黑色面板中，改为透明舞台层叠加轻量状态条，并将魔物组整体右移以改善敌我构图；同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 的魔物立绘承载规则。
 
 ### 2026-06-08
 
-- 重构第一版 MVP 内容数据结构：将卡牌、敌人、遗物、遭遇、奖励包和 Run 序列迁移到 `game/data/gameplay/`，将卡牌 / 敌人 / 遗物 / 奖励包 view 与 asset manifest 迁移到 `game/data/presentation/`，并把内容 ID 统一为 `card.*`、`enemy.*`、`relic.*`、`reward_pack.*`、`encounter.*` 命名空间格式；同步更新 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]，明确规则数据不得包含表现字段。
-- 将第一版 MVP 敌人与普通遗物的表现资源从 placeholder 迁移为 `asset.enemy.*.stand` / `asset.relic.*.icon` manifest 记录，并扩展 `game/tools/data_validator/validate_data.py`，要求表现 view 引用的 asset ID 必须存在且不能继续使用 placeholder；该变更补齐已归档美术资源与数据层表现索引的对应关系。
-- 将第一版 MVP 现有背景、主角、卡牌模板、卡面插画、卡牌包、敌人、遗物、UI 图标和结算 VFX 接入 Godot 主流程；主菜单、战斗、奖励选择和结算界面通过 `game/data/presentation/` 查询资源，不再停留在无美术资源的纯占位 UI。同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 与 [[design/03_experience/01_visual_direction|视觉方向]] 的运行时组合规则。
+- 重构第一版 MVP 内容数据结构：将卡牌、魔物、遗物、遭遇、奖励包和 Run 序列迁移到 `game/data/gameplay/`，将卡牌 / 魔物 / 遗物 / 奖励包 view 与 asset manifest 迁移到 `game/data/presentation/`，并把内容 ID 统一为 `card.*`、`enemy.*`、`relic.*`、`reward_pack.*`、`encounter.*` 命名空间格式；同步更新 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]，明确规则数据不得包含表现字段。
+- 将第一版 MVP 魔物与普通遗物的表现资源从 placeholder 迁移为 `asset.enemy.*.stand` / `asset.relic.*.icon` manifest 记录，并扩展 `game/tools/data_validator/validate_data.py`，要求表现 view 引用的 asset ID 必须存在且不能继续使用 placeholder；该变更补齐已归档美术资源与数据层表现索引的对应关系。
+- 将第一版 MVP 现有背景、主角、卡牌模板、卡面插画、卡牌包、魔物、遗物、UI 图标和结算 VFX 接入 Godot 主流程；主菜单、战斗、奖励选择和结算界面通过 `game/data/presentation/` 查询资源，不再停留在无美术资源的纯占位 UI。同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 与 [[design/03_experience/01_visual_direction|视觉方向]] 的运行时组合规则。
 
 ### 2026-06-06
 
@@ -69,19 +71,19 @@
 - 归档行动牌“迅捷刺击”“重斩”“连段切击”“流步”“破防重击”的卡面插画到 `game/assets/art/cards/artwork/`，更新对应卡牌 `art_key`，并同步 [[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]] 的卡面资源索引。
 - 归档行动牌“基础斩击”卡面插画到 `game/assets/art/cards/artwork/card_basic_strike.png`，并更新 `card_basic_strike` 的 `art_key` 为 `art.card.basic_strike`；同步更新 [[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]，明确该资源会与行动牌模板在 Godot 中动态组合。
 - 更新 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]，明确卡牌在 Godot 中优先由类型模板、卡面插画、数据文本和状态叠层动态组合展示，完整卡图预烘焙只作为后期可选缓存方案。
-- 将第一版 MVP 关键元素视觉母版归档到 `game/assets/art/style_guides/mvp_key_elements_visual_master.png`，作为后续主角、敌人、卡牌、牌包、遗物和战斗 UI 素材生成的稳定视觉参考。
+- 将第一版 MVP 关键元素视觉母版归档到 `game/assets/art/style_guides/mvp_key_elements_visual_master.png`，作为后续主角、魔物、卡牌、牌包、遗物和战斗 UI 素材生成的稳定视觉参考。
 - 更新 [[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/08_governance/2026-06-03_hand_drawn_comic_book_visual_direction|采用手绘漫画书风格作为主视觉方向]]，在关联部分嵌入该视觉母版，并明确母版中文字仅作为排版参考，正式运行时文本仍由 Godot UI 绘制。
 - 更新 [[design/03_experience/01_visual_direction|视觉方向]]，明确剑客主角在使用卡牌时应根据卡牌效果展示不同动作，剑客动作资源统一放入 `game/assets/art/characters/swordsman/`；同时确认所有终结牌都需要独立美术资源，不能只复用通用模板或普通攻击动作。
-- 生成并归档第一版 MVP 6 个敌人透明 PNG 立绘到 `game/assets/art/enemies/`，并更新 [[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]] 与 [[design/03_experience/01_visual_direction|视觉方向]]，将敌人 ID、战斗职责和美术资源建立稳定关联。
+- 生成并归档第一版 MVP 6 个魔物透明 PNG 立绘到 `game/assets/art/enemies/`，并更新 [[design/02_content_systems/02_enemies_and_bosses|魔物与 Boss]] 与 [[design/03_experience/01_visual_direction|视觉方向]]，将魔物 ID、战斗职责和美术资源建立稳定关联。
 - 归档行动牌、技能牌和终结牌三类卡牌模板到 `game/assets/art/cards/templates/`，并更新 [[design/01_core_gameplay/03_card_system|卡牌系统]] 与 [[design/03_experience/01_visual_direction|视觉方向]]，明确模板只承载卡框、色彩和安全区，正式文本与数值仍由 Godot UI 绘制。
-- 生成并归档第一版 MVP 战斗 VFX 到 `game/assets/art/vfx/`，覆盖普通斩击、重击、群体横扫、防御、连锁提升、3 / 5 / 8 层阈值达成、终结牌释放和敌人受击，并更新 [[design/03_experience/01_visual_direction|视觉方向]]、[[design/01_core_gameplay/02_combat_system|战斗系统]] 与 [[design/03_experience/02_audio_feedback|音频与反馈]] 建立反馈资源索引。
+- 生成并归档第一版 MVP 战斗 VFX 到 `game/assets/art/vfx/`，覆盖普通斩击、重击、群体横扫、防御、连锁提升、3 / 5 / 8 层阈值达成、终结牌释放和魔物受击，并更新 [[design/03_experience/01_visual_direction|视觉方向]]、[[design/01_core_gameplay/02_combat_system|战斗系统]] 与 [[design/03_experience/02_audio_feedback|音频与反馈]] 建立反馈资源索引。
 - 生成并归档第一版 MVP UI 图标、普通遗物图标和三类卡牌包素材，分别放入 `game/assets/art/ui/icons/`、`game/assets/art/relics/` 与 `game/assets/art/cards/packs/`；更新 [[design/03_experience/00_ui_ux|界面与交互]]、[[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]、[[design/01_core_gameplay/03_card_system|卡牌系统]] 与 [[design/03_experience/01_visual_direction|视觉方向]]，建立图标、遗物、卡包与设计职责的稳定关联。
 
 ### 2026-06-05
 
-- 根据第一版 MVP 开发推进，新增 `game/src/Infrastructure/Content/` 内容加载层，将 `game/data/` 中卡牌、敌人、遭遇、奖励包、遗物、本地化和 MVP Run 序列加载为现有规则层模型，保持内容数据驱动，不把数值写死在 Godot 场景中。
+- 根据第一版 MVP 开发推进，新增 `game/src/Infrastructure/Content/` 内容加载层，将 `game/data/` 中卡牌、魔物、遭遇、奖励包、遗物、本地化和 MVP Run 序列加载为现有规则层模型，保持内容数据驱动，不把数值写死在 Godot 场景中。
 - 更新 `game/src/Presentation/Menus/MainMenu.cs`，将 Godot 主场景接入最小可玩闭环：主菜单 / 开始 MVP -> 6 场固定战斗 -> 战后卡牌包 -> 精英固定普通遗物 -> Boss 通关或失败 -> 重开。
-- 本轮实现覆盖 [[design/03_experience/00_ui_ux|界面与交互]] 中的 MVP 级信息表达：玩家生命、防御、行动点、连锁层数、抽弃牌数量、敌人生命、敌人意图、手牌、无法出牌原因提示和最近结算日志。
+- 本轮实现覆盖 [[design/03_experience/00_ui_ux|界面与交互]] 中的 MVP 级信息表达：玩家生命、防御、行动点、连锁层数、抽弃牌数量、魔物生命、魔物意图、手牌、无法出牌原因提示和最近结算日志。
 - 补充 `game/README.md` 的团队通用运行环境说明与验证命令，记录项目依赖 Godot 4.6.x .NET 版和 .NET SDK 8.0.x，并验证 `dotnet build`、规则层 smoke test、数据校验和 Godot headless 项目加载通过。
 
 ### 2026-06-04
@@ -93,7 +95,7 @@
 ### 2026-06-03
 
 - 根据 [[inspiration/2026-06-03_03_experience_mvp_visual_qa|03 Experience MVP Visual Q&A]]，确认主视觉方向调整为“手绘漫画书风格”：整体像可交互漫画，战斗演出使用漫画分镜、速度线、冲击格、局部特写和拟声字。
-- 根据开发者对第一张关键图片的进一步要求，确认视觉母版需要包含：简洁漫画剑客主角、简洁漫画恶魔敌人、血红行动牌、冷青 / 幽蓝技能牌、紫黑终结牌、三类卡牌包，以及简单偏 Q 版漫画遗物。
+- 根据开发者对第一张关键图片的进一步要求，确认视觉母版需要包含：简洁漫画剑客主角、简洁漫画魔物、血红行动牌、冷青 / 幽蓝技能牌、紫黑终结牌、三类卡牌包，以及简单偏 Q 版漫画遗物。
 - 更新 [[design/03_experience/01_visual_direction|视觉方向]]、[[design/03_experience/00_ui_ux|界面与交互]]、[[design/00_product/02_player_and_market|目标玩家与市场定位]] 与 [[design/05_narrative_world/00_world_and_tone|世界观与语气]]，并新增 [[design/08_governance/2026-06-03_hand_drawn_comic_book_visual_direction|采用手绘漫画书风格作为主视觉方向]] 决策记录。
 - 根据开发者对 [[inspiration/2026-06-03_06_technical_production_qa|06 Technical Production Q&A]] 的回答，确认首版目标平台以 Windows PC 为主，后续再考虑 macOS、Linux 支持；内容数据一致使用 JSON + JSON Schema；第一版 MVP 只需要节点级自动存档；只做本地试玩日志和统计导出，暂不需要在线遥测。
 - 更新 [[design/06_technical_production/00_technical_requirements|技术需求]]、[[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]、[[design/06_technical_production/02_save_config_platform|存档、配置与平台]] 与 [[inspiration/2026-06-03_06_technical_production_qa|06 Technical Production Q&A]]，将待确认项收束为已确认，并在技术需求中新增 Godot 项目目标文件层级，作为后续 Godot 开发创建文件的准则。
@@ -120,27 +122,27 @@
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 采用 1 个线性章节：连续战斗 + 奖励选择 + 1 个精英 + 1 个 Boss，目标时长约 10-15 分钟，暂不做路线图、事件、商店、休息或完整经济。
 - 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/02_content_systems/05_map_and_level_generation|地图与关卡生成]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，区分第一版 MVP 战斗验证范围和后续完整垂直切片范围。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 的固定战斗节点顺序为 3 场普通战斗 + 1 场精英战斗 + 1 场普通战斗 + 1 场 Boss 战斗。
-- 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]]、[[design/02_content_systems/05_map_and_level_generation|地图与关卡生成]]、[[design/04_balance_data/01_difficulty_curve|难度曲线]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充 MVP 六场战斗的顺序和压力节奏。
+- 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/02_content_systems/02_enemies_and_bosses|魔物与 Boss]]、[[design/02_content_systems/05_map_and_level_generation|地图与关卡生成]]、[[design/04_balance_data/01_difficulty_curve|难度曲线]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充 MVP 六场战斗的顺序和压力节奏。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 的 6 场战斗全部采用固定遭遇；普通战斗随机池等战斗循环成立后再加入。
-- 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]]、[[design/02_content_systems/05_map_and_level_generation|地图与关卡生成]]、[[design/04_balance_data/01_difficulty_curve|难度曲线]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充固定遭遇、后置普通战斗随机池和逐节点测试记录要求。
-- 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 六场固定战斗采用教学递进型职责分配：普通 1 教行动点 / 出牌 / 连锁，普通 2 教敌人意图与防御，普通 3 教多敌人与目标选择，精英检验攻防节奏，普通 4 试用遗物和新卡，Boss 综合检验；前两次奖励应引导玩家有机会拿到群体攻击终结牌。
-- 更新 [[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]]、[[design/04_balance_data/01_difficulty_curve|难度曲线]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充六场固定战斗的教学职责和群体攻击终结牌奖励引导需求。
+- 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/02_content_systems/02_enemies_and_bosses|魔物与 Boss]]、[[design/02_content_systems/05_map_and_level_generation|地图与关卡生成]]、[[design/04_balance_data/01_difficulty_curve|难度曲线]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充固定遭遇、后置普通战斗随机池和逐节点测试记录要求。
+- 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 六场固定战斗采用教学递进型职责分配：普通 1 教行动点 / 出牌 / 连锁，普通 2 教魔物意图与防御，普通 3 教多魔物与目标选择，精英检验攻防节奏，普通 4 试用遗物和新卡，Boss 综合检验；前两次奖励应引导玩家有机会拿到群体攻击终结牌。
+- 更新 [[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/02_enemies_and_bosses|魔物与 Boss]]、[[design/04_balance_data/01_difficulty_curve|难度曲线]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充六场固定战斗的教学职责和群体攻击终结牌奖励引导需求。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 前两次普通战斗奖励采用固定保底、不明牌的方式引导群体攻击终结牌：普通战斗 1 后和普通战斗 2 后的终结牌包都固定包含 1 张群体攻击终结牌，玩家仍需选择终结牌包才能看到并获得；MVP 不做动态触发、首次选择追踪、额外去重或补偿逻辑。
-- 更新 [[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]]、[[design/04_balance_data/01_difficulty_curve|难度曲线]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充前两次终结牌包均保底群体攻击终结牌、不明牌原则和不做复杂保底逻辑的 MVP 约束。
+- 更新 [[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/02_enemies_and_bosses|魔物与 Boss]]、[[design/04_balance_data/01_difficulty_curve|难度曲线]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充前两次终结牌包均保底群体攻击终结牌、不明牌原则和不做复杂保底逻辑的 MVP 约束。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 每场战斗开始时生命回满，用于稳定测试单场战斗；正式版本方向为生命跨战斗保留且不自动恢复，但本轮不展开正式版本恢复节点和恢复经济。
 - 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]]、[[design/04_balance_data/01_difficulty_curve|难度曲线]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，区分 MVP 每战回满的测试规则和正式版本跨战斗生命保留方向。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 中生命归零会立即结束本次 MVP Run，不提供当前战斗重试，以保证 Roguelike 体验一致。
 - 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充 MVP 失败结算和测试记录要求。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 中 Boss 击败即胜利，显示 MVP 通关并提供重开入口；第一版 MVP 不做 Boss 战后奖励、局外奖励或解锁。
 - 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/05_progression|成长与解锁]]、[[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]、[[design/04_balance_data/02_metrics_and_playtest_data|指标与测试数据]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，区分第一版 MVP 终点 Boss 的通关结算和后续完整 Run 阶段性 Boss 的奖励规则。
-- 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 内容策略采用小型教学池：围绕 6 场固定战斗制作小规模卡牌 / 遗物 / 敌人池，暂不追求流派完整度。
-- 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/00_content_taxonomy|内容分类法]]、[[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]]、[[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充小型教学池边界，并移除第一版 MVP 对 Boss 特殊遗物三选一的测试残留。
-- 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 小型教学池的数量边界：初始牌组 10 张，奖励牌约 9 张（行动牌、技能牌、终结牌各 3 张），普通遗物 1 个，6 场固定遭遇只做必要的 6 组敌人。
-- 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/00_content_taxonomy|内容分类法]]、[[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]]、[[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充极简内容数量，并将第一版 MVP 精英普通遗物奖励标记为实际固定获得。
+- 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 内容策略采用小型教学池：围绕 6 场固定战斗制作小规模卡牌 / 遗物 / 魔物池，暂不追求流派完整度。
+- 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/00_content_taxonomy|内容分类法]]、[[design/02_content_systems/02_enemies_and_bosses|魔物与 Boss]]、[[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充小型教学池边界，并移除第一版 MVP 对 Boss 特殊遗物三选一的测试残留。
+- 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 小型教学池的数量边界：初始牌组 10 张，奖励牌约 9 张（行动牌、技能牌、终结牌各 3 张），普通遗物 1 个，6 场固定遭遇只做必要的 6 组魔物。
+- 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/00_content_taxonomy|内容分类法]]、[[design/02_content_systems/02_enemies_and_bosses|魔物与 Boss]]、[[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充极简内容数量，并将第一版 MVP 精英普通遗物奖励标记为实际固定获得。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 的 9 张奖励牌采用固定可重复池：每次打开某类型卡牌包，都显示该类型固定 3 张奖励牌；拿过的牌仍可再次出现，玩家可以重复加入同名牌。
 - 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]]、[[design/01_core_gameplay/05_progression|成长与解锁]]、[[design/02_content_systems/00_content_taxonomy|内容分类法]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]]、[[design/07_production/02_playtest_plan|试玩测试计划]] 与 [[design/08_governance/02_glossary|术语表]]，补充固定可重复奖励池，并明确第一版 MVP 不做奖励牌移除、同名牌去重、候选不足补位或节点固定包差异。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认第一版 MVP 的 9 张奖励牌采用教学覆盖型功能分配：行动牌覆盖低费连锁、稳定输出、高费强打；技能牌覆盖防御 / 回费、过牌、减费或检索；终结牌覆盖群体攻击、资源返还、额外防御或控制。
-- 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/00_content_taxonomy|内容分类法]]、[[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]]、[[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充第一版 MVP 内容收束结论：本轮不继续确认具体 9 张牌、1 个普通遗物和 6 组敌人内容，它们进入 MVP 开发过程中按已定槽位和职责落地。
+- 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/00_content_taxonomy|内容分类法]]、[[design/02_content_systems/02_enemies_and_bosses|魔物与 Boss]]、[[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]、[[design/07_production/00_roadmap_milestones|开发路线图与里程碑]] 与 [[design/07_production/02_playtest_plan|试玩测试计划]]，补充第一版 MVP 内容收束结论：本轮不继续确认具体 9 张牌、1 个普通遗物和 6 组魔物内容，它们进入 MVP 开发过程中按已定槽位和职责落地。
 
 ### 2026-06-02
 
@@ -160,7 +162,7 @@
 - 更新 [[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]]、[[design/08_governance/02_glossary|术语表]] 与 [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|连锁层数决策记录]]，补充行动点与三类卡牌职责的关系。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认行动点费用规则：行动牌消耗行动点，技能牌和终结牌默认不消耗行动点；行动点每回合固定恢复，并可通过技能牌、终结牌或遗物进行回费、减费、临时行动点增加。
 - 更新 [[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]]、[[design/08_governance/02_glossary|术语表]] 与 [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|连锁层数决策记录]]，补充行动点恢复和行动点修正效果。
-- 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认默认回合结束结算：未用行动点清空、连锁层数清空、未使用手牌弃掉；防御在玩家回合结束时不清空，而是在敌人行动后、下一回合开始时清空剩余值。
+- 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认默认回合结束结算：未用行动点清空、连锁层数清空、未使用手牌弃掉；防御在玩家回合结束时不清空，而是在魔物行动后、下一回合开始时清空剩余值。
 - 更新 [[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]]、[[design/08_governance/02_glossary|术语表]] 与 [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|连锁层数决策记录]]，补充回合结算时点，以及技能牌、终结牌或遗物可保留手牌、防御、行动点或连锁层数的例外规则。
 - 根据 [[inspiration/2026-06-02_01_core_gameplay_brainstorm_qa|01 Core Gameplay 头脑风暴 Q&A]]，确认基础回合参数为每回合恢复 3 点行动点、抽 5 张牌；牌组构筑完善后，技能牌和终结牌可通过回费、过牌提高卡组运转能力。
 - 更新 [[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]]、[[design/08_governance/02_glossary|术语表]] 与 [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|连锁层数决策记录]]，补充 3 行动点 / 5 抽牌基准以及过牌关键词候选。
@@ -180,7 +182,7 @@
 - 更新 [[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]] 与 [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|连锁层数决策记录]]，将初始卡牌具体数值标记为原型阶段验证项。
 - 根据 [[inspiration/2026-06-02_00_product_brainstorm_qa|00 Product 头脑风暴 Q&A]]，确认终结卡密度为自由构筑中的风险收益取舍：前期推荐 1-2 张，中后期可通过过牌、减费、回费、复制或连锁保留能力支撑更多终结卡，并允许终结卡之间形成联动流派。
 - 更新 [[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]]、[[design/04_balance_data/00_balance_principles|平衡原则]] 与 [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|连锁层数决策记录]]，补充终结卡密度、卡手风险和过牌能力的关系。
-- 根据 [[inspiration/2026-06-02_00_product_brainstorm_qa|00 Product 头脑风暴 Q&A]]，确认终结卡效果空间可覆盖伤害、暴击、群体伤害、连锁保留、抽牌、敌人异常状态、自身增益和秒杀非 Boss 敌人；数值可使用固定值、连锁加算或连锁乘算。
+- 根据 [[inspiration/2026-06-02_00_product_brainstorm_qa|00 Product 头脑风暴 Q&A]]，确认终结卡效果空间可覆盖伤害、暴击、群体伤害、连锁保留、抽牌、魔物异常状态、自身增益和秒杀非 Boss 魔物；数值可使用固定值、连锁加算或连锁乘算。
 - 更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/04_balance_data/00_balance_principles|平衡原则]] 与 [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|连锁层数决策记录]]，明确终结卡效果空间后续可逐步增加卡池深度和复杂效果。
 - 根据 [[inspiration/2026-06-02_00_product_brainstorm_qa|00 Product 头脑风暴 Q&A]]，记录基础终结卡效果候选为单体高伤害、群体伤害、暴击率提升、抽牌 / 回费；该集合不作为首版内容承诺。
 - 更新 [[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/01_core_gameplay/04_resource_economy|资源与经济]]、[[design/04_balance_data/00_balance_principles|平衡原则]] 与 [[design/08_governance/2026-06-02_chain_count_as_combo_finisher_mechanic|连锁层数决策记录]]，将四类基础效果记录为候选验证方向。

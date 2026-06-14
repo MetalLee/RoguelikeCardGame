@@ -1,4 +1,4 @@
-# Design Knowledge Base
+﻿# Design Knowledge Base
 
 本目录是 Roguelike 卡牌独立游戏的最高设计准则。后续开发、迭代、灵感整理、竞品洞察沉淀，均应优先对齐这里的文档；`inspiration/` 和 `insight/` 只作为输入来源，不直接覆盖已经确认的设计规范。
 
@@ -38,7 +38,7 @@
 
 - [[design/02_content_systems/00_content_taxonomy|内容分类法]]
 - [[design/02_content_systems/01_characters_and_archetypes|角色与构筑原型]]
-- [[design/02_content_systems/02_enemies_and_bosses|敌人与 Boss]]
+- [[design/02_content_systems/02_enemies_and_bosses|魔物与 Boss]]
 - [[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]]
 - [[design/02_content_systems/04_events_and_encounters|事件与遭遇]]
 - [[design/02_content_systems/05_map_and_level_generation|地图与关卡生成]]

@@ -1,4 +1,4 @@
-# 术语表
+﻿# 术语表
 
 状态：持续维护  
 上级索引：[[design/README|Design Knowledge Base]]
@@ -19,8 +19,9 @@
 | 勇者联盟 | 为攻克黑塔而成立的无政府组织，后逐渐腐败。 | [[design/05_narrative_world/00_world_and_tone]] |
 | 构筑 | 玩家在一局中通过武器、卡牌、色彩、遗物、资源和路线选择形成的策略组合。 | [[design/01_core_gameplay/03_card_system]] |
 | 武器 | 角色机制和卡池入口。每种武器拥有独立战斗方式和卡池，不是传统装备掉落系统。 | [[design/01_core_gameplay/03_card_system]] |
-| 左轮剑 | 初始主手武器，剑与枪结合，通过斩击生成彩能并以枪形态释放。 | [[design/02_content_systems/01_characters_and_archetypes]] |
-| 机械臂 | 初始副手武器，高科技义肢，偏防御、护盾和彩能控制。 | [[design/02_content_systems/01_characters_and_archetypes]] |
+| 左轮剑 | 起始武器之一，剑与枪结合，通过斩击生成彩能并以枪形态释放；可由玩家选择为主手或副手。 | [[design/02_content_systems/01_characters_and_archetypes]] |
+| 机械臂 | 起始武器之一，高科技义肢，偏防御、护盾和彩能控制；可由玩家选择为主手或副手。 | [[design/02_content_systems/01_characters_and_archetypes]] |
+| 魔物 | 本项目对战斗对手的正式通称，取代旧“恶魔”相关设定。系统实现和数据 ID 可继续使用 `enemy` 命名空间，但玩家可见文本和设计称呼优先使用“魔物”。 | [[design/02_content_systems/02_enemies_and_bosses]] |
 | 行动点 | 默认由行动牌消耗的每回合战斗资源；基础上限为 3，每回合恢复当前行动点上限 + 额外行动点数，未使用行动点在玩家回合结束时清空。 | [[design/01_core_gameplay/04_resource_economy]] |
 | 彩能 | 原“连锁层数”的世界观命名和新版规则表达；行动牌主要生成、终结牌主要消耗的回合内战斗资源，基础上限为 6，跨回合不保留。彩能同时包含数量与颜色信息。 | [[design/01_core_gameplay/02_combat_system]] |
 | 色彩 | 附着在彩能上的属性，由色彩碎片附魔行动牌后产生。色彩不是职业标签，而是卡牌用途的改写器。 | [[design/01_core_gameplay/03_card_system]] |
@@ -31,8 +32,8 @@
 | 色彩改写 | 色彩转译的同义表达，用于描述“用什么颜色改写这张卡的用途”。正式规则文本优先使用“色彩转译”。 | [[design/01_core_gameplay/03_card_system]] |
 | 行动牌 | 主要负责攻击、防御、控制、过牌、回费、减费、生成彩能和调整牌序的卡牌类型，可被色彩碎片附魔。 | [[design/01_core_gameplay/03_card_system]] |
 | 终结牌 | 消耗彩能造成强大的伤害或效果，并根据被消耗彩能的色彩产生追加效果的卡牌类型。 | [[design/01_core_gameplay/03_card_system]] |
-| 防御 | 用于抵挡敌人伤害的短期资源；玩家回合结束时不清空，敌人行动后若仍有剩余，则在下一回合开始时清空。 | [[design/01_core_gameplay/02_combat_system]] |
-| 敌人意图 | 敌人在下一次行动中将执行的行为预告。 | [[design/01_core_gameplay/02_combat_system]] |
+| 防御 | 用于抵挡魔物伤害的短期资源；玩家回合结束时不清空，魔物行动后若仍有剩余，则在下一回合开始时清空。 | [[design/01_core_gameplay/02_combat_system]] |
+| 魔物意图 | 魔物在下一次行动中将执行的行为预告。 | [[design/01_core_gameplay/02_combat_system]] |
 | 遗物 | 通常跨战斗生效、改变规则或提供被动收益的奖励，也承担碎片化叙事。 | [[design/02_content_systems/03_relics_items_rewards]] |
 | 普通遗物 | 精英战斗在基础奖励之外额外给予的遗物类型，主要提供稳定构筑收益或小型规则变化。 | [[design/02_content_systems/03_relics_items_rewards]] |
 | Boss 遗物 | Boss 战斗额外提供的高影响遗物类型，应能影响构筑、改变玩法或显著改变后续决策。 | [[design/02_content_systems/03_relics_items_rewards]] |
