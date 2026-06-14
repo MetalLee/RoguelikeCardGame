@@ -10,8 +10,8 @@ using RoguelikeCardGame.Domain.Combat;
 using RoguelikeCardGame.Domain.Effects;
 using RoguelikeCardGame.Domain.Enemies;
 using RoguelikeCardGame.Domain.Relics;
-using RoguelikeCardGame.Domain.Rewards;
 using RoguelikeCardGame.Domain.Runs;
+using RoguelikeCardGame.Infrastructure.Content;
 using RoguelikeCardGame.Infrastructure.Randomness;
 
 var options = new JsonSerializerOptions
@@ -27,7 +27,6 @@ var strike = new CardDefinition
     WeaponId = "weapon.revolver_sword",
     Type = CardType.Action,
     Cost = 1,
-    DefaultChainChange = ChainChange.Gain(1),
     ColorEnergyGeneration = new ColorEnergyGeneration { Amount = 1, ColorSource = ColorEnergyColorSource.Enchantment },
     TargetRule = TargetRule.SingleEnemy,
     Effects = [new EffectDefinition { Type = "damage", Target = "selected_enemy", Value = 6 }],
@@ -42,8 +41,6 @@ var finisher = new CardDefinition
     WeaponId = "weapon.revolver_sword",
     Type = CardType.Finisher,
     Cost = 0,
-    MinChain = 3,
-    DefaultChainChange = ChainChange.ConsumeAll,
     ColorEnergyCost = new ColorEnergyCost { Mode = ColorEnergySpendMode.Fixed, Amount = 3, MinAmount = 3 },
     TargetRule = TargetRule.SingleEnemy,
     Effects = [new EffectDefinition { Type = "damage", Target = "selected_enemy", Value = 18 }],
@@ -57,7 +54,6 @@ var guardAction = new CardDefinition
     WeaponId = "weapon.mechanical_arm",
     Type = CardType.Action,
     Cost = 0,
-    DefaultChainChange = ChainChange.None,
     ColorEnergyGeneration = new ColorEnergyGeneration { Amount = 1, ColorSource = ColorEnergyColorSource.Enchantment },
     TargetRule = TargetRule.Self,
     Effects =
@@ -75,7 +71,6 @@ var drawAction = new CardDefinition
     WeaponId = "weapon.mechanical_arm",
     Type = CardType.Action,
     Cost = 0,
-    DefaultChainChange = ChainChange.None,
     ColorEnergyGeneration = new ColorEnergyGeneration { Amount = 1, ColorSource = ColorEnergyColorSource.Enchantment },
     TargetRule = TargetRule.Self,
     Effects = [new EffectDefinition { Type = "draw_cards", Target = "self", Value = 1 }],
@@ -89,7 +84,6 @@ var discountAction = new CardDefinition
     WeaponId = "weapon.mechanical_arm",
     Type = CardType.Action,
     Cost = 0,
-    DefaultChainChange = ChainChange.None,
     ColorEnergyGeneration = new ColorEnergyGeneration { Amount = 1, ColorSource = ColorEnergyColorSource.Enchantment },
     TargetRule = TargetRule.Self,
     Effects = [new EffectDefinition { Type = "temporary_discount", Target = "hand", Value = 1 }],
@@ -103,8 +97,6 @@ var arcSweepFinisher = new CardDefinition
     WeaponId = "weapon.mechanical_arm",
     Type = CardType.Finisher,
     Cost = 0,
-    MinChain = 3,
-    DefaultChainChange = ChainChange.ConsumeAll,
     ColorEnergyCost = new ColorEnergyCost { Mode = ColorEnergySpendMode.Fixed, Amount = 3, MinAmount = 3 },
     TargetRule = TargetRule.AllEnemies,
     Effects = [new EffectDefinition { Type = "damage", Target = "all_enemies", Value = 4 }],
@@ -118,8 +110,6 @@ var refundFinisher = new CardDefinition
     WeaponId = "weapon.revolver_sword",
     Type = CardType.Finisher,
     Cost = 0,
-    MinChain = 5,
-    DefaultChainChange = ChainChange.ConsumeAll,
     ColorEnergyCost = new ColorEnergyCost { Mode = ColorEnergySpendMode.Fixed, Amount = 3, MinAmount = 3 },
     TargetRule = TargetRule.SingleEnemy,
     Effects =
@@ -379,6 +369,31 @@ var armMainRun = runFactory.CreateNewRunFromWeaponSelection(
 AssertEqual("weapon.mechanical_arm", armMainRun.MainHandWeaponId, "Run can start with mechanical arm as main hand");
 AssertEqual("weapon.revolver_sword", armMainRun.OffHandWeaponId, "Run can start with revolver sword as off hand");
 
+var loadedContent = GameContent.LoadFromDataRoot(FindGameDataRoot());
+AssertEqual(5, loadedContent.ColorsById.Count, "GameContent loads all MVP colors");
+AssertEqual("tempo_conversion", loadedContent.ColorsById["color.yellow"].Role, "GameContent maps color roles");
+AssertEqual("extra_casts", loadedContent.ColorsById["color.yellow"].BaseEffectTemplate.Op, "GameContent maps color effect templates");
+AssertEqual(1, loadedContent.ColorsById["color.yellow"].StackRule.MaxPerCard, "GameContent maps color stack rules");
+AssertEqual(2, loadedContent.WeaponsById.Count, "GameContent loads MVP weapons");
+AssertEqual("card_pool.starting.revolver_sword", loadedContent.WeaponsById["weapon.revolver_sword"].StartingPoolId, "GameContent maps weapon starting pools");
+AssertEqual(20, loadedContent.CardsById.Count, "GameContent loads the 20-card MVP weapon card set");
+var loadedActionCard = loadedContent.CardsById["card.revolver_slash"];
+AssertEqual(CardType.Action, loadedActionCard.Type, "GameContent maps card type");
+AssertEqual("action_point", loadedActionCard.Costs[0].Resource, "GameContent maps structured card costs");
+Assert(loadedActionCard.Targeting.Required, "GameContent maps targeting.required");
+AssertEqual(5, loadedActionCard.ColorInteractions.Enchantment.SelfEffects.Count, "GameContent maps action enchantment color effects");
+AssertEqual("move_card", loadedActionCard.AfterPlay[0].Type, "GameContent maps after_play operations");
+AssertEqual("basic_single_target_generator", loadedActionCard.Balance.Role, "GameContent maps card balance metadata");
+var loadedFinisher = loadedContent.CardsById["card.revolver_heavy_cannon"];
+AssertEqual("any", loadedFinisher.ColorEnergyCost?.ColorFilter, "GameContent maps finisher color filter");
+AssertEqual(5, loadedFinisher.ColorInteractions.FinisherColorEffects.Count, "GameContent maps finisher color effects");
+AssertEqual(8, loadedContent.ExpandedStartingCardIdsForWeapon("weapon.revolver_sword").Count, "GameContent expands weapon starting pools");
+Assert(loadedContent.CardPoolsById["card_pool.reward.mechanical_arm"].RewardByRarity["rare"].Contains("card.arm_shield_overload"), "GameContent maps weapon reward pools");
+AssertEqual(6, loadedContent.EncountersById.Count, "GameContent loads the MVP encounter sequence");
+AssertEqual(0, loadedContent.EncountersById["encounter.mvp.normal_01"].RewardProfile.CardPackIds.Count, "GameContent preserves empty card_pack_ids compatibility field");
+AssertEqual("左轮剑", loadedContent.WeaponName("weapon.revolver_sword"), "GameContent maps localization for weapons");
+Assert(loadedContent.AssetsById.ContainsKey("asset.card.template.action"), "GameContent loads presentation asset manifest");
+
 var underPicked = startingDeckSelectionService.Validate(revolverMainSelection with
 {
     MainHandCardIds = revolverMainSelection.MainHandCardIds.Take(5).ToList()
@@ -445,7 +460,6 @@ AssertEqual(5, openingIntentViews[0].EffectPreviews[0].Value, "GetEnemyIntentVie
 var endedTurn = turnService.EndPlayerTurn(combat with
 {
     ActionPoints = 2,
-    Chain = 3,
     ColorEnergy = ColorEnergyPool.Empty().Add(ColorType.Blue, 2),
     PlayerBlock = 7
 });
@@ -483,7 +497,6 @@ var drawCycleState = new CombatState
     BaseActionPoints = 3,
     CardsPerTurn = 5,
     ActionPoints = 3,
-    Chain = 0,
     DeckZones = new DeckZones
     {
         DrawPile = ["draw_01"],
@@ -1112,7 +1125,6 @@ static void AssertThrows(Action action, string message)
 static CombatState CreatePlayableCombat(
     IEnumerable<string> hand,
     int actionPoints = 3,
-    int chain = 0,
     int playerHp = 60,
     int playerBlock = 0,
     ColorEnergyPool? colorEnergy = null,
@@ -1132,7 +1144,6 @@ static CombatState CreatePlayableCombat(
         BaseActionPoints = 3,
         CardsPerTurn = 5,
         ActionPoints = actionPoints,
-        Chain = chain,
         ColorEnergy = colorEnergy ?? ColorEnergyPool.Empty(),
         DeckZones = new DeckZones
         {
@@ -1162,7 +1173,6 @@ static CombatState CreateEnemyTurnCombat(
         BaseActionPoints = 3,
         CardsPerTurn = 5,
         ActionPoints = 0,
-        Chain = 0,
         DeckZones = new DeckZones(),
         Enemies = enemies
     };
@@ -1201,6 +1211,28 @@ static CombatEnemyState CreateEnemyState(
         Block = block,
         IntentIndex = intentIndex
     };
+}
+
+static string FindGameDataRoot()
+{
+    for (var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+         directory is not null;
+         directory = directory.Parent)
+    {
+        var repoStyle = Path.Combine(directory.FullName, "game", "data");
+        if (Directory.Exists(repoStyle))
+        {
+            return repoStyle;
+        }
+
+        var gameStyle = Path.Combine(directory.FullName, "data");
+        if (Directory.Exists(gameStyle) && Directory.Exists(Path.Combine(gameStyle, "gameplay")))
+        {
+            return gameStyle;
+        }
+    }
+
+    throw new DirectoryNotFoundException("Could not find game/data from the test working directory.");
 }
 
 static void AssertEqual<T>(T expected, T actual, string message)

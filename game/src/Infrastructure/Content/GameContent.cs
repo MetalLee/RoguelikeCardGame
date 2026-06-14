@@ -1,10 +1,11 @@
 using System.Text.Json;
-using Godot;
 using RoguelikeCardGame.Domain.Cards;
+using RoguelikeCardGame.Domain.Colors;
 using RoguelikeCardGame.Domain.Combat;
 using RoguelikeCardGame.Domain.Effects;
 using RoguelikeCardGame.Domain.Enemies;
 using RoguelikeCardGame.Domain.Relics;
+using RoguelikeCardGame.Domain.Weapons;
 
 namespace RoguelikeCardGame.Infrastructure.Content;
 
@@ -54,21 +55,6 @@ public sealed record AssetDefinition
     public required string Path { get; init; }
 }
 
-public sealed record WeaponContentDefinition
-{
-    public required string Id { get; init; }
-
-    public required string StartingPoolId { get; init; }
-
-    public required string RewardPoolId { get; init; }
-
-    public bool MainHandAllowed { get; init; }
-
-    public bool OffHandAllowed { get; init; }
-
-    public List<string> Tags { get; init; } = new();
-}
-
 public sealed record StartingPoolEntryDefinition
 {
     public required string CardId { get; init; }
@@ -76,7 +62,7 @@ public sealed record StartingPoolEntryDefinition
     public int Count { get; init; }
 }
 
-public sealed record CardPoolContentDefinition
+public sealed record CardPoolDefinition
 {
     public required string Id { get; init; }
 
@@ -103,11 +89,14 @@ public sealed class GameContent
     public IReadOnlyDictionary<string, CardDefinition> CardsById { get; private init; } =
         new Dictionary<string, CardDefinition>();
 
-    public IReadOnlyDictionary<string, WeaponContentDefinition> WeaponsById { get; private init; } =
-        new Dictionary<string, WeaponContentDefinition>();
+    public IReadOnlyDictionary<string, WeaponDefinition> WeaponsById { get; private init; } =
+        new Dictionary<string, WeaponDefinition>();
 
-    public IReadOnlyDictionary<string, CardPoolContentDefinition> CardPoolsById { get; private init; } =
-        new Dictionary<string, CardPoolContentDefinition>();
+    public IReadOnlyDictionary<string, ColorDefinition> ColorsById { get; private init; } =
+        new Dictionary<string, ColorDefinition>();
+
+    public IReadOnlyDictionary<string, CardPoolDefinition> CardPoolsById { get; private init; } =
+        new Dictionary<string, CardPoolDefinition>();
 
     public IReadOnlyDictionary<string, EnemyDefinition> EnemiesById { get; private init; } =
         new Dictionary<string, EnemyDefinition>();
@@ -174,12 +163,19 @@ public sealed class GameContent
 
     public static GameContent LoadFromProject()
     {
-        var root = ProjectSettings.GlobalizePath("res://data");
+        return LoadFromDataRoot(ResolveProjectDataRoot());
+    }
+
+    public static GameContent LoadFromDataRoot(string dataRoot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(dataRoot);
+        var root = Path.GetFullPath(dataRoot);
         var gameplay = Path.Combine(root, "gameplay");
         var presentation = Path.Combine(root, "presentation");
 
         var cards = ReadItems(Path.Combine(gameplay, "cards", "cards.json"), ParseCard);
         var weapons = ReadItems(Path.Combine(gameplay, "weapons", "weapons.json"), ParseWeapon);
+        var colors = ReadItems(Path.Combine(gameplay, "colors", "colors.json"), ParseColor);
         var cardPools = ReadItems(Path.Combine(gameplay, "card_pools", "card_pools.json"), ParseCardPool);
         var enemies = ReadItems(Path.Combine(gameplay, "enemies", "enemies.json"), ParseEnemy);
         var encounters = ReadItems(Path.Combine(gameplay, "encounters", "encounters.json"), ParseEncounter);
@@ -198,6 +194,7 @@ public sealed class GameContent
         {
             CardsById = cards.ToDictionary(card => card.Id, StringComparer.Ordinal),
             WeaponsById = weapons.ToDictionary(weapon => weapon.Id, StringComparer.Ordinal),
+            ColorsById = colors.ToDictionary(color => color.Id, StringComparer.Ordinal),
             CardPoolsById = cardPools.ToDictionary(pool => pool.Id, StringComparer.Ordinal),
             EnemiesById = enemies.ToDictionary(enemy => enemy.Id, StringComparer.Ordinal),
             EncountersById = encounters.ToDictionary(encounter => encounter.Id, StringComparer.Ordinal),
@@ -213,54 +210,113 @@ public sealed class GameContent
         };
     }
 
+    private static string ResolveProjectDataRoot()
+    {
+        var godotProjectSettings = AppDomain.CurrentDomain
+            .GetAssemblies()
+            .Select(assembly => assembly.GetType("Godot.ProjectSettings"))
+            .FirstOrDefault(type => type is not null);
+        var globalizePath = godotProjectSettings?.GetMethod("GlobalizePath", [typeof(string)]);
+        if (globalizePath?.Invoke(null, ["res://data"]) is string godotDataRoot &&
+            !string.IsNullOrWhiteSpace(godotDataRoot))
+        {
+            return godotDataRoot;
+        }
+
+        var cwd = Directory.GetCurrentDirectory();
+        var cwdData = Path.Combine(cwd, "data");
+        if (Directory.Exists(cwdData))
+        {
+            return cwdData;
+        }
+
+        return Path.Combine(cwd, "game", "data");
+    }
+
     private static List<T> ReadItems<T>(string path, Func<JsonElement, T> parse)
     {
-        using var document = JsonDocument.Parse(System.IO.File.ReadAllText(path));
-        return document.RootElement.GetProperty("items")
-            .EnumerateArray()
-            .Select(parse)
-            .ToList();
+        try
+        {
+            using var document = JsonDocument.Parse(System.IO.File.ReadAllText(path));
+            var result = new List<T>();
+            var index = 0;
+            foreach (var item in document.RootElement.GetProperty("items").EnumerateArray())
+            {
+                try
+                {
+                    result.Add(parse(item));
+                }
+                catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or FormatException)
+                {
+                    var id = item.TryGetProperty("id", out var idElement) ? idElement.GetString() : null;
+                    var label = string.IsNullOrWhiteSpace(id) ? $"item[{index}]" : $"item[{index}] {id}";
+                    throw new InvalidDataException($"Failed to parse {label} in '{path}': {ex.Message}", ex);
+                }
+
+                index++;
+            }
+
+            return result;
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException($"Failed to read JSON content file '{path}': {ex.Message}", ex);
+        }
     }
 
     private static Dictionary<string, string> ReadLocalization(string path)
     {
-        using var document = JsonDocument.Parse(System.IO.File.ReadAllText(path));
-        return document.RootElement.GetProperty("entries")
-            .EnumerateObject()
-            .ToDictionary(item => item.Name, item => item.Value.GetString() ?? item.Name, StringComparer.Ordinal);
+        try
+        {
+            using var document = JsonDocument.Parse(System.IO.File.ReadAllText(path));
+            return document.RootElement.GetProperty("entries")
+                .EnumerateObject()
+                .ToDictionary(item => item.Name, item => item.Value.GetString() ?? item.Name, StringComparer.Ordinal);
+        }
+        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
+        {
+            throw new InvalidDataException($"Failed to read localization file '{path}': {ex.Message}", ex);
+        }
     }
 
     private static RunSequenceDefinition ReadRunSequence(string path)
     {
-        using var document = JsonDocument.Parse(System.IO.File.ReadAllText(path));
-        var root = document.RootElement;
-        var player = root.GetProperty("player");
-        var starterDeck = new List<string>();
-        foreach (var entry in root.GetProperty("starter_deck").EnumerateArray())
+        try
         {
-            var cardId = entry.GetProperty("card_id").GetStringRequired("card_id");
-            var count = entry.GetProperty("count").GetInt32();
-            for (var i = 0; i < count; i++)
+            using var document = JsonDocument.Parse(System.IO.File.ReadAllText(path));
+            var root = document.RootElement;
+            var player = root.GetProperty("player");
+            var starterDeck = new List<string>();
+            foreach (var entry in root.GetProperty("starter_deck").EnumerateArray())
             {
-                starterDeck.Add(cardId);
+                var cardId = entry.GetProperty("card_id").GetStringRequired("card_id");
+                var count = entry.GetProperty("count").GetInt32();
+                for (var i = 0; i < count; i++)
+                {
+                    starterDeck.Add(cardId);
+                }
             }
-        }
 
-        return new RunSequenceDefinition
+            return new RunSequenceDefinition
+            {
+                Id = root.GetProperty("id").GetStringRequired("id"),
+                PlayerMaxHp = player.GetProperty("max_hp").GetInt32(),
+                BaseActionPoints = player.GetProperty("base_action_points").GetInt32(),
+                CardsPerTurn = player.GetProperty("cards_per_turn").GetInt32(),
+                StarterDeck = starterDeck,
+                EncounterSequence = root.GetProperty("nodes")
+                    .EnumerateArray()
+                    .OrderBy(node => node.GetProperty("order").GetInt32())
+                    .Select(node => node.GetProperty("encounter_id").GetStringRequired("encounter_id"))
+                    .ToList(),
+                BossEncounterId = root.GetProperty("completion").GetProperty("boss_encounter_id")
+                    .GetStringRequired("boss_encounter_id")
+            };
+        }
+        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
         {
-            Id = root.GetProperty("id").GetStringRequired("id"),
-            PlayerMaxHp = player.GetProperty("max_hp").GetInt32(),
-            BaseActionPoints = player.GetProperty("base_action_points").GetInt32(),
-            CardsPerTurn = player.GetProperty("cards_per_turn").GetInt32(),
-            StarterDeck = starterDeck,
-            EncounterSequence = root.GetProperty("nodes")
-                .EnumerateArray()
-                .OrderBy(node => node.GetProperty("order").GetInt32())
-                .Select(node => node.GetProperty("encounter_id").GetStringRequired("encounter_id"))
-                .ToList(),
-            BossEncounterId = root.GetProperty("completion").GetProperty("boss_encounter_id")
-                .GetStringRequired("boss_encounter_id")
-        };
+            throw new InvalidDataException($"Failed to read run sequence file '{path}': {ex.Message}", ex);
+        }
     }
 
     private static IEnumerable<CardViewDefinition> CreateFallbackCardViews(IEnumerable<CardDefinition> cards)
@@ -290,14 +346,27 @@ public sealed class GameContent
             WeaponId = item.GetProperty("weapon_id").GetStringRequired("weapon_id"),
             Type = ParseCardType(item.GetProperty("card_type").GetStringRequired("card_type")),
             Cost = ParseActionPointCost(item),
-            MinChain = null,
-            DefaultChainChange = ChainChange.None,
+            Costs = item.GetProperty("costs").EnumerateArray().Select(ParseResourceAmount).ToList(),
+            Requirements = item.GetProperty("requirements").EnumerateArray().Select(ParseContentEffect).ToList(),
+            Targeting = ParseCardTargeting(item.GetProperty("targeting")),
             ColorEnergyGeneration = TryParseColorEnergyGeneration(energy),
             ColorEnergyCost = TryParseColorEnergyCost(energy),
             TargetRule = ParseCardTargetRule(item.GetProperty("targeting")),
             Effects = item.GetProperty("effects").EnumerateArray().SelectMany(ParseCardEffect).ToList(),
+            ColorInteractions = ParseCardColorInteractions(item.GetProperty("color_interactions")),
+            AfterPlay = item.GetProperty("after_play").EnumerateArray().Select(ParseContentEffect).ToList(),
             Rarity = ParseCardRarity(item.GetProperty("rarity").GetStringRequired("rarity")),
+            Balance = ParseCardBalance(item.GetProperty("balance")),
             Tags = ReadStringList(item, "tags")
+        };
+    }
+
+    private static ResourceAmountDefinition ParseResourceAmount(JsonElement item)
+    {
+        return new ResourceAmountDefinition
+        {
+            Resource = item.GetProperty("resource").GetStringRequired("resource"),
+            Amount = item.GetProperty("amount").GetInt32()
         };
     }
 
@@ -318,7 +387,13 @@ public sealed class GameContent
         return new ColorEnergyGeneration
         {
             Amount = generate.GetProperty("amount").GetInt32(),
-            ColorSource = source
+            ColorSource = source,
+            FixedColorId = generate.TryGetProperty("fixed_color_id", out var fixedColorId)
+                ? fixedColorId.GetString()
+                : null,
+            FixedColor = generate.TryGetProperty("fixed_color_id", out var fixedColor)
+                ? ParseColorType(fixedColor.GetStringRequired("fixed_color_id"))
+                : null
         };
     }
 
@@ -341,7 +416,10 @@ public sealed class GameContent
         {
             Mode = mode,
             Amount = consume.TryGetProperty("amount", out var amount) ? amount.GetInt32() : 0,
-            MinAmount = consume.GetProperty("min_amount").GetInt32()
+            MinAmount = consume.GetProperty("min_amount").GetInt32(),
+            ColorFilter = consume.TryGetProperty("color_filter", out var colorFilter)
+                ? colorFilter.GetStringRequired("color_filter")
+                : "any"
         };
     }
 
@@ -362,6 +440,28 @@ public sealed class GameContent
             "gain_block" or "gain_block_per_energy" => [new EffectDefinition { Type = "block", Target = "self", Value = ReadOptionalInt(item, "amount") }],
             "draw_cards" => [new EffectDefinition { Type = "draw_cards", Target = "self", Value = ReadOptionalInt(item, "amount") }],
             _ => [new EffectDefinition { Type = op, Target = target, Value = ReadOptionalInt(item, "amount") }]
+        };
+    }
+
+    private static EffectDefinition ParseContentEffect(JsonElement item)
+    {
+        var type = item.TryGetProperty("op", out var op)
+            ? op.GetStringRequired("op")
+            : item.TryGetProperty("type", out var typeElement)
+                ? typeElement.GetStringRequired("type")
+                : "unspecified";
+        return new EffectDefinition
+        {
+            Type = type,
+            Target = ParseTargetRef(item),
+            Value = ReadOptionalInt(item, "amount"),
+            Threshold = ReadOptionalInt(item, "threshold"),
+            Effect = item.TryGetProperty("effect", out var nested) && nested.ValueKind == JsonValueKind.Object
+                ? ParseContentEffect(nested)
+                : null,
+            Extra = item.EnumerateObject()
+                .Where(property => property.Name is not ("op" or "type" or "target" or "amount" or "threshold" or "effect"))
+                .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.Ordinal)
         };
     }
 
@@ -387,9 +487,53 @@ public sealed class GameContent
         };
     }
 
-    private static WeaponContentDefinition ParseWeapon(JsonElement item)
+    private static CardTargetingDefinition ParseCardTargeting(JsonElement item)
     {
-        return new WeaponContentDefinition
+        return new CardTargetingDefinition
+        {
+            Mode = item.GetProperty("mode").GetStringRequired("targeting.mode"),
+            Side = item.GetProperty("side").GetStringRequired("targeting.side"),
+            Required = item.GetProperty("required").GetBoolean()
+        };
+    }
+
+    private static CardColorInteractionsDefinition ParseCardColorInteractions(JsonElement item)
+    {
+        var enchantment = item.GetProperty("enchantment");
+        return new CardColorInteractionsDefinition
+        {
+            Enchantment = new CardEnchantmentRulesDefinition
+            {
+                CanBeEnchanted = enchantment.GetProperty("can_be_enchanted").GetBoolean(),
+                GeneratedEnergyColor = enchantment.GetProperty("generated_energy_color").GetStringRequired("generated_energy_color"),
+                SelfEffects = enchantment.TryGetProperty("self_effects", out var selfEffects)
+                    ? selfEffects.EnumerateArray().Select(ParseContentEffect).ToList()
+                    : []
+            },
+            FinisherColorEffects = item.GetProperty("finisher_color_effects")
+                .EnumerateArray()
+                .Select(effect => new FinisherColorEffectsDefinition
+                {
+                    ColorId = effect.GetProperty("color_id").GetStringRequired("color_id"),
+                    Effects = effect.GetProperty("effects").EnumerateArray().Select(ParseContentEffect).ToList(),
+                    StackLimit = effect.GetProperty("stack_limit").GetInt32()
+                })
+                .ToList()
+        };
+    }
+
+    private static CardBalanceDefinition ParseCardBalance(JsonElement item)
+    {
+        return new CardBalanceDefinition
+        {
+            Role = item.GetProperty("role").GetStringRequired("balance.role"),
+            Tier = item.GetProperty("tier").GetInt32()
+        };
+    }
+
+    private static WeaponDefinition ParseWeapon(JsonElement item)
+    {
+        return new WeaponDefinition
         {
             Id = item.GetProperty("id").GetStringRequired("id"),
             StartingPoolId = item.GetProperty("starting_pool_id").GetStringRequired("starting_pool_id"),
@@ -400,7 +544,32 @@ public sealed class GameContent
         };
     }
 
-    private static CardPoolContentDefinition ParseCardPool(JsonElement item)
+    private static ColorDefinition ParseColor(JsonElement item)
+    {
+        var stackRule = item.GetProperty("stack_rule");
+        var template = item.GetProperty("base_effect_template");
+        return new ColorDefinition
+        {
+            Id = item.GetProperty("id").GetStringRequired("id"),
+            Color = ParseColorType(item.GetProperty("id").GetStringRequired("id")),
+            Role = item.GetProperty("role").GetStringRequired("role"),
+            BaseEffectTemplate = new ColorEffectTemplateDefinition
+            {
+                Op = template.GetProperty("op").GetStringRequired("base_effect_template.op"),
+                Extra = template.EnumerateObject()
+                    .Where(property => property.Name != "op")
+                    .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.Ordinal)
+            },
+            StackRule = new ColorStackRuleDefinition
+            {
+                Mode = stackRule.GetProperty("mode").GetStringRequired("stack_rule.mode"),
+                MaxPerCard = stackRule.GetProperty("max_per_card").GetInt32()
+            },
+            Tags = ReadStringList(item, "tags")
+        };
+    }
+
+    private static CardPoolDefinition ParseCardPool(JsonElement item)
     {
         var rewardByRarity = item.GetProperty("reward_by_rarity")
             .EnumerateObject()
@@ -409,7 +578,7 @@ public sealed class GameContent
                 entry => entry.Value.EnumerateArray().Select(value => value.GetStringRequired(entry.Name)).ToList(),
                 StringComparer.Ordinal);
 
-        return new CardPoolContentDefinition
+        return new CardPoolDefinition
         {
             Id = item.GetProperty("id").GetStringRequired("id"),
             PoolType = item.GetProperty("pool_type").GetStringRequired("pool_type"),
@@ -615,6 +784,16 @@ public sealed class GameContent
         "action" => CardType.Action,
         "finisher" => CardType.Finisher,
         _ => throw new InvalidOperationException($"Unknown card type '{value}'.")
+    };
+
+    private static ColorType ParseColorType(string value) => value switch
+    {
+        "color.red" => ColorType.Red,
+        "color.yellow" => ColorType.Yellow,
+        "color.blue" => ColorType.Blue,
+        "color.green" => ColorType.Green,
+        "color.purple" => ColorType.Purple,
+        _ => ColorType.Colorless
     };
 
     private static CardRarity ParseCardRarity(string value) => value switch

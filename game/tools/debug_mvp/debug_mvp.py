@@ -28,7 +28,7 @@ def expand_starter_deck(entries: list[dict[str, Any]]) -> list[str]:
 
 
 def default_weapon_starter_deck(card_pools_by_id: dict[str, dict[str, Any]]) -> list[str]:
-    """Compatibility helper for debug sessions before the weapon picker is simulated."""
+    """Build the default debug deck from the current main/off-hand weapon starting pools."""
     revolver_pool = card_pools_by_id["card_pool.starting.revolver_sword"]
     arm_pool = card_pools_by_id["card_pool.starting.mechanical_arm"]
     return expand_starter_deck(revolver_pool["starting_entries"])[:6] + expand_starter_deck(arm_pool["starting_entries"])[:4]
@@ -58,9 +58,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Create a RoguelikeCardGame MVP debug session.")
     parser.add_argument("--encounter-id", help="Fixed encounter id to enter directly.")
     parser.add_argument("--seed", type=int, help="Run seed. Defaults to a generated seed.")
-    parser.add_argument("--starter-deck", help="Comma-separated card ids replacing the MVP starter deck.")
+    parser.add_argument("--starter-deck", help="Comma-separated card ids replacing the debug weapon starter selection.")
     parser.add_argument("--add-card", action="append", default=[], help="Card id to append to the starter deck.")
-    parser.add_argument("--reward-pack-id", action="append", default=[], help="Deprecated compatibility option; card packs are no longer previewed.")
     parser.add_argument("--output-dir", type=Path, help="Output directory. Defaults to game/logs.")
     return parser
 
@@ -85,11 +84,7 @@ def main() -> int:
     if encounter_id not in encounters_by_id:
         raise SystemExit(f"Unknown encounter id: {encounter_id}")
 
-    starter_deck = parse_card_list(args.starter_deck)
-    if starter_deck is None:
-        starter_deck = expand_starter_deck(run_sequence.get("starter_deck", []))
-    if not starter_deck:
-        starter_deck = default_weapon_starter_deck(card_pools_by_id)
+    starter_deck = parse_card_list(args.starter_deck) or default_weapon_starter_deck(card_pools_by_id)
     starter_deck.extend(args.add_card)
     unknown_cards = [card_id for card_id in starter_deck if card_id not in cards_by_id]
     if unknown_cards:
@@ -97,8 +92,8 @@ def main() -> int:
 
     seed = args.seed if args.seed is not None else random.randint(0, 2_147_483_647)
     encounter = encounters_by_id[encounter_id]
-    if args.reward_pack_id or encounter["reward_profile"].get("card_pack_ids"):
-        print("Warning: card pack rewards are deprecated; previewing color shard plus weapon card rewards instead.")
+    if encounter["reward_profile"].get("card_pack_ids"):
+        print("Warning: deprecated card pack ids are ignored; previewing color shard plus weapon card rewards instead.")
 
     reward_previews = [
         {
@@ -126,7 +121,6 @@ def main() -> int:
         "node_order": node_order,
         "starter_deck": starter_deck,
         "added_cards": args.add_card,
-        "reward_pack_previews": [],
         "reward_previews": reward_previews,
     }
     combat_log = {

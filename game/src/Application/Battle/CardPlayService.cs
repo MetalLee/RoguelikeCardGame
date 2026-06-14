@@ -11,7 +11,6 @@ public enum PlayCardFailureReason
 	NotPlayerTurn,
 	CardNotInHand,
 	InsufficientActionPoints,
-	InsufficientChain,
 	InsufficientColorEnergy,
 	TargetMissing
 }
@@ -77,10 +76,6 @@ public sealed record PlayCardResult
 
 	public int? CurrentActionPoints { get; init; }
 
-	public int? RequiredChain { get; init; }
-
-	public int? CurrentChain { get; init; }
-
 	public int? RequiredColorEnergy { get; init; }
 
 	public int? CurrentColorEnergy { get; init; }
@@ -106,8 +101,6 @@ public sealed record PlayCardResult
 		string messageKey,
 		int? requiredActionPoints = null,
 		int? currentActionPoints = null,
-		int? requiredChain = null,
-		int? currentChain = null,
 		int? requiredColorEnergy = null,
 		int? currentColorEnergy = null,
 		TargetRule? requiredTargetRule = null) => new()
@@ -118,8 +111,6 @@ public sealed record PlayCardResult
 		FailureMessageKey = messageKey,
 		RequiredActionPoints = requiredActionPoints,
 		CurrentActionPoints = currentActionPoints,
-		RequiredChain = requiredChain,
-		CurrentChain = currentChain,
 		RequiredColorEnergy = requiredColorEnergy,
 		CurrentColorEnergy = currentColorEnergy,
 		RequiredTargetRule = requiredTargetRule?.ToString()

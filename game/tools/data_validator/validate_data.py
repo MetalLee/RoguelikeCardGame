@@ -18,6 +18,7 @@ REQUIRED_COLOR_IDS = {"color.red", "color.yellow", "color.blue", "color.green", 
 CARD_TYPES = {"action", "finisher"}
 FINISHER_ENERGY_MODES = {"fixed", "x", "all"}
 LEGACY_MARKERS = {"chain", "min_chain", "default_chain_delta", "chain_threshold_bonus", "skill"}
+PRESENTATION_LEGACY_TOKENS = ("chain_", "chain.", "min_chain", "chain_threshold", "skill_card", "reward_pack")
 YELLOW_FORBIDDEN_OPS = {
     "draw_card",
     "draw_cards",
@@ -204,6 +205,17 @@ def contains_forbidden_yellow_semantics(value: Any) -> tuple[str, str] | None:
     return None
 
 
+def contains_legacy_presentation_token(value: Any) -> tuple[str, str] | None:
+    for path, node in iter_json_nodes(value):
+        if not isinstance(node, str):
+            continue
+        node_lower = node.lower()
+        for token in PRESENTATION_LEGACY_TOKENS:
+            if token in node_lower:
+                return path, f"legacy presentation token {token!r} in {node!r}"
+    return None
+
+
 def require_text(localization: dict[str, str], key: Any, location: str, errors: list[str]) -> None:
     if not isinstance(key, str) or not key:
         errors.append(f"{location}: text key must be a non-empty string")
@@ -285,6 +297,18 @@ def validate_unified_gameplay(project_root: Path, documents: dict[str, dict[str,
         if legacy_marker is not None:
             path, reason = legacy_marker
             errors.append(f"{label}{path.removeprefix('$')}: uses deprecated skill/chain/3-5-8 semantics via {reason}")
+
+    for label, document in (
+        ("presentation.assets", documents["assets"]),
+        ("presentation.card_views", documents["card_views"]),
+        ("presentation.enemy_views", documents["enemy_views"]),
+        ("presentation.relic_views", documents["relic_views"]),
+        ("localization.zh_hans", documents["localization"]),
+    ):
+        legacy_presentation = contains_legacy_presentation_token(document)
+        if legacy_presentation is not None:
+            path, reason = legacy_presentation
+            errors.append(f"{label}{path.removeprefix('$')}: active data must not reference legacy chain/skill/reward-pack assets: {reason}")
 
     yellow = colors_by_id.get("color.yellow")
     if yellow is not None:

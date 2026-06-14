@@ -27,14 +27,6 @@
       "art_asset": "asset.card.heavy_strike.art"
     },
     {
-      "id": "card.chain_cut",
-      "name_key": "card.chain_cut.name",
-      "rules_key": "card.chain_cut.rules",
-      "flavor_key": "card.chain_cut.flavor",
-      "template_asset": "asset.card.template.action",
-      "art_asset": "asset.card.chain_cut.art"
-    },
-    {
       "id": "card.flow_step",
       "name_key": "card.flow_step.name",
       "rules_key": "card.flow_step.rules",

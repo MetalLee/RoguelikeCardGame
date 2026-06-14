@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace RoguelikeCardGame.Domain.Colors;
@@ -24,11 +25,29 @@ public sealed record ColorDefinition
     public required string Role { get; init; }
 
     [JsonPropertyName("base_effect_template")]
-    public required string BaseEffectTemplate { get; init; }
+    public required ColorEffectTemplateDefinition BaseEffectTemplate { get; init; }
 
-    [JsonPropertyName("max_stacks_per_card")]
-    public int MaxStacksPerCard { get; init; } = 1;
+    [JsonPropertyName("stack_rule")]
+    public required ColorStackRuleDefinition StackRule { get; init; }
 
     [JsonPropertyName("tags")]
     public List<string> Tags { get; init; } = new();
+}
+
+public sealed record ColorEffectTemplateDefinition
+{
+    [JsonPropertyName("op")]
+    public required string Op { get; init; }
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement> Extra { get; init; } = new();
+}
+
+public sealed record ColorStackRuleDefinition
+{
+    [JsonPropertyName("mode")]
+    public required string Mode { get; init; }
+
+    [JsonPropertyName("max_per_card")]
+    public int MaxPerCard { get; init; }
 }

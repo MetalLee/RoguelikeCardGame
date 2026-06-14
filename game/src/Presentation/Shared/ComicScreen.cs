@@ -20,7 +20,7 @@ public abstract partial class ComicScreen : Control
     protected static readonly Color InkPanel = new(0.045f, 0.035f, 0.035f, 0.9f);
     protected static readonly Color GoldLine = new(0.82f, 0.62f, 0.34f, 1.0f);
     protected static readonly Color BloodLine = new(0.78f, 0.12f, 0.09f, 1.0f);
-    protected static readonly Color SkillLine = new(0.18f, 0.58f, 0.70f, 1.0f);
+    protected static readonly Color CyanLine = new(0.18f, 0.58f, 0.70f, 1.0f);
     protected static readonly Color FinisherLine = new(0.55f, 0.22f, 0.82f, 1.0f);
 
     public void Initialize(

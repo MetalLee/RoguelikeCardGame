@@ -76,6 +76,8 @@
 
 ### Task 1：完成新版数据入口收敛与兼容层审计
 
+状态：已完成（2026-06-14）
+
 目标：确认正式运行时只使用 `game/data/gameplay/` 的新版数据，旧原型路径不会被误用。
 
 工作范围：
@@ -88,8 +90,19 @@
 - `.\game\tools\data_validator\validate_data.ps1`
 - `dotnet run --project game\tests\Unit\RoguelikeCardGame.Tests.csproj`
 - `dotnet build game\RoguelikeCardGame.csproj`
+- `.\game\tools\check_project.ps1`
+
+完成结果：
+- `gameplay_v2` 已不出现在 `game/` 代码、数据、工具、测试和 README 中；仅保留在本文件的历史规则描述里。
+- `card_pack_ids` 与 `starter_deck` 继续作为空兼容字段可读；正式开局、调试默认牌组和奖励预览不再由旧固定牌组或旧卡牌包驱动。
+- 规则层移除旧 `Chain` / `MinChain` / `DefaultChainChange` 兼容模型，删除未使用的旧 `RewardPackDefinition`。
+- `game/data/presentation/assets.json` 不再登记旧 chain / skill / reward pack 资源；历史 PNG 与 `.import` 文件可留在磁盘上，但不进入 active data manifest。
+- 数据校验器已补充 active presentation 旧资源 token 检查，非空旧卡牌包奖励继续被拒绝。
+- 已验证通过：数据校验、规则单测、主工程构建、Godot .NET headless 项目检查。
 
 ### Task 2：补齐新版内容加载与运行时数据映射
+
+状态：已完成（2026-06-14）
 
 目标：让运行时内容加载器完整覆盖新版 weapons / colors / cards / card_pools / encounters / localization。
 
@@ -103,6 +116,14 @@
 - 数据校验器通过。
 - 单元测试覆盖至少 1 个完整内容加载样例。
 - Godot headless 能启动主场景。
+
+完成结果：
+- `GameContent` 已补齐 `colors` 入口，并通过 `ColorsById` 暴露五色角色、基础效果模板和叠加规则。
+- `GameContent` 改为使用正式 `WeaponDefinition`，卡池模型收敛为 `CardPoolDefinition`，覆盖 weapons / card_pools schema 中的起始池、奖励池和标签字段。
+- `CardDefinition` 保留现有规则层派生字段，同时补充 `costs`、`requirements`、`targeting`、`color_interactions`、`after_play`、`balance`、`color_filter`、`fixed_color_id` 等新版 JSON 结构化字段，避免 UI 和工具靠字符串猜测。
+- 新增 `GameContent.LoadFromDataRoot()`，Godot 运行时仍可使用 `LoadFromProject()`；内容加载失败会报告文件路径、条目索引和内容 ID。
+- 单元测试已纳入 `Infrastructure/Content`，并用真实 `game/data` 覆盖 1 个完整内容加载样例，检查颜色、武器、卡牌、卡池、遭遇、本地化和表现资源映射。
+- 已验证通过：数据校验、规则单测、主工程构建、Godot .NET headless 项目检查。
 
 ### Task 3：高优先级替换占位 UI 与旧 UI 资产
 

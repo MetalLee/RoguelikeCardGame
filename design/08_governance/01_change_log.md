@@ -17,6 +17,8 @@
 
 ### 2026-06-14
 
+- 补齐新版内容加载与运行时数据映射：`GameContent` 新增 `LoadFromDataRoot()` 和 `ColorsById`，正式覆盖 weapons / colors / cards / card_pools / encounters / localization / presentation 数据；`CardDefinition`、`ColorDefinition` 和卡池模型补充与新版 JSON Schema 对齐的结构化字段，并增加真实 `game/data` 的完整内容加载单测。
+- 完成新版数据入口收敛与兼容层审计：确认正式运行时只读取 `game/data/gameplay/`，移除规则层旧 `Chain` / `MinChain` / `DefaultChainChange` 兼容模型和旧 `RewardPackDefinition`，调试默认牌组改由武器起始池生成，active presentation manifest 不再登记旧 chain / skill / reward pack 资源，并让数据校验器拒绝 active presentation 中的旧机制资源 token。
 - 将 `game/data/gameplay_v2/` 的武器、色彩、卡牌和武器卡池数据转正合并到 `game/data/gameplay/`；运行时代码与数据校验器不再读取 `gameplay_v2`，旧卡牌包奖励数据从正式 gameplay 数据中移除，`card_pack_ids` 仅作为空兼容字段保留。
 - 清理新版 MVP 主流程中的旧连锁 / 技能牌 / 卡牌包残留：`GameContent` 正式以 `gameplay/` 下的武器、色彩、卡牌和卡池作为运行时卡牌入口，不再合并旧原型卡牌；`RewardService` 主 API 收束为色彩碎片附魔 + 武器卡三选一；Debug / Metrics 改为彩能峰值、颜色构成、终结牌颜色消费、附魔使用率和三条早期构筑路线统计。旧卡牌包与连锁原型数据不再作为正式 gameplay 数据共存。
 - 删除设计文档中旧阴暗厚重视觉描述，统一改为黑白手绘漫画线稿、明亮纸张、清晰墨线和克制机制色的视觉约束。

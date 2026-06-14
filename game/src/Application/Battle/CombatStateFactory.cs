@@ -55,7 +55,6 @@ public sealed class CombatStateFactory
 			BaseActionPoints = runState.BaseActionPoints,
 			CardsPerTurn = runState.CardsPerTurn,
 			ActionPoints = 0,
-			Chain = 0,
 			ColorEnergy = ColorEnergyPool.Empty(),
 			DeckZones = new DeckZones
 			{

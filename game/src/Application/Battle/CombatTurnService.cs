@@ -83,7 +83,6 @@ public sealed class CombatTurnService
 		{
 			Status = CombatStatus.EnemyTurn,
 			ActionPoints = 0,
-			Chain = 0,
 			ColorEnergy = combat.ColorEnergy.Clear(),
 			DeckZones = combat.DeckZones with
 			{
@@ -227,7 +226,6 @@ public sealed class CombatTurnService
 			TurnNumber = turnNumber,
 			PlayerBlock = 0,
 			ActionPoints = combat.BaseActionPoints,
-			Chain = 0,
 			ColorEnergy = combat.ColorEnergy.Clear(),
 			Log = log
 		};

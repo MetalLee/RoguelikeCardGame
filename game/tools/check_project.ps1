@@ -81,11 +81,14 @@ if ($dotnetExitCode -ne 0) {
     Write-Warning "Direct dotnet build returned exit code $dotnetExitCode. Continuing with Godot build verification."
 }
 
-$buildLog = Join-Path $projectRoot "godot-build.log"
+$layoutLog = Join-Path $projectRoot "godot-build.log"
+$buildLog = Join-Path $projectRoot ".appdata\godot-build.log"
 $compiledAssembly = Join-Path $projectRoot ".godot\mono\temp\bin\Debug\RoguelikeCardGame.dll"
-Remove-Item -LiteralPath $buildLog -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $buildLog) | Out-Null
+Set-Content -Encoding UTF8 -LiteralPath $layoutLog -Value ""
+Set-Content -Encoding UTF8 -LiteralPath $buildLog -Value ""
 
-& $GodotPath --headless --path $projectRoot --build-solutions --quit --log-file godot-build.log --disable-crash-handler
+& $GodotPath --headless --path $projectRoot --build-solutions --quit --log-file $buildLog --disable-crash-handler
 $godotExitCode = $LASTEXITCODE
 $buildLogContent = ""
 if (Test-Path -LiteralPath $buildLog) {

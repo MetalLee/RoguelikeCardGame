@@ -64,9 +64,6 @@ public sealed record CombatState
     [JsonPropertyName("action_points")]
     public int ActionPoints { get; init; }
 
-    [JsonPropertyName("chain")]
-    public int Chain { get; init; }
-
     [JsonPropertyName("color_energy")]
     public ColorEnergyPool ColorEnergy { get; init; } = ColorEnergyPool.Empty();
 

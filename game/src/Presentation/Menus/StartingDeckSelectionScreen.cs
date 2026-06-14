@@ -81,7 +81,7 @@ public partial class StartingDeckSelectionScreen : ComicScreen
         Vector2 position)
     {
         var selectedCount = options.Count(option => selectedOptionIds.Contains(option.OptionId));
-        var panel = CreateFramedPanel(new Vector2(760, 640), selectedCount == requiredCount ? GoldLine : SkillLine);
+        var panel = CreateFramedPanel(new Vector2(760, 640), selectedCount == requiredCount ? GoldLine : CyanLine);
         AddAt(root, panel, position, new Vector2(760, 640));
 
         var stack = new VBoxContainer();

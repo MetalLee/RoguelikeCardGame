@@ -91,7 +91,7 @@ public partial class WeaponSelectionScreen : ComicScreen
         pool.AddThemeColorOverride("font_color", new Color(0.88f, 0.76f, 0.58f));
         stack.AddChild(pool);
 
-        var choose = CreateArtButton(isMain ? "已选择" : "设为主手", "asset.ui.icon.deck_library", new Vector2(210, 52), isMain ? GoldLine : SkillLine);
+        var choose = CreateArtButton(isMain ? "已选择" : "设为主手", "asset.ui.icon.deck_library", new Vector2(210, 52), isMain ? GoldLine : CyanLine);
         choose.Disabled = isMain;
         choose.Pressed += () =>
         {
