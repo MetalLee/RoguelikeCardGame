@@ -9,7 +9,8 @@ namespace RoguelikeCardGame.Presentation.Battle;
 
 public partial class BattleScreen : ComicScreen
 {
-    private const float PlayerStageGroundY = 785f;
+    private const float PlayerStageGroundY = 940f;
+    private const float PlayerSpriteBottomTransparentPadding = 23f;
 
     private readonly CardPlayService cardPlayService = new();
 
@@ -88,8 +89,8 @@ public partial class BattleScreen : ComicScreen
         discardPilePanel = battleHudView.DiscardPilePanel;
 
         var playerSize = new Vector2(430, 430);
-        var playerPosition = new Vector2(250, PlayerStageGroundY - playerSize.Y + 50);
-        playerNode = CreateImage("asset.character.swordsman.battle", playerSize, TextureRect.StretchModeEnum.KeepAspectCentered);
+        var playerPosition = new Vector2(250, PlayerStageGroundY - playerSize.Y + PlayerSpriteBottomTransparentPadding);
+        playerNode = CreateImage("asset.character.zu.revolver.battle", playerSize, TextureRect.StretchModeEnum.KeepAspectCentered);
         playerNode.Name = "PlayerStand";
         AddAt(root, playerNode, playerPosition, playerSize);
 

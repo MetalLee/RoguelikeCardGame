@@ -39,7 +39,7 @@ public abstract partial class ComicScreen : Control
 
         var outerBackground = new ColorRect
         {
-            Color = new Color(0.015f, 0.012f, 0.012f, 1.0f),
+            Color = new Color(1.0f, 1.0f, 1.0f, 1.0f),
             MouseFilter = MouseFilterEnum.Ignore
         };
         outerBackground.SetAnchorsPreset(LayoutPreset.FullRect);
@@ -366,18 +366,23 @@ public abstract partial class ComicScreen : Control
 
     protected void AddBackground(Control parent)
     {
-        var background = CreateImage("asset.background.mvp_battle.hd", Vector2.Zero, TextureRect.StretchModeEnum.KeepAspectCovered);
-        background.SetAnchorsPreset(LayoutPreset.FullRect);
-        background.Modulate = new Color(0.92f, 0.88f, 0.82f, 1.0f);
-        parent.AddChild(background);
-
-        var veil = new ColorRect
+        var paperBase = new ColorRect
         {
-            Color = new Color(0.08f, 0.045f, 0.02f, 0.08f),
+            Color = new Color(1.0f, 1.0f, 1.0f, 1.0f),
             MouseFilter = MouseFilterEnum.Ignore
         };
-        veil.SetAnchorsPreset(LayoutPreset.FullRect);
-        parent.AddChild(veil);
+        paperBase.SetAnchorsPreset(LayoutPreset.FullRect);
+        parent.AddChild(paperBase);
+
+        var backLayer = CreateImage("asset.background.mvp_battle.back", Vector2.Zero, TextureRect.StretchModeEnum.KeepAspectCovered);
+        backLayer.SetAnchorsPreset(LayoutPreset.FullRect);
+        backLayer.Modulate = Colors.White;
+        parent.AddChild(backLayer);
+
+        var frontLayer = CreateImage("asset.background.mvp_battle.front", Vector2.Zero, TextureRect.StretchModeEnum.KeepAspectCovered);
+        frontLayer.SetAnchorsPreset(LayoutPreset.FullRect);
+        frontLayer.Modulate = Colors.White;
+        parent.AddChild(frontLayer);
     }
 
     protected static Control CreateFxLayer(string name)

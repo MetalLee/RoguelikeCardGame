@@ -709,7 +709,12 @@ public sealed class CardPlayService
 
 	private static IReadOnlyList<ColorType> EnchantmentColors(CardEnchantment? enchantment)
 	{
-		return enchantment?.Color is null or ColorType.Colorless ? [] : [enchantment.Color];
+		if (enchantment is null || enchantment.Color == ColorType.Colorless)
+		{
+			return Array.Empty<ColorType>();
+		}
+
+		return new[] { enchantment.Color };
 	}
 
 	private static int RequiredColorEnergy(CardDefinition card, ColorEnergyPool pool)

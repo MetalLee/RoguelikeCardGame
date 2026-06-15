@@ -15,6 +15,13 @@
 
 ## 日志
 
+### 2026-06-15
+
+- 调整主菜单首屏，保留主角「左」、标题《剑与黑塔》和“开始游戏”按钮；标题改用 `SourceHanSansSC-Heavy` 并加大字号，开始按钮改为标题正下方的白底黑边黑字手绘平行四边形样式。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
+- 将运行时背景主底色改为白色纸面，并调整战斗主角「左」的站位，使脚底对齐前景地面线，避免前后景透明区域露出黑底或主角悬空。同步更新 [[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/03_experience/00_ui_ux|界面与交互]]。
+- 从 [[design/03_experience/assets/人物动作动画/人物|人物动作参考]] 中切分主角「左」的持左轮剑造型与无武器造型，分别归档到 `game/assets/art/characters/zu_revolver_sword.png` 和 `game/assets/art/characters/zu_unarmed.png`；`asset.character.zu.revolver.battle` 改为使用持左轮剑造型，替换旧彩色 Q 版剑客资源。同步更新 [[design/03_experience/01_visual_direction|视觉方向]]。
+- 将 MVP 主界面背景实现从旧单张整合背景切换为远景层 `asset.background.mvp_battle.back` 与前景层 `asset.background.mvp_battle.front` 的透明 PNG 分层组合；同步更新 [[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/03_experience/00_ui_ux|界面与交互]] 的战斗背景分层规则。
+
 ### 2026-06-14
 
 - 补齐新版内容加载与运行时数据映射：`GameContent` 新增 `LoadFromDataRoot()` 和 `ColorsById`，正式覆盖 weapons / colors / cards / card_pools / encounters / localization / presentation 数据；`CardDefinition`、`ColorDefinition` 和卡池模型补充与新版 JSON Schema 对齐的结构化字段，并增加真实 `game/data` 的完整内容加载单测。
