@@ -179,7 +179,7 @@ public partial class WeaponSelectionScreen : ComicScreen
     {
         if (weaponId is null)
         {
-            return new WeaponChoiceTile("?", null, "未来武器", selected: false, blocked: true, isPlaceholder: true);
+            return new WeaponChoiceTile(string.Empty, LoadTexture("asset.ui.icon.lock"), "未来武器暂未开放", selected: false, blocked: true, isPlaceholder: true);
         }
 
         return new WeaponChoiceTile(
@@ -230,7 +230,6 @@ public partial class WeaponSelectionScreen : ComicScreen
         private const float Slant = 42f;
 
         private readonly TextureRect icon = new();
-        private readonly Label placeholder = new();
         private readonly Label caption = new();
         private readonly Button hitbox = new();
         private readonly bool selected;
@@ -261,17 +260,10 @@ public partial class WeaponSelectionScreen : ComicScreen
             icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
             icon.TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps;
             icon.MouseFilter = MouseFilterEnum.Ignore;
-            icon.Modulate = blocked ? new Color(0.45f, 0.45f, 0.45f, 0.55f) : Colors.White;
+            icon.Modulate = isPlaceholder
+                ? new Color(0.08f, 0.08f, 0.08f, 0.82f)
+                : blocked ? new Color(0.45f, 0.45f, 0.45f, 0.55f) : Colors.White;
             AddChild(icon);
-
-            placeholder.Text = "?";
-            placeholder.HorizontalAlignment = HorizontalAlignment.Center;
-            placeholder.VerticalAlignment = VerticalAlignment.Center;
-            placeholder.MouseFilter = MouseFilterEnum.Ignore;
-            placeholder.Visible = isPlaceholder;
-            placeholder.AddThemeFontSizeOverride("font_size", 68);
-            placeholder.AddThemeColorOverride("font_color", new Color(0.18f, 0.18f, 0.18f, 0.72f));
-            AddChild(placeholder);
 
             caption.Text = title;
             caption.HorizontalAlignment = HorizontalAlignment.Center;
@@ -279,6 +271,7 @@ public partial class WeaponSelectionScreen : ComicScreen
             caption.MouseFilter = MouseFilterEnum.Ignore;
             caption.AddThemeFontSizeOverride("font_size", 18);
             caption.AddThemeColorOverride("font_color", selected ? Colors.White : new Color(0.05f, 0.05f, 0.05f));
+            caption.Visible = !isPlaceholder;
             AddChild(caption);
 
             var empty = new StyleBoxEmpty();
@@ -323,8 +316,6 @@ public partial class WeaponSelectionScreen : ComicScreen
             var sideMargin = Math.Max(28f, Size.X * 0.15f);
             icon.Position = new Vector2(sideMargin, 8);
             icon.Size = new Vector2(Size.X - sideMargin * 2f, Size.Y * 0.56f);
-            placeholder.Position = new Vector2(sideMargin, 4);
-            placeholder.Size = new Vector2(Size.X - sideMargin * 2f, Size.Y * 0.62f);
             caption.Position = new Vector2(sideMargin * 0.55f, Size.Y - 32);
             caption.Size = new Vector2(Size.X - sideMargin * 1.1f, 26);
             hitbox.Position = Vector2.Zero;

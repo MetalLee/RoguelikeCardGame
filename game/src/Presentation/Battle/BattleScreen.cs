@@ -9,7 +9,7 @@ namespace RoguelikeCardGame.Presentation.Battle;
 
 public partial class BattleScreen : ComicScreen
 {
-    private const float PlayerStageGroundY = 940f;
+    private const float PlayerStageGroundY = 980f;
     private const float PlayerSpriteBottomTransparentPadding = 23f;
 
     private readonly CardPlayService cardPlayService = new();
@@ -30,8 +30,6 @@ public partial class BattleScreen : ComicScreen
     private Control? blockPanel;
     private Control? actionPointPanel;
     private Control? handNode;
-    private Control? drawPilePanel;
-    private Control? discardPilePanel;
     private Control? fxLayer;
     private Control? canvasRoot;
     private Control? dragFeedbackPanel;
@@ -64,8 +62,6 @@ public partial class BattleScreen : ComicScreen
         blockPanel = null;
         actionPointPanel = null;
         handNode = null;
-        drawPilePanel = null;
-        discardPilePanel = null;
         fxLayer = null;
         canvasRoot = null;
         dragFeedbackPanel = null;
@@ -85,11 +81,9 @@ public partial class BattleScreen : ComicScreen
         colorEnergyPanel = battleHudView.ColorEnergyPanel;
         blockPanel = battleHudView.BlockPanel;
         actionPointPanel = battleHudView.ActionPointPanel;
-        drawPilePanel = battleHudView.DrawPilePanel;
-        discardPilePanel = battleHudView.DiscardPilePanel;
 
-        var playerSize = new Vector2(430, 430);
-        var playerPosition = new Vector2(250, PlayerStageGroundY - playerSize.Y + PlayerSpriteBottomTransparentPadding);
+        var playerSize = new Vector2(212, 446);
+        var playerPosition = new Vector2(230, PlayerStageGroundY - playerSize.Y + PlayerSpriteBottomTransparentPadding);
         playerNode = CreateImage("asset.character.zu.revolver.battle", playerSize, TextureRect.StretchModeEnum.KeepAspectCentered);
         playerNode.Name = "PlayerStand";
         AddAt(root, playerNode, playerPosition, playerSize);
@@ -310,8 +304,6 @@ public partial class BattleScreen : ComicScreen
             blockPanel,
             actionPointPanel,
             handNode,
-            drawPilePanel,
-            discardPilePanel,
             fxLayer,
             battleEnemyView?.EnemyNodes ?? new Dictionary<string, Control>(),
             handIndex => battleHandView?.GetCardNodeByHandIndex(handIndex),

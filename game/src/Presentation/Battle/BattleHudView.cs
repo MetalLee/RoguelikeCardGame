@@ -5,6 +5,7 @@ using RoguelikeCardGame.Domain.Combat;
 using RoguelikeCardGame.Domain.Enemies;
 using RoguelikeCardGame.Domain.Runs;
 using RoguelikeCardGame.Infrastructure.Content;
+using RoguelikeCardGame.Presentation.Shared;
 
 namespace RoguelikeCardGame.Presentation.Battle;
 
@@ -27,10 +28,6 @@ public sealed class BattleHudView
 
     public Control? ActionPointPanel { get; private set; }
 
-    public Control? DrawPilePanel { get; private set; }
-
-    public Control? DiscardPilePanel { get; private set; }
-
     public void Render(
         Control rootControl,
         CombatState combatState,
@@ -50,20 +47,12 @@ public sealed class BattleHudView
         ColorEnergyPanel = null;
         BlockPanel = null;
         ActionPointPanel = null;
-        DrawPilePanel = null;
-        DiscardPilePanel = null;
 
         RenderPlayerHud(rootControl, combatState);
         RenderColorEnergyHud(rootControl, combatState);
 
         ActionPointPanel = CreateActionPointBadge(combatState);
         AddAt(rootControl, ActionPointPanel, new Vector2(70, 760), new Vector2(156, 156));
-
-        DrawPilePanel = CreatePilePanel("asset.ui.battle.draw_pile_panel", "抽牌", combatState.DeckZones.DrawPileCount);
-        AddAt(rootControl, DrawPilePanel, new Vector2(70, 910), new Vector2(272, 138));
-
-        DiscardPilePanel = CreatePilePanel("asset.ui.battle.discard_pile_panel", "弃牌", combatState.DeckZones.DiscardPileCount);
-        AddAt(rootControl, DiscardPilePanel, new Vector2(1578, 910), new Vector2(272, 138));
 
         if (run.RelicIds.Count > 0)
         {
@@ -86,11 +75,8 @@ public sealed class BattleHudView
 
     private void RenderPlayerHud(Control root, CombatState combat)
     {
-        var healthBar = CreateHudImagePanel("asset.ui.battle.player_health_bar", $"{combat.PlayerHp}/{combat.PlayerMaxHp}", new Vector2(344, 54), new Rect2(86, 4, 230, 46), 28);
-        AddAt(root, healthBar, new Vector2(42, 42), new Vector2(344, 54));
-
-        BlockPanel = CreateHudImagePanel("asset.ui.battle.player_block_bar", combat.PlayerBlock.ToString(), new Vector2(288, 50), new Rect2(82, 3, 160, 42), 27);
-        AddAt(root, BlockPanel, new Vector2(42, 96), new Vector2(288, 50));
+        var vitals = CreatePlayerVitalsHud(combat);
+        AddAt(root, vitals, new Vector2(42, 38), new Vector2(1260, 199));
     }
 
     public void SetFocusedEnemy(string? enemyInstanceId)
@@ -175,16 +161,12 @@ public sealed class BattleHudView
 
     private void RenderColorEnergyHud(Control root, CombatState combat)
     {
-        var title = CreateHudLabel($"彩能 {combat.ColorEnergy.Count}/{ColorEnergyPool.DefaultCapacity}", 31, new Color(0.10f, 0.06f, 0.035f), heavy: true, outlineColor: new Color(0.98f, 0.84f, 0.55f, 0.70f));
-        title.HorizontalAlignment = HorizontalAlignment.Center;
-        AddAt(root, title, new Vector2(790, 22), new Vector2(340, 42));
-
         ColorEnergyPanel = new Control
         {
             TooltipText = ColorEnergyTooltip(combat.ColorEnergy)
         };
-        var slotSize = new Vector2(78, 58);
-        var slotGap = 16f;
+        var slotSize = new Vector2(88, 110);
+        var slotGap = 12f;
         var totalWidth = slotSize.X * ColorEnergyPool.DefaultCapacity + slotGap * (ColorEnergyPool.DefaultCapacity - 1);
         var startX = (640f - totalWidth) * 0.5f;
         for (var index = 0; index < ColorEnergyPool.DefaultCapacity; index++)
@@ -193,40 +175,71 @@ public sealed class BattleHudView
                 ? combat.ColorEnergy.Slots[index].Color
                 : ColorType.Colorless;
             var slot = CreateColorEnergySlot(color, filled: index < combat.ColorEnergy.Slots.Count);
-            slot.Position = new Vector2(startX + (slotSize.X + slotGap) * index, 18);
+            slot.Position = new Vector2(startX + (slotSize.X + slotGap) * index, 8);
             slot.Size = slotSize;
             slot.CustomMinimumSize = slotSize;
             ColorEnergyPanel.AddChild(slot);
         }
 
-        AddAt(root, ColorEnergyPanel, new Vector2(640, 64), new Vector2(640, 104));
+        AddAt(root, ColorEnergyPanel, new Vector2(640, 246), new Vector2(640, 128));
     }
 
     private Control CreateColorEnergySlot(ColorType color, bool filled)
     {
-        var panel = new PanelContainer
+        var slotSize = new Vector2(88, 110);
+        var frameSize = new Vector2(80, 80);
+        var flameSize = new Vector2(106, 106);
+        var root = new Control
         {
+            CustomMinimumSize = slotSize,
+            Size = slotSize,
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
-        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = filled ? ColorForEnergy(color) : new Color(0.78f, 0.72f, 0.62f, 0.52f),
-            BorderColor = filled ? new Color(0.12f, 0.08f, 0.04f, 0.92f) : new Color(0.28f, 0.22f, 0.14f, 0.72f),
-            BorderWidthLeft = 3,
-            BorderWidthRight = 3,
-            BorderWidthTop = 3,
-            BorderWidthBottom = 3,
-            CornerRadiusBottomLeft = 6,
-            CornerRadiusBottomRight = 6,
-            CornerRadiusTopLeft = 6,
-            CornerRadiusTopRight = 6
-        });
 
-        var label = CreateHudLabel(filled ? ShortColorName(color) : "", 20, TextColorForEnergy(color), heavy: true, outlineSize: 2);
-        label.HorizontalAlignment = HorizontalAlignment.Center;
-        label.VerticalAlignment = VerticalAlignment.Center;
-        panel.AddChild(label);
-        return panel;
+        var frame = CreateImage("asset.ui.battle.color_energy.slot.empty", frameSize, TextureRect.StretchModeEnum.KeepAspectCentered);
+        frame.Position = new Vector2((slotSize.X - frameSize.X) * 0.5f, 28);
+        frame.Size = frameSize;
+        root.AddChild(frame);
+
+        if (filled)
+        {
+            var frameAssets = ColorEnergyFlameAssets(color);
+            var fill = CreateImage(frameAssets[0], flameSize, TextureRect.StretchModeEnum.KeepAspectCentered);
+            fill.Position = new Vector2((slotSize.X - flameSize.X) * 0.5f, 5);
+            fill.Size = flameSize;
+            fill.ZIndex = 1;
+            root.AddChild(fill);
+            AddColorEnergyFlameTimer(root, fill, frameAssets);
+        }
+
+        return root;
+    }
+
+    private void AddColorEnergyFlameTimer(Control root, TextureRect fill, IReadOnlyList<string> frameAssets)
+    {
+        if (frameAssets.Count <= 1)
+        {
+            return;
+        }
+
+        var frameIndex = 0;
+        var timer = new Godot.Timer
+        {
+            WaitTime = 0.085,
+            OneShot = false,
+            Autostart = true
+        };
+        timer.Timeout += () =>
+        {
+            if (!GodotObject.IsInstanceValid(fill))
+            {
+                return;
+            }
+
+            frameIndex = (frameIndex + 1) % frameAssets.Count;
+            fill.Texture = RequireTextureLoader()(frameAssets[frameIndex]);
+        };
+        root.AddChild(timer);
     }
 
     private static string ColorEnergyTooltip(ColorEnergyPool pool)
@@ -239,36 +252,24 @@ public sealed class BattleHudView
         return "当前彩能：" + string.Join(" / ", pool.Slots.Select(slot => FullColorName(slot.Color)));
     }
 
-    private static Color ColorForEnergy(ColorType color)
+    private static IReadOnlyList<string> ColorEnergyFlameAssets(ColorType color)
+    {
+        var key = ColorEnergyAssetKey(color);
+        return Enumerable.Range(0, 8)
+            .Select(index => $"asset.ui.battle.color_energy.flame.{key}.{index:00}")
+            .ToArray();
+    }
+
+    private static string ColorEnergyAssetKey(ColorType color)
     {
         return color switch
         {
-            ColorType.Red => new Color(0.78f, 0.13f, 0.10f, 0.94f),
-            ColorType.Yellow => new Color(0.95f, 0.72f, 0.13f, 0.94f),
-            ColorType.Blue => new Color(0.14f, 0.40f, 0.82f, 0.94f),
-            ColorType.Green => new Color(0.18f, 0.62f, 0.25f, 0.94f),
-            ColorType.Purple => new Color(0.52f, 0.22f, 0.78f, 0.94f),
-            _ => new Color(0.84f, 0.80f, 0.70f, 0.94f)
-        };
-    }
-
-    private static Color TextColorForEnergy(ColorType color)
-    {
-        return color == ColorType.Yellow || color == ColorType.Colorless
-            ? new Color(0.14f, 0.08f, 0.04f)
-            : new Color(1.0f, 0.94f, 0.78f);
-    }
-
-    private static string ShortColorName(ColorType color)
-    {
-        return color switch
-        {
-            ColorType.Red => "红",
-            ColorType.Yellow => "黄",
-            ColorType.Blue => "蓝",
-            ColorType.Green => "绿",
-            ColorType.Purple => "紫",
-            _ => "无"
+            ColorType.Red => "red",
+            ColorType.Yellow => "yellow",
+            ColorType.Blue => "blue",
+            ColorType.Green => "green",
+            ColorType.Purple => "purple",
+            _ => "colorless"
         };
     }
 
@@ -305,21 +306,121 @@ public sealed class BattleHudView
         return root;
     }
 
+    private Control CreatePlayerVitalsHud(CombatState combat)
+    {
+        var root = new Control
+        {
+            ClipContents = false
+        };
+
+        var frameSize = new Vector2(685, 199);
+        var fillPosition = new Vector2(139, 51);
+        var fillSize = new Vector2(527, 45);
+        var healthRatio = combat.PlayerMaxHp <= 0
+            ? 0.0f
+            : Math.Clamp((float)combat.PlayerHp / combat.PlayerMaxHp, 0.0f, 1.0f);
+
+        var armorArrowOverlap = 56.0f;
+        var blockWidth = Math.Clamp(160 + combat.PlayerBlock * 10, 220, (int)fillSize.X);
+        var blockClipWidth = blockWidth + armorArrowOverlap;
+        var blockRoot = new Control
+        {
+            ClipContents = true,
+            Position = new Vector2(fillPosition.X + fillSize.X - armorArrowOverlap, fillPosition.Y),
+            Size = new Vector2(blockClipWidth, fillSize.Y),
+            CustomMinimumSize = new Vector2(blockClipWidth, fillSize.Y),
+            Visible = combat.PlayerBlock > 0
+        };
+        var blockFill = CreateImage("asset.ui.battle.player_block_bar", fillSize, TextureRect.StretchModeEnum.Scale);
+        blockFill.Position = new Vector2(blockClipWidth - fillSize.X, 0);
+        blockFill.Size = fillSize;
+        blockRoot.AddChild(blockFill);
+        root.AddChild(blockRoot);
+        BlockPanel = blockRoot;
+
+        var healthClip = new Control
+        {
+            ClipContents = true,
+            Position = fillPosition,
+            Size = new Vector2(fillSize.X * healthRatio, fillSize.Y),
+            CustomMinimumSize = new Vector2(fillSize.X * healthRatio, fillSize.Y),
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        var healthFill = CreateImage("asset.ui.battle.player_health.fill", fillSize, TextureRect.StretchModeEnum.Scale);
+        healthFill.Size = fillSize;
+        healthClip.AddChild(healthFill);
+        root.AddChild(healthClip);
+
+        var frame = CreateImage("asset.ui.battle.player_health_bar", frameSize, TextureRect.StretchModeEnum.Scale);
+        frame.Size = frameSize;
+        root.AddChild(frame);
+
+        var healthLabel = CreateHudLabel(
+            $"{combat.PlayerHp}/{combat.PlayerMaxHp}",
+            34,
+            Colors.White,
+            heavy: true,
+            outlineSize: 4,
+            outlineColor: new Color(0.0f, 0.0f, 0.0f, 0.88f));
+        healthLabel.Position = new Vector2(fillPosition.X + 18, fillPosition.Y - 3);
+        healthLabel.Size = new Vector2(fillSize.X - 36, fillSize.Y + 8);
+        healthLabel.CustomMinimumSize = healthLabel.Size;
+        healthLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        healthLabel.VerticalAlignment = VerticalAlignment.Center;
+        root.AddChild(healthLabel);
+
+        if (combat.PlayerBlock > 0)
+        {
+            var blockLabel = CreateHudLabel(
+                combat.PlayerBlock.ToString(),
+                30,
+                Colors.White,
+                heavy: true,
+                outlineSize: 4,
+                outlineColor: new Color(0.0f, 0.0f, 0.0f, 0.86f));
+            blockLabel.Position = blockRoot.Position + new Vector2(armorArrowOverlap + 14, -3);
+            blockLabel.Size = new Vector2(blockWidth - 28, fillSize.Y + 8);
+            blockLabel.CustomMinimumSize = blockLabel.Size;
+            blockLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            blockLabel.VerticalAlignment = VerticalAlignment.Center;
+            root.AddChild(blockLabel);
+        }
+
+        return root;
+    }
+
     private Control CreateActionPointBadge(CombatState combat)
     {
         var root = new Control();
-        var badge = CreateImage("asset.ui.battle.action_point_badge", new Vector2(156, 156), TextureRect.StretchModeEnum.Scale);
+        var badge = new ActionPointDiamondBadge
+        {
+            CustomMinimumSize = new Vector2(156, 156),
+            Size = new Vector2(156, 156),
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
         badge.Size = new Vector2(156, 156);
         root.AddChild(badge);
 
-        var value = CreateHudLabel(combat.ActionPoints.ToString(), 58, new Color(1.0f, 0.92f, 0.75f), heavy: true);
+        var value = CreateHudLabel(
+            combat.ActionPoints.ToString(),
+            58,
+            Colors.White,
+            heavy: true,
+            outlineSize: 2,
+            outlineColor: new Color(0.0f, 0.0f, 0.0f, 0.72f));
         value.HorizontalAlignment = HorizontalAlignment.Center;
         value.VerticalAlignment = VerticalAlignment.Center;
         value.Position = new Vector2(32, 20);
         value.Size = new Vector2(92, 62);
         root.AddChild(value);
 
-        var ap = CreateHudLabel("AP", 22, new Color(1.0f, 0.85f, 0.54f), heavy: true);
+        var ap = CreateHudLabel(
+            "AP",
+            22,
+            Colors.White,
+            heavy: true,
+            outlineSize: 1,
+            outlineColor: new Color(0.0f, 0.0f, 0.0f, 0.68f));
         ap.HorizontalAlignment = HorizontalAlignment.Center;
         ap.VerticalAlignment = VerticalAlignment.Center;
         ap.Position = new Vector2(45, 92);
@@ -328,46 +429,16 @@ public sealed class BattleHudView
         return root;
     }
 
-    private Control CreatePilePanel(string assetId, string labelText, int count)
-    {
-        var root = new Control();
-        var panel = CreateImage(assetId, new Vector2(272, 138), TextureRect.StretchModeEnum.Scale);
-        panel.Size = new Vector2(272, 138);
-        root.AddChild(panel);
-
-        var label = CreateHudLabel(labelText, 24, new Color(1.0f, 0.89f, 0.66f), heavy: true);
-        label.HorizontalAlignment = HorizontalAlignment.Center;
-        label.Position = new Vector2(116, 28);
-        label.Size = new Vector2(118, 32);
-        root.AddChild(label);
-
-        var value = CreateHudLabel(count.ToString(), 34, new Color(1.0f, 0.92f, 0.74f), heavy: true);
-        value.HorizontalAlignment = HorizontalAlignment.Center;
-        value.Position = new Vector2(118, 64);
-        value.Size = new Vector2(112, 44);
-        root.AddChild(value);
-        return root;
-    }
-
     private Button CreateEndTurnButton()
     {
-        var button = new Button
+        return new SketchParallelogramButton(
+            "结束回合",
+            RequireFontLoader()("asset.font.source_han_sans_sc.heavy"),
+            32)
         {
-            Text = "",
-            TooltipText = "结束当前玩家回合"
+            TooltipText = "结束当前玩家回合",
+            CustomMinimumSize = new Vector2(318, 92)
         };
-        MakeTransparentButton(button);
-
-        var image = CreateImage("asset.ui.battle.end_turn_button", new Vector2(318, 92), TextureRect.StretchModeEnum.Scale);
-        image.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        button.AddChild(image);
-
-        var label = CreateHudLabel("结束回合", 35, new Color(1.0f, 0.88f, 0.64f), heavy: true);
-        label.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        label.HorizontalAlignment = HorizontalAlignment.Center;
-        label.VerticalAlignment = VerticalAlignment.Center;
-        button.AddChild(label);
-        return button;
     }
 
     private static void PlayEndTurnClickAnimation(Control button)
@@ -482,13 +553,60 @@ public sealed class BattleHudView
         parent.AddChild(child);
     }
 
-    private static void MakeTransparentButton(Button button)
+}
+
+internal sealed partial class ActionPointDiamondBadge : Control
+{
+    private static readonly Color Shadow = new(0.0f, 0.0f, 0.0f, 0.30f);
+    private static readonly Color Ink = new(0.015f, 0.014f, 0.012f, 0.96f);
+    private static readonly Color PaperLine = new(1.0f, 1.0f, 0.96f, 0.96f);
+
+    public override void _Draw()
     {
-        var empty = new StyleBoxEmpty();
-        button.AddThemeStyleboxOverride("normal", empty);
-        button.AddThemeStyleboxOverride("hover", empty);
-        button.AddThemeStyleboxOverride("pressed", empty);
-        button.AddThemeStyleboxOverride("disabled", empty);
-        button.AddThemeStyleboxOverride("focus", empty);
+        var center = Size * 0.5f;
+        var radius = MathF.Min(Size.X, Size.Y) * 0.47f;
+        var points = new[]
+        {
+            center + new Vector2(0, -radius),
+            center + new Vector2(radius, 0),
+            center + new Vector2(0, radius),
+            center + new Vector2(-radius, 0)
+        };
+
+        DrawOffsetPolygon(points, new Vector2(9, 11), Shadow);
+        DrawPolygon(points, [Ink, Ink, Ink, Ink]);
+        DrawSketchLine(points[0], points[1], 0.0f, 4.6f, PaperLine);
+        DrawSketchLine(points[1], points[2], 1.4f, 3.4f, PaperLine);
+        DrawSketchLine(points[2], points[3], -0.8f, 4.2f, PaperLine);
+        DrawSketchLine(points[3], points[0], 1.0f, 3.1f, PaperLine);
+
+        var inner = points
+            .Select(point => center + (point - center) * 0.78f)
+            .ToArray();
+        DrawSketchLine(inner[0], inner[1], -0.5f, 1.4f, new Color(PaperLine.R, PaperLine.G, PaperLine.B, 0.34f));
+        DrawSketchLine(inner[2], inner[3], 0.7f, 1.2f, new Color(PaperLine.R, PaperLine.G, PaperLine.B, 0.24f));
+    }
+
+    private void DrawOffsetPolygon(Vector2[] points, Vector2 offset, Color color)
+    {
+        var shifted = new Vector2[points.Length];
+        for (var index = 0; index < points.Length; index++)
+        {
+            shifted[index] = points[index] + offset;
+        }
+
+        DrawPolygon(shifted, [color, color, color, color]);
+    }
+
+    private void DrawSketchLine(Vector2 from, Vector2 to, float normalOffset, float width, Color color)
+    {
+        var normal = (to - from).Orthogonal().Normalized();
+        DrawLine(from + normal * normalOffset, to + normal * normalOffset, color, width, true);
+        DrawLine(
+            from - normal * (normalOffset + 1.8f),
+            to - normal * (normalOffset + 0.3f),
+            new Color(color.R, color.G, color.B, color.A * 0.48f),
+            MathF.Max(1.0f, width * 0.36f),
+            true);
     }
 }

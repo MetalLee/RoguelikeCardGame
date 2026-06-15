@@ -112,10 +112,13 @@ public partial class RewardScreen : ComicScreen
         row.AddThemeConstantOverride("separation", 10);
         panel.AddChild(row);
 
+        var shardIcon = CreateImage(ColorShardAsset(shardColor), new Vector2(52, 52), TextureRect.StretchModeEnum.KeepAspectCentered);
+        row.AddChild(shardIcon);
+
         var swatch = new ColorRect
         {
             Color = ColorAccent(shardColor),
-            CustomMinimumSize = new Vector2(34, 34)
+            CustomMinimumSize = new Vector2(12, 34)
         };
         row.AddChild(swatch);
 
@@ -218,6 +221,19 @@ public partial class RewardScreen : ComicScreen
             ColorType.Green => new Color(0.20f, 0.62f, 0.28f),
             ColorType.Purple => new Color(0.55f, 0.22f, 0.82f),
             _ => GoldLine
+        };
+    }
+
+    private static string ColorShardAsset(ColorType color)
+    {
+        return color switch
+        {
+            ColorType.Red => "asset.reward.color_shard.red",
+            ColorType.Yellow => "asset.reward.color_shard.yellow",
+            ColorType.Blue => "asset.reward.color_shard.blue",
+            ColorType.Green => "asset.reward.color_shard.green",
+            ColorType.Purple => "asset.reward.color_shard.purple",
+            _ => "asset.reward.color_shard.red"
         };
     }
 

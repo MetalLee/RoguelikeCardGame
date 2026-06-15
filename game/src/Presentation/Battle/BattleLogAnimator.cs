@@ -111,7 +111,6 @@ public sealed class BattleLogAnimator
 
         if (effectType == "gain_color_energy")
         {
-            await PlayColorEnergyGainAsync(item, targets);
             return;
         }
 
@@ -192,18 +191,6 @@ public sealed class BattleLogAnimator
             screen.PulseNodeAsync(targets.BlockPanel, 1.2f, 0.10f));
     }
 
-    private async Task PlayColorEnergyGainAsync(CombatLogEvent item, BattleAnimationTargets targets)
-    {
-        if (!item.NumericChanges.TryGetValue("color_energy_generated", out var generated) || generated <= 0)
-        {
-            return;
-        }
-
-        await Task.WhenAll(
-            screen.SpawnVfxAsync(targets.FxLayer, "asset.vfx.color_energy_spark", new Vector2(960, 118), new Vector2(220, 130), ColorEnergyTint(item), 0.20f),
-            screen.PulseNodeAsync(targets.ColorEnergyPanel, 1.16f, 0.11f));
-    }
-
     private async Task PlayColorEnergySpentAsync(CombatLogEvent item, BattleAnimationTargets targets)
     {
         if (!item.NumericChanges.TryGetValue("color_energy_spent", out var spent) || spent <= 0)
@@ -226,20 +213,6 @@ public sealed class BattleLogAnimator
     private async Task PlayPurpleAmplifyAsync(BattleAnimationTargets targets)
     {
         await screen.SpawnVfxAsync(targets.FxLayer, "asset.vfx.finisher_release_shockwave", new Vector2(960, 118), new Vector2(300, 180), new Color(0.72f, 0.38f, 1f, 0.92f), 0.22f);
-    }
-
-    private static Color ColorEnergyTint(CombatLogEvent item)
-    {
-        var color = item.Metadata.TryGetValue("color", out var value) ? value : "";
-        return color switch
-        {
-            "Red" => new Color(1f, 0.28f, 0.18f, 0.95f),
-            "Yellow" => new Color(1f, 0.82f, 0.20f, 0.95f),
-            "Blue" => new Color(0.30f, 0.58f, 1f, 0.95f),
-            "Green" => new Color(0.36f, 0.88f, 0.36f, 0.95f),
-            "Purple" => new Color(0.72f, 0.38f, 1f, 0.95f),
-            _ => new Color(1f, 1f, 1f, 0.90f)
-        };
     }
 
     private async Task PlayEnemyIntentAsync(CombatLogEvent item, BattleAnimationTargets targets)
@@ -312,8 +285,6 @@ public sealed record BattleAnimationTargets(
     Control? BlockPanel,
     Control? ActionPointPanel,
     Control? HandNode,
-    Control? DrawPilePanel,
-    Control? DiscardPilePanel,
     Control? FxLayer,
     IReadOnlyDictionary<string, Control> EnemyNodes,
     Func<int, Control?> CardNodeByHandIndex,
