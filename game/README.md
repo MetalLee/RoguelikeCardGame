@@ -21,7 +21,7 @@ godot-mono --headless --path . --quit
 ```mermaid
 flowchart TD
   A["StartMenuScreen"] --> B["WeaponSelectionScreen"]
-  B --> C["StartingDeckSelectionScreen"]
+  B --> C["自动起始牌组"]
   C --> D["RunStateFactory.CreateNewRunFromWeaponSelection"]
   D --> E["CombatStateFactory.CreateCombat"]
   E --> F["CombatTurnService.StartCombat"]
@@ -41,7 +41,7 @@ flowchart TD
 - `game/data/gameplay/weapons/weapons.json`：正式 MVP 武器入口，当前包含左轮剑和机械臂。
 - `game/data/gameplay/cards/cards.json`：正式 MVP 卡牌池，只允许行动牌和终结牌，每张牌带 `weapon_id`。
 - `game/data/gameplay/colors/colors.json`：红、黄、蓝、绿、紫五色定义。黄色只表示增加卡牌释放次数。
-- `game/data/gameplay/card_pools/card_pools.json`：每种武器的 8 张起始池，以及按武器和稀有度组织的奖励池。
+- `game/data/gameplay/card_pools/card_pools.json`：每种武器固定 6 张起始池，以及按武器和稀有度组织的奖励池。
 - `game/data/gameplay/encounters/`、`enemies/`、`relics/`、`runs/`：正式 MVP 遭遇、魔物、遗物和线性 Run 数据。
 
 ## 开局流程
@@ -49,8 +49,8 @@ flowchart TD
 `MvpRunFlowController.StartNewRun` 不再读取固定 `starter_deck`。流程为：
 
 1. `WeaponSelectionScreen` 选择主手武器和副手武器。
-2. `StartingDeckSelectionScreen` 从主手 8 张起始池选择 6 张，从副手 8 张起始池选择 4 张。
-3. `StartingDeckSelectionService.Validate` 校验数量、武器归属和重复张数。
+2. 系统自动将主手武器 6 张固定初始牌全部加入，并将副手武器 4 张行动牌加入。
+3. `StartingDeckSelectionService.Validate` 校验数量、武器归属和重复张数；旧选牌实现保留为未来拓展用，不进入当前主流程。
 4. `RunStateFactory.CreateNewRunFromWeaponSelection` 创建 10 张 `CardInstance`，写入 `MainHandWeaponId`、`OffHandWeaponId`、`MasterDeckInstances` 和附魔状态。
 
 ## 战斗流程
@@ -99,8 +99,8 @@ flowchart TD
 
 `tests/Unit/Program.cs` 覆盖：
 
-- 主副武器选择与 6 + 4 起始牌校验。
-- 从武器选牌创建 10 张 `CardInstance` 并进入战斗。
+- 主副武器选择与自动 6 + 4 起始牌校验。
+- 从自动起始牌组创建 10 张 `CardInstance` 并进入战斗。
 - 行动牌生成带色彩能，彩能上限 6，跨回合清空。
 - 终结牌消耗彩能，并触发五色 MVP 追加效果。
 - 黄色不触发抽牌、返还行动点或回能量。

@@ -17,6 +17,7 @@
 
 ### 2026-06-15
 
+- 根据开发者确认，保留开局主副武器选择，但移除起始卡牌自由选择环节；每把武器固定 6 张初始牌（4 行动 + 2 终结），系统自动将主手 6 张全带、副手 4 张行动牌带入，组成 10 张初始卡组。同步更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/03_experience/00_ui_ux|界面与交互]]、[[design/06_technical_production/00_technical_requirements|技术需求]] 与 [[design/07_production/00_roadmap_milestones|开发路线图与里程碑]]。
 - 调整主菜单首屏，保留主角「左」、标题《剑与黑塔》和“开始游戏”按钮；标题改用 `SourceHanSansSC-Heavy` 并加大字号，开始按钮改为标题正下方的白底黑边黑字手绘平行四边形样式。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
 - 将运行时背景主底色改为白色纸面，并调整战斗主角「左」的站位，使脚底对齐前景地面线，避免前后景透明区域露出黑底或主角悬空。同步更新 [[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/03_experience/00_ui_ux|界面与交互]]。
 - 从 [[design/03_experience/assets/人物动作动画/人物|人物动作参考]] 中切分主角「左」的持左轮剑造型与无武器造型，分别归档到 `game/assets/art/characters/zu_revolver_sword.png` 和 `game/assets/art/characters/zu_unarmed.png`；`asset.character.zu.revolver.battle` 改为使用持左轮剑造型，替换旧彩色 Q 版剑客资源。同步更新 [[design/03_experience/01_visual_direction|视觉方向]]。

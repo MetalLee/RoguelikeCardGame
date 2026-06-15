@@ -19,7 +19,6 @@ public sealed class MvpRunFlowController
 {
     private const string StartMenuScenePath = "res://scenes/menus/StartMenuScreen.tscn";
     private const string WeaponSelectionScenePath = "res://scenes/menus/WeaponSelectionScreen.tscn";
-    private const string StartingDeckSelectionScenePath = "res://scenes/menus/StartingDeckSelectionScreen.tscn";
     private const string BattleScenePath = "res://scenes/battle/BattleScreen.tscn";
     private const string RewardScenePath = "res://scenes/rewards/RewardScreen.tscn";
     private const string RunResultScenePath = "res://scenes/menus/RunResultScreen.tscn";
@@ -30,8 +29,6 @@ public sealed class MvpRunFlowController
     private readonly RunProgressService runProgressService = new();
     private readonly StartingDeckSelectionService startingDeckSelectionService = new();
     private readonly RewardService rewardService = new();
-    private readonly HashSet<string> selectedStartingOptionIds = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, StartingDeckCardOption> startingOptionsById = new(StringComparer.Ordinal);
 
     private RunRandomStreams? randomStreams;
     private CombatStateFactory combatFactory = new();
@@ -40,10 +37,6 @@ public sealed class MvpRunFlowController
     private RunState? run;
     private CombatState? combat;
     private EncounterDefinition? encounter;
-    private string? pendingMainHandWeaponId;
-    private string? pendingOffHandWeaponId;
-    private List<StartingDeckCardOption> pendingMainHandOptions = new();
-    private List<StartingDeckCardOption> pendingOffHandOptions = new();
     private ColorType? pendingRewardColorShard;
     private List<CardInstance> rewardEnchantableCards = new();
     private string? selectedRewardEnchantTargetId;
@@ -84,13 +77,6 @@ public sealed class MvpRunFlowController
     {
         try
         {
-            selectedStartingOptionIds.Clear();
-            startingOptionsById.Clear();
-            pendingMainHandWeaponId = null;
-            pendingOffHandWeaponId = null;
-            pendingMainHandOptions = [];
-            pendingOffHandOptions = [];
-
             var screen = screenHost.ShowScreen<WeaponSelectionScreen>(WeaponSelectionScenePath);
             screen.WeaponsConfirmed += ConfirmWeapons;
             screen.BackRequested += ShowStartMenu;
@@ -104,105 +90,14 @@ public sealed class MvpRunFlowController
 
     private void ConfirmWeapons(string mainHandWeaponId, string offHandWeaponId)
     {
-        pendingMainHandWeaponId = mainHandWeaponId;
-        pendingOffHandWeaponId = offHandWeaponId;
-        selectedStartingOptionIds.Clear();
-        BuildStartingDeckOptions();
-        ShowStartingDeckSelection();
-    }
-
-    private void BuildStartingDeckOptions()
-    {
-        startingOptionsById.Clear();
-        pendingMainHandOptions = BuildStartingOptions(pendingMainHandWeaponId ?? string.Empty, "main");
-        pendingOffHandOptions = BuildStartingOptions(pendingOffHandWeaponId ?? string.Empty, "off");
-    }
-
-    private List<StartingDeckCardOption> BuildStartingOptions(string weaponId, string role)
-    {
-        var cardIds = content.ExpandedStartingCardIdsForWeapon(weaponId);
-        var options = cardIds
-            .Select((cardId, index) => new StartingDeckCardOption
-            {
-                OptionId = $"{role}:{index + 1:00}:{cardId}",
-                WeaponId = weaponId,
-                CardId = cardId,
-                SlotLabel = $"{index + 1}"
-            })
-            .ToList();
-
-        foreach (var option in options)
+        try
         {
-            startingOptionsById[option.OptionId] = option;
+            ConfirmStartingDeck(mainHandWeaponId, offHandWeaponId);
         }
-
-        return options;
-    }
-
-    private void ShowStartingDeckSelection()
-    {
-        if (pendingMainHandWeaponId is null || pendingOffHandWeaponId is null)
+        catch (Exception ex)
         {
-            ShowWeaponSelection();
-            return;
+            screenHost.ShowFatalError(ex);
         }
-
-        var validation = ValidateStartingDeckSelection();
-        var message = validation.IsValid
-            ? "已选满 10 张起始牌，可以开始第一战。"
-            : StartingDeckSelectionMessage();
-
-        var screen = screenHost.ShowScreen<StartingDeckSelectionScreen>(StartingDeckSelectionScenePath);
-        screen.CardOptionToggled += ToggleStartingCardOption;
-        screen.ConfirmRequested += ConfirmStartingDeck;
-        screen.BackRequested += ShowWeaponSelection;
-        screen.Render(
-            pendingMainHandWeaponId,
-            pendingOffHandWeaponId,
-            pendingMainHandOptions,
-            pendingOffHandOptions,
-            selectedStartingOptionIds,
-            validation.IsValid,
-            message);
-    }
-
-    private void ToggleStartingCardOption(string optionId)
-    {
-        if (!startingOptionsById.ContainsKey(optionId))
-        {
-            return;
-        }
-
-        if (!selectedStartingOptionIds.Add(optionId))
-        {
-            selectedStartingOptionIds.Remove(optionId);
-        }
-
-        ShowStartingDeckSelection();
-    }
-
-    private StartingDeckValidationResult ValidateStartingDeckSelection()
-    {
-        return startingDeckSelectionService.Validate(
-            BuildStartingDeckSelection(),
-            BuildWeaponStartingPools());
-    }
-
-    private StartingDeckSelection BuildStartingDeckSelection()
-    {
-        return new StartingDeckSelection
-        {
-            MainHandWeaponId = pendingMainHandWeaponId ?? string.Empty,
-            OffHandWeaponId = pendingOffHandWeaponId ?? string.Empty,
-            MainHandCardIds = pendingMainHandOptions
-                .Where(option => selectedStartingOptionIds.Contains(option.OptionId))
-                .Select(option => option.CardId)
-                .ToList(),
-            OffHandCardIds = pendingOffHandOptions
-                .Where(option => selectedStartingOptionIds.Contains(option.OptionId))
-                .Select(option => option.CardId)
-                .ToList()
-        };
     }
 
     private List<WeaponStartingPoolDefinition> BuildWeaponStartingPools()
@@ -216,21 +111,20 @@ public sealed class MvpRunFlowController
             .ToList();
     }
 
-    private string StartingDeckSelectionMessage()
-    {
-        var selectedMain = pendingMainHandOptions.Count(option => selectedStartingOptionIds.Contains(option.OptionId));
-        var selectedOff = pendingOffHandOptions.Count(option => selectedStartingOptionIds.Contains(option.OptionId));
-        return $"当前选择：主手 {selectedMain}/6，副手 {selectedOff}/4。";
-    }
-
-    private void ConfirmStartingDeck()
+    private void ConfirmStartingDeck(string mainHandWeaponId, string offHandWeaponId)
     {
         ResetFlowInteractionState();
-        var validation = ValidateStartingDeckSelection();
+        var validation = startingDeckSelectionService.BuildAutomaticStarterDeck(
+            mainHandWeaponId,
+            offHandWeaponId,
+            BuildWeaponStartingPools(),
+            content.CardsById);
         if (!validation.IsValid)
         {
-            ShowStartingDeckSelection();
-            return;
+            throw new InvalidOperationException(
+                "Automatic starter deck could not be created:" +
+                Environment.NewLine +
+                string.Join(Environment.NewLine, validation.Errors));
         }
 
         var sequence = content.MvpRun;
@@ -245,8 +139,8 @@ public sealed class MvpRunFlowController
             playerMaxHp: sequence.PlayerMaxHp,
             baseActionPoints: sequence.BaseActionPoints,
             cardsPerTurn: sequence.CardsPerTurn,
-            mainHandWeaponId: pendingMainHandWeaponId!,
-            offHandWeaponId: pendingOffHandWeaponId!,
+            mainHandWeaponId: mainHandWeaponId,
+            offHandWeaponId: offHandWeaponId,
             selectedCardIds: validation.SelectedCardIds,
             encounterSequence: sequence.EncounterSequence);
         StartCurrentEncounter();

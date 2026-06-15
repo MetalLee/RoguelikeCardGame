@@ -1,5 +1,7 @@
 using Godot;
+using RoguelikeCardGame.Domain.Cards;
 using RoguelikeCardGame.Infrastructure.Content;
+using RoguelikeCardGame.Presentation.Cards;
 using RoguelikeCardGame.Presentation.Shared;
 
 namespace RoguelikeCardGame.Presentation.Menus;
@@ -10,95 +12,349 @@ public partial class WeaponSelectionScreen : ComicScreen
     public event Action? BackRequested;
 
     private string? selectedMainWeaponId;
+    private string? selectedOffHandWeaponId;
+
+    private static readonly IReadOnlyList<string?> WeaponSlots =
+    [
+        "weapon.revolver_sword",
+        "weapon.mechanical_arm",
+        null,
+        null
+    ];
 
     public void Render()
     {
         var content = RequireContent();
-        selectedMainWeaponId ??= content.WeaponsById.Keys.OrderBy(id => id, StringComparer.Ordinal).FirstOrDefault();
-
         var root = CreateCanvas();
-        AddLabelAt(root, "选择主手武器", new Vector2(610, 110), new Vector2(700, 58), 40, new Color(0.16f, 0.10f, 0.06f), HorizontalAlignment.Center);
-        AddLabelAt(root, "主手稍后选择 6 张起始牌；副手选择 4 张。两把武器都可以作为主手。", new Vector2(520, 176), new Vector2(880, 36), 18, new Color(0.28f, 0.18f, 0.10f), HorizontalAlignment.Center);
 
-        var weaponIds = content.WeaponsById.Values
-            .Where(weapon => weapon.MainHandAllowed && weapon.OffHandAllowed)
-            .Select(weapon => weapon.Id)
-            .OrderBy(id => id, StringComparer.Ordinal)
-            .ToList();
+        AddWeaponSection(
+            root,
+            content,
+            title: "主武器选择",
+            selectedWeaponId: selectedMainWeaponId,
+            blockedWeaponId: selectedOffHandWeaponId,
+            position: new Vector2(56, 126),
+            onSelected: weaponId =>
+            {
+                selectedMainWeaponId = weaponId;
+                Render();
+            });
 
-        for (var index = 0; index < weaponIds.Count; index++)
-        {
-            var weaponId = weaponIds[index];
-            var isMain = string.Equals(selectedMainWeaponId, weaponId, StringComparison.Ordinal);
-            var panel = CreateWeaponPanel(content, weaponId, isMain);
-            AddAt(root, panel, new Vector2(410 + index * 560, 300), new Vector2(500, 330));
-        }
+        AddWeaponSection(
+            root,
+            content,
+            title: "副武器选择",
+            selectedWeaponId: selectedOffHandWeaponId,
+            blockedWeaponId: selectedMainWeaponId,
+            position: new Vector2(56, 476),
+            onSelected: weaponId =>
+            {
+                selectedOffHandWeaponId = weaponId;
+                Render();
+            });
 
-        var offHandWeaponId = weaponIds.FirstOrDefault(id => !string.Equals(id, selectedMainWeaponId, StringComparison.Ordinal));
-        var summary = selectedMainWeaponId is null || offHandWeaponId is null
-            ? "请选择主手武器"
-            : $"主手：{content.WeaponName(selectedMainWeaponId)}    副手：{content.WeaponName(offHandWeaponId)}";
-        AddLabelAt(root, summary, new Vector2(560, 680), new Vector2(800, 40), 22, new Color(0.18f, 0.10f, 0.05f), HorizontalAlignment.Center);
+        AddStarterDeckPreview(root, content);
 
-        var back = CreateArtButton("返回", "asset.ui.icon.discard_pile", new Vector2(190, 66), GoldLine);
+        var heavyFont = LoadFont("asset.font.source_han_sans_sc.heavy");
+        var back = new SketchParallelogramButton("返回", heavyFont, 24);
         back.Pressed += () => BackRequested?.Invoke();
-        AddAt(root, back, new Vector2(650, 780), new Vector2(190, 66));
+        AddAt(root, back, new Vector2(720, 930), new Vector2(190, 64));
 
-        var confirm = CreateArtButton("确认武器", "asset.ui.icon.playable_highlight", new Vector2(240, 66), GoldLine);
-        confirm.Disabled = selectedMainWeaponId is null || offHandWeaponId is null;
+        var confirm = new SketchParallelogramButton("出发", heavyFont, 24);
+        confirm.Disabled = selectedMainWeaponId is null || selectedOffHandWeaponId is null;
+        confirm.RefreshVisualState();
         confirm.Pressed += () =>
         {
-            if (selectedMainWeaponId is not null && offHandWeaponId is not null)
+            if (selectedMainWeaponId is not null && selectedOffHandWeaponId is not null)
             {
-                WeaponsConfirmed?.Invoke(selectedMainWeaponId, offHandWeaponId);
+                WeaponsConfirmed?.Invoke(selectedMainWeaponId, selectedOffHandWeaponId);
             }
         };
-        AddAt(root, confirm, new Vector2(910, 780), new Vector2(240, 66));
+        AddAt(root, confirm, new Vector2(1010, 930), new Vector2(190, 64));
     }
 
-    private Control CreateWeaponPanel(GameContent content, string weaponId, bool isMain)
+    private void AddWeaponSection(
+        Control root,
+        GameContent content,
+        string title,
+        string? selectedWeaponId,
+        string? blockedWeaponId,
+        Vector2 position,
+        Action<string> onSelected)
     {
-        var panel = CreateFramedPanel(new Vector2(500, 330), isMain ? GoldLine : new Color(0.30f, 0.22f, 0.16f));
-        var stack = new VBoxContainer();
-        stack.AddThemeConstantOverride("separation", 12);
-        panel.AddChild(stack);
+        AddLabelAt(root, title, position + new Vector2(2, -36), new Vector2(300, 32), 24, InkText, HorizontalAlignment.Left);
 
-        var title = new Label
+        var panel = CreatePaperPanel(new Vector2(700, 270));
+        AddAt(root, panel, position, new Vector2(700, 270));
+
+        var tileOrigins = new[]
         {
-            Text = content.WeaponName(weaponId),
-            HorizontalAlignment = HorizontalAlignment.Center
+            new Vector2(56, 34),
+            new Vector2(406, 34),
+            new Vector2(56, 148),
+            new Vector2(406, 148)
         };
-        title.AddThemeFontSizeOverride("font_size", 30);
-        title.AddThemeColorOverride("font_color", new Color(1.0f, 0.84f, 0.48f));
-        stack.AddChild(title);
 
-        var role = new Label
+        for (var index = 0; index < WeaponSlots.Count; index++)
         {
-            Text = isMain ? "当前主手" : "当前副手",
-            HorizontalAlignment = HorizontalAlignment.Center
-        };
-        role.AddThemeFontSizeOverride("font_size", 18);
-        role.AddThemeColorOverride("font_color", isMain ? new Color(1.0f, 0.70f, 0.26f) : new Color(0.78f, 0.68f, 0.56f));
-        stack.AddChild(role);
+            var weaponId = WeaponSlots[index];
+            var selected = weaponId is not null && string.Equals(selectedWeaponId, weaponId, StringComparison.Ordinal);
+            var blocked = weaponId is not null && string.Equals(blockedWeaponId, weaponId, StringComparison.Ordinal);
+            var tile = CreateWeaponTile(content, weaponId, selected, blocked);
+            if (weaponId is not null && !blocked)
+            {
+                tile.Pressed += () => onSelected(weaponId);
+            }
 
-        var description = CreateBodyLabel(content.WeaponDescription(weaponId));
-        description.AddThemeFontSizeOverride("font_size", 17);
-        description.AddThemeColorOverride("font_color", new Color(0.96f, 0.82f, 0.62f));
-        stack.AddChild(description);
+            AddAt(panel, tile, tileOrigins[index], new Vector2(238, 92));
+        }
+    }
 
-        var count = content.ExpandedStartingCardIdsForWeapon(weaponId).Count;
-        var pool = CreateSmallLabel($"起始池：{count} 张；奖励池按武器与稀有度生成三选一。");
-        pool.AddThemeColorOverride("font_color", new Color(0.88f, 0.76f, 0.58f));
-        stack.AddChild(pool);
+    private void AddStarterDeckPreview(Control root, GameContent content)
+    {
+        AddLabelAt(root, "初始卡组浏览", new Vector2(1178, 86), new Vector2(320, 38), 24, InkText, HorizontalAlignment.Center);
 
-        var choose = CreateArtButton(isMain ? "已选择" : "设为主手", "asset.ui.icon.deck_library", new Vector2(210, 52), isMain ? GoldLine : CyanLine);
-        choose.Disabled = isMain;
-        choose.Pressed += () =>
+        var panel = CreatePaperPanel(new Vector2(1048, 636));
+        AddAt(root, panel, new Vector2(820, 126), new Vector2(1048, 636));
+
+        var cardIds = BuildPreviewCardIds(content).ToList();
+        if (cardIds.Count == 0)
         {
-            selectedMainWeaponId = weaponId;
-            Render();
+            AddLabelAt(panel, "选择主武器和副武器后，将在这里预览 10 张初始牌。", new Vector2(204, 284), new Vector2(640, 56), 22, new Color(0.20f, 0.14f, 0.10f), HorizontalAlignment.Center);
+            return;
+        }
+
+        const float cardWidth = 146f;
+        var cardSize = CardPanel.SizeForWidth(cardWidth);
+        var start = new Vector2(78, 102);
+        var gap = new Vector2(42, 44);
+        for (var index = 0; index < cardIds.Count; index++)
+        {
+            var cardId = cardIds[index];
+            var column = index % 5;
+            var row = index / 5;
+            var card = CardPanel.Create(content.CardsById[cardId], content, LoadTexture, LoadFont, cardWidth);
+            AddAt(panel, card, start + new Vector2(column * (cardWidth + gap.X), row * (cardSize.Y + gap.Y)), cardSize);
+        }
+
+        var mainName = selectedMainWeaponId is null ? "未选主武器" : content.WeaponName(selectedMainWeaponId);
+        var offName = selectedOffHandWeaponId is null ? "未选副武器" : content.WeaponName(selectedOffHandWeaponId);
+        AddLabelAt(panel, $"{mainName} 4 行动 + {offName} 4 行动 + {mainName} 2 终结", new Vector2(84, 42), new Vector2(880, 32), 17, new Color(0.20f, 0.14f, 0.10f), HorizontalAlignment.Center);
+    }
+
+    private IEnumerable<string> BuildPreviewCardIds(GameContent content)
+    {
+        if (selectedMainWeaponId is not null)
+        {
+            foreach (var cardId in StartingCardsByType(content, selectedMainWeaponId, CardType.Action).Take(4))
+            {
+                yield return cardId;
+            }
+        }
+
+        if (selectedOffHandWeaponId is not null)
+        {
+            foreach (var cardId in StartingCardsByType(content, selectedOffHandWeaponId, CardType.Action).Take(4))
+            {
+                yield return cardId;
+            }
+        }
+
+        if (selectedMainWeaponId is not null)
+        {
+            foreach (var cardId in StartingCardsByType(content, selectedMainWeaponId, CardType.Finisher).Take(2))
+            {
+                yield return cardId;
+            }
+        }
+    }
+
+    private static IEnumerable<string> StartingCardsByType(GameContent content, string weaponId, CardType type)
+    {
+        return content.ExpandedStartingCardIdsForWeapon(weaponId)
+            .Where(cardId => content.CardsById[cardId].Type == type);
+    }
+
+    private WeaponChoiceTile CreateWeaponTile(GameContent content, string? weaponId, bool selected, bool blocked)
+    {
+        if (weaponId is null)
+        {
+            return new WeaponChoiceTile("?", null, "未来武器", selected: false, blocked: true, isPlaceholder: true);
+        }
+
+        return new WeaponChoiceTile(
+            content.WeaponName(weaponId),
+            LoadTexture(WeaponIconAsset(weaponId)),
+            content.WeaponDescription(weaponId),
+            selected,
+            blocked,
+            isPlaceholder: false);
+    }
+
+    private static string WeaponIconAsset(string weaponId)
+    {
+        return weaponId switch
+        {
+            "weapon.revolver_sword" => "asset.weapon.revolver_sword.large",
+            "weapon.mechanical_arm" => "asset.weapon.mechanical_arm.large",
+            _ => ""
         };
-        stack.AddChild(choose);
+    }
+
+    private static Panel CreatePaperPanel(Vector2 minSize)
+    {
+        var panel = new Panel
+        {
+            CustomMinimumSize = minSize
+        };
+        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(1f, 1f, 1f, 0.96f),
+            BorderColor = Colors.Black,
+            BorderWidthLeft = 4,
+            BorderWidthRight = 4,
+            BorderWidthTop = 4,
+            BorderWidthBottom = 4,
+            ContentMarginLeft = 0,
+            ContentMarginRight = 0,
+            ContentMarginTop = 0,
+            ContentMarginBottom = 0
+        });
         return panel;
+    }
+
+    private static readonly Color InkText = new(0.05f, 0.05f, 0.05f);
+
+    private sealed partial class WeaponChoiceTile : Control
+    {
+        private const float Slant = 42f;
+
+        private readonly TextureRect icon = new();
+        private readonly Label placeholder = new();
+        private readonly Label caption = new();
+        private readonly Button hitbox = new();
+        private readonly bool selected;
+        private readonly bool blocked;
+        private readonly bool isPlaceholder;
+        private bool hovered;
+
+        public event Action? Pressed;
+
+        public WeaponChoiceTile(
+            string title,
+            Texture2D? texture,
+            string tooltip,
+            bool selected,
+            bool blocked,
+            bool isPlaceholder)
+        {
+            this.selected = selected;
+            this.blocked = blocked;
+            this.isPlaceholder = isPlaceholder;
+
+            ClipContents = false;
+            MouseFilter = MouseFilterEnum.Ignore;
+            TooltipText = tooltip;
+
+            icon.Texture = texture;
+            icon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+            icon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+            icon.TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps;
+            icon.MouseFilter = MouseFilterEnum.Ignore;
+            icon.Modulate = blocked ? new Color(0.45f, 0.45f, 0.45f, 0.55f) : Colors.White;
+            AddChild(icon);
+
+            placeholder.Text = "?";
+            placeholder.HorizontalAlignment = HorizontalAlignment.Center;
+            placeholder.VerticalAlignment = VerticalAlignment.Center;
+            placeholder.MouseFilter = MouseFilterEnum.Ignore;
+            placeholder.Visible = isPlaceholder;
+            placeholder.AddThemeFontSizeOverride("font_size", 68);
+            placeholder.AddThemeColorOverride("font_color", new Color(0.18f, 0.18f, 0.18f, 0.72f));
+            AddChild(placeholder);
+
+            caption.Text = title;
+            caption.HorizontalAlignment = HorizontalAlignment.Center;
+            caption.VerticalAlignment = VerticalAlignment.Center;
+            caption.MouseFilter = MouseFilterEnum.Ignore;
+            caption.AddThemeFontSizeOverride("font_size", 18);
+            caption.AddThemeColorOverride("font_color", selected ? Colors.White : new Color(0.05f, 0.05f, 0.05f));
+            AddChild(caption);
+
+            var empty = new StyleBoxEmpty();
+            hitbox.AddThemeStyleboxOverride("normal", empty);
+            hitbox.AddThemeStyleboxOverride("hover", empty);
+            hitbox.AddThemeStyleboxOverride("pressed", empty);
+            hitbox.AddThemeStyleboxOverride("disabled", empty);
+            hitbox.AddThemeStyleboxOverride("focus", empty);
+            hitbox.Disabled = blocked || isPlaceholder;
+            hitbox.MouseEntered += () =>
+            {
+                hovered = true;
+                QueueRedraw();
+            };
+            hitbox.MouseExited += () =>
+            {
+                hovered = false;
+                QueueRedraw();
+            };
+            hitbox.Pressed += () => Pressed?.Invoke();
+            AddChild(hitbox);
+        }
+
+        public override void _Ready()
+        {
+            LayoutChildren();
+        }
+
+        public override void _Notification(int what)
+        {
+            if (what != NotificationResized)
+            {
+                return;
+            }
+
+            LayoutChildren();
+            QueueRedraw();
+        }
+
+        private void LayoutChildren()
+        {
+            var sideMargin = Math.Max(28f, Size.X * 0.15f);
+            icon.Position = new Vector2(sideMargin, 8);
+            icon.Size = new Vector2(Size.X - sideMargin * 2f, Size.Y * 0.56f);
+            placeholder.Position = new Vector2(sideMargin, 4);
+            placeholder.Size = new Vector2(Size.X - sideMargin * 2f, Size.Y * 0.62f);
+            caption.Position = new Vector2(sideMargin * 0.55f, Size.Y - 32);
+            caption.Size = new Vector2(Size.X - sideMargin * 1.1f, 26);
+            hitbox.Position = Vector2.Zero;
+            hitbox.Size = Size;
+        }
+
+        public override void _Draw()
+        {
+            var slant = Math.Min(Slant, Size.X * 0.16f);
+            var points = new[]
+            {
+                new Vector2(slant, 0),
+                new Vector2(Size.X, 0),
+                new Vector2(Size.X - slant, Size.Y),
+                new Vector2(0, Size.Y)
+            };
+            var background = selected
+                ? Colors.Black
+                : blocked || isPlaceholder
+                    ? new Color(0.78f, 0.78f, 0.78f, 0.86f)
+                    : hovered ? new Color(0.96f, 0.96f, 0.96f, 1f) : Colors.White;
+
+            DrawColoredPolygon(points, background);
+            DrawPolyline([points[0], points[1], points[2], points[3], points[0]], Colors.Black, selected ? 7f : 5f, true);
+
+            if (blocked && !isPlaceholder)
+            {
+                DrawLine(new Vector2(14, Size.Y - 12), new Vector2(Size.X - 14, 12), new Color(0.10f, 0.10f, 0.10f, 0.78f), 5f, true);
+                DrawLine(new Vector2(slant + 10, 12), new Vector2(Size.X - slant - 10, Size.Y - 12), new Color(0.10f, 0.10f, 0.10f, 0.42f), 3f, true);
+            }
+        }
     }
 }

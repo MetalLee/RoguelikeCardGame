@@ -409,6 +409,8 @@ def validate_unified_gameplay(project_root: Path, documents: dict[str, dict[str,
         if pool_type == "starting":
             starting_pool_by_weapon[weapon_id] = pool
             total = 0
+            action_count = 0
+            finisher_count = 0
             for index, entry in enumerate(pool.get("starting_entries", [])):
                 card_id = entry.get("card_id") if isinstance(entry, dict) else None
                 count = entry.get("count") if isinstance(entry, dict) else None
@@ -417,10 +419,17 @@ def validate_unified_gameplay(project_root: Path, documents: dict[str, dict[str,
                     errors.append(f"gameplay.card_pools:{pool_id}.starting_entries[{index}].card_id: unknown card id {card_id!r}")
                 elif card.get("weapon_id") != weapon_id:
                     errors.append(f"gameplay.card_pools:{pool_id}.starting_entries[{index}].card_id: card {card_id!r} belongs to {card.get('weapon_id')!r}")
+                elif isinstance(count, int):
+                    if card.get("card_type") == "action":
+                        action_count += count
+                    elif card.get("card_type") == "finisher":
+                        finisher_count += count
                 if isinstance(count, int):
                     total += count
-            if total < 8:
-                errors.append(f"gameplay.card_pools:{pool_id}.starting_entries: each MVP starting weapon needs at least 8 cards, got {total}")
+            if total != 6:
+                errors.append(f"gameplay.card_pools:{pool_id}.starting_entries: each MVP starting weapon needs exactly 6 cards, got {total}")
+            if action_count != 4 or finisher_count != 2:
+                errors.append(f"gameplay.card_pools:{pool_id}.starting_entries: each MVP starting weapon needs 4 action cards and 2 finishers, got {action_count} action and {finisher_count} finisher")
         elif pool_type == "reward":
             reward_pool_by_weapon[weapon_id] = pool
             reward_by_rarity = pool.get("reward_by_rarity", {})

@@ -83,7 +83,7 @@
         "finisher_color_effects": []
       },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["mvp", "starting_pool", "attack", "zero_cost", "color_energy_generator"],
+      "tags": ["mvp", "attack", "zero_cost", "color_energy_generator"],
       "balance": { "role": "zero_cost_starter", "tier": 0 }
     },
     {
@@ -162,7 +162,7 @@
         "finisher_color_effects": []
       },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["mvp", "starting_pool", "attack", "setup", "color_energy_generator"],
+      "tags": ["mvp", "attack", "setup", "color_energy_generator"],
       "balance": { "role": "finisher_setup", "tier": 1 }
     },
     {
@@ -335,7 +335,7 @@
         "finisher_color_effects": []
       },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["mvp", "starting_pool", "control", "color_energy_generator"],
+      "tags": ["mvp", "control", "color_energy_generator"],
       "balance": { "role": "single_target_control", "tier": 0 }
     },
     {
@@ -473,7 +473,7 @@
         "finisher_color_effects": []
       },
       "after_play": [{ "op": "move_card", "to": "discard_pile" }],
-      "tags": ["mvp", "starting_pool", "control", "aoe", "color_energy_generator"],
+      "tags": ["mvp", "control", "aoe", "color_energy_generator"],
       "balance": { "role": "aoe_mitigation", "tier": 0 }
     },
     {

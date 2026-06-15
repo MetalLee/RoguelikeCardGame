@@ -8,6 +8,8 @@ public abstract partial class ComicScreen : Control
     private static readonly Vector2 BaseLayoutSize = new(1920, 1080);
     private static readonly Vector2 DesignSize = new(1920, 1080);
     private static readonly Vector2 DesignToBaseScale = DesignSize / BaseLayoutSize;
+    private static readonly Color LetterboxBlack = new(0.0f, 0.0f, 0.0f, 1.0f);
+    private static readonly Color PaperWhite = new(1.0f, 1.0f, 1.0f, 1.0f);
 
     private Control? activeCanvasRoot;
 
@@ -39,7 +41,7 @@ public abstract partial class ComicScreen : Control
 
         var outerBackground = new ColorRect
         {
-            Color = new Color(1.0f, 1.0f, 1.0f, 1.0f),
+            Color = LetterboxBlack,
             MouseFilter = MouseFilterEnum.Ignore
         };
         outerBackground.SetAnchorsPreset(LayoutPreset.FullRect);
@@ -368,21 +370,33 @@ public abstract partial class ComicScreen : Control
     {
         var paperBase = new ColorRect
         {
-            Color = new Color(1.0f, 1.0f, 1.0f, 1.0f),
+            Color = PaperWhite,
             MouseFilter = MouseFilterEnum.Ignore
         };
         paperBase.SetAnchorsPreset(LayoutPreset.FullRect);
         parent.AddChild(paperBase);
 
-        var backLayer = CreateImage("asset.background.mvp_battle.back", Vector2.Zero, TextureRect.StretchModeEnum.KeepAspectCovered);
-        backLayer.SetAnchorsPreset(LayoutPreset.FullRect);
-        backLayer.Modulate = Colors.White;
+        var backLayer = CreateFixedBackgroundImage("asset.background.mvp_battle.back");
         parent.AddChild(backLayer);
 
-        var frontLayer = CreateImage("asset.background.mvp_battle.front", Vector2.Zero, TextureRect.StretchModeEnum.KeepAspectCovered);
-        frontLayer.SetAnchorsPreset(LayoutPreset.FullRect);
-        frontLayer.Modulate = Colors.White;
+        var frontLayer = CreateFixedBackgroundImage("asset.background.mvp_battle.front");
         parent.AddChild(frontLayer);
+    }
+
+    private TextureRect CreateFixedBackgroundImage(string assetId)
+    {
+        var layer = new TextureRect
+        {
+            Texture = LoadTexture(assetId),
+            Position = Vector2.Zero,
+            Size = DesignSize,
+            CustomMinimumSize = DesignSize,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+            TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        return layer;
     }
 
     protected static Control CreateFxLayer(string name)
@@ -561,4 +575,5 @@ public abstract partial class ComicScreen : Control
     {
         return Content ?? throw new InvalidOperationException("Game content is not loaded.");
     }
+
 }

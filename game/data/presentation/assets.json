@@ -1,6 +1,6 @@
 {
   "schema": "roguelike_card_game.assets.v1",
-  "content_version": "mvp.0.2",
+  "content_version": "mvp.0.3",
   "items": [
     { "id": "asset.background.mvp_battle", "type": "image", "path": "res://assets/art/backgrounds/mvp_battle_background.png" },
     { "id": "asset.background.mvp_battle.hd", "type": "image", "path": "res://assets/art/backgrounds/mvp_battle_background.png" },
@@ -9,6 +9,8 @@
     { "id": "asset.font.source_han_sans_sc.heavy", "type": "font", "path": "res://assets/fonts/source_han_sans_sc/SourceHanSansSC-Heavy.otf" },
     { "id": "asset.font.source_han_sans_sc.medium", "type": "font", "path": "res://assets/fonts/source_han_sans_sc/SourceHanSansSC-Medium.otf" },
     { "id": "asset.character.zu.revolver.battle", "type": "image", "path": "res://assets/art/characters/zu_revolver_sword.png" },
+    { "id": "asset.weapon.revolver_sword.large", "type": "image", "path": "res://assets/art/weapons/revolver_sword_large.png" },
+    { "id": "asset.weapon.mechanical_arm.large", "type": "image", "path": "res://assets/art/weapons/mechanical_arm_large.png" },
     { "id": "asset.card.template.action", "type": "image", "path": "res://assets/art/cards/templates/action_card_template.png" },
     { "id": "asset.card.template.finisher", "type": "image", "path": "res://assets/art/cards/templates/finisher_card_template.png" },
     { "id": "asset.card.basic_strike.art", "type": "image", "path": "res://assets/art/cards/artwork/card_basic_strike.png" },

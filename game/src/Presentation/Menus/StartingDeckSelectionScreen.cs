@@ -35,8 +35,8 @@ public partial class StartingDeckSelectionScreen : ComicScreen
         var content = RequireContent();
         var root = CreateCanvas();
 
-        AddLabelAt(root, "选择初始牌组", new Vector2(600, 70), new Vector2(720, 54), 40, new Color(0.16f, 0.10f, 0.06f), HorizontalAlignment.Center);
-        AddLabelAt(root, "从主手武器起始池选择 6 张，从副手武器起始池选择 4 张。重复卡代表独立槽位。", new Vector2(450, 132), new Vector2(1020, 34), 18, new Color(0.30f, 0.18f, 0.10f), HorizontalAlignment.Center);
+        AddLabelAt(root, "起始牌组预览", new Vector2(600, 70), new Vector2(720, 54), 40, new Color(0.16f, 0.10f, 0.06f), HorizontalAlignment.Center);
+        AddLabelAt(root, "当前 MVP 主流程会自动组成 10 张初始牌；此界面保留给未来起始构筑拓展。", new Vector2(450, 132), new Vector2(1020, 34), 18, new Color(0.30f, 0.18f, 0.10f), HorizontalAlignment.Center);
 
         AddPoolColumn(
             root,

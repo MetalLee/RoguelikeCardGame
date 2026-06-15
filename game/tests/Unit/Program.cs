@@ -273,8 +273,6 @@ var revolverStartingPool = new WeaponStartingPoolDefinition
         "card.revolver_slash",
         "card.revolver_slash",
         "card.revolver_double_slash",
-        "card.revolver_quick_thrust",
-        "card.revolver_reload_slash",
         "card.revolver_heavy_cannon",
         "card.revolver_bullet_storm"
     ]
@@ -287,9 +285,7 @@ var armStartingPool = new WeaponStartingPoolDefinition
         "card.arm_guard",
         "card.arm_guard",
         "card.arm_guard",
-        "card.arm_bind",
         "card.arm_crush",
-        "card.arm_shock_palm",
         "card.arm_counter",
         "card.arm_army_sweep"
     ]
@@ -303,22 +299,39 @@ var revolverMainSelection = new StartingDeckSelection
     [
         "card.revolver_slash",
         "card.revolver_slash",
+        "card.revolver_slash",
         "card.revolver_double_slash",
-        "card.revolver_quick_thrust",
-        "card.revolver_reload_slash",
-        "card.revolver_heavy_cannon"
+        "card.revolver_heavy_cannon",
+        "card.revolver_bullet_storm"
     ],
     OffHandCardIds =
     [
         "card.arm_guard",
         "card.arm_guard",
-        "card.arm_bind",
-        "card.arm_counter"
+        "card.arm_guard",
+        "card.arm_crush"
     ]
 };
 var revolverMainValidation = startingDeckSelectionService.Validate(revolverMainSelection, startingPools);
 Assert(revolverMainValidation.IsValid, "Revolver sword main-hand 6 plus mechanical arm off-hand 4 is a valid start");
 AssertEqual(10, revolverMainValidation.SelectedCardIds.Count, "Starting deck selection creates a 10-card starter deck");
+var automaticRevolverMain = startingDeckSelectionService.BuildAutomaticStarterDeck(
+    revolverStartingPool.WeaponId,
+    armStartingPool.WeaponId,
+    startingPools,
+    new Dictionary<string, CardDefinition>
+    {
+        ["card.revolver_slash"] = strike with { Id = "card.revolver_slash" },
+        ["card.revolver_double_slash"] = strike with { Id = "card.revolver_double_slash" },
+        ["card.revolver_heavy_cannon"] = finisher with { Id = "card.revolver_heavy_cannon" },
+        ["card.revolver_bullet_storm"] = finisher with { Id = "card.revolver_bullet_storm" },
+        ["card.arm_guard"] = guardAction with { Id = "card.arm_guard" },
+        ["card.arm_crush"] = strike with { Id = "card.arm_crush", WeaponId = "weapon.mechanical_arm" },
+        ["card.arm_counter"] = finisher with { Id = "card.arm_counter", WeaponId = "weapon.mechanical_arm" },
+        ["card.arm_army_sweep"] = finisher with { Id = "card.arm_army_sweep", WeaponId = "weapon.mechanical_arm" }
+    });
+Assert(automaticRevolverMain.IsValid, "Automatic starter deck accepts main-hand all cards and off-hand actions");
+AssertSequenceEqual(revolverMainValidation.SelectedCardIds, automaticRevolverMain.SelectedCardIds, "Automatic starter deck matches the fixed 6 plus 4 action rule");
 var revolverMainRun = runFactory.CreateNewRunFromWeaponSelection(
     "run_revolver_main",
     22222,
@@ -341,17 +354,17 @@ var armMainSelection = new StartingDeckSelection
     [
         "card.arm_guard",
         "card.arm_guard",
-        "card.arm_bind",
+        "card.arm_guard",
         "card.arm_crush",
-        "card.arm_shock_palm",
-        "card.arm_counter"
+        "card.arm_counter",
+        "card.arm_army_sweep"
     ],
     OffHandCardIds =
     [
         "card.revolver_slash",
+        "card.revolver_slash",
+        "card.revolver_slash",
         "card.revolver_double_slash",
-        "card.revolver_quick_thrust",
-        "card.revolver_heavy_cannon"
     ]
 };
 var armMainValidation = startingDeckSelectionService.Validate(armMainSelection, startingPools);
@@ -368,6 +381,7 @@ var armMainRun = runFactory.CreateNewRunFromWeaponSelection(
     [encounter.Id]);
 AssertEqual("weapon.mechanical_arm", armMainRun.MainHandWeaponId, "Run can start with mechanical arm as main hand");
 AssertEqual("weapon.revolver_sword", armMainRun.OffHandWeaponId, "Run can start with revolver sword as off hand");
+AssertEqual(10, armMainRun.MasterDeckInstances.Count, "Automatic-compatible arm main run also creates 10 starter card instances");
 
 var loadedContent = GameContent.LoadFromDataRoot(FindGameDataRoot());
 AssertEqual(5, loadedContent.ColorsById.Count, "GameContent loads all MVP colors");
@@ -387,7 +401,11 @@ AssertEqual("basic_single_target_generator", loadedActionCard.Balance.Role, "Gam
 var loadedFinisher = loadedContent.CardsById["card.revolver_heavy_cannon"];
 AssertEqual("any", loadedFinisher.ColorEnergyCost?.ColorFilter, "GameContent maps finisher color filter");
 AssertEqual(5, loadedFinisher.ColorInteractions.FinisherColorEffects.Count, "GameContent maps finisher color effects");
-AssertEqual(8, loadedContent.ExpandedStartingCardIdsForWeapon("weapon.revolver_sword").Count, "GameContent expands weapon starting pools");
+AssertEqual(6, loadedContent.ExpandedStartingCardIdsForWeapon("weapon.revolver_sword").Count, "GameContent expands fixed 6-card weapon starting pools");
+AssertEqual(CardRarity.Common, loadedContent.CardsById["card.revolver_quick_thrust"].Rarity, "Quick thrust is a common reward-pool card");
+Assert(!loadedContent.CardsById["card.revolver_quick_thrust"].Tags.Contains("starting_pool"), "Quick thrust is no longer tagged as a starting-pool card");
+AssertEqual(CardRarity.Common, loadedContent.CardsById["card.arm_bind"].Rarity, "Bind is a common reward-pool card");
+Assert(!loadedContent.CardsById["card.arm_bind"].Tags.Contains("starting_pool"), "Bind is no longer tagged as a starting-pool card");
 Assert(loadedContent.CardPoolsById["card_pool.reward.mechanical_arm"].RewardByRarity["rare"].Contains("card.arm_shield_overload"), "GameContent maps weapon reward pools");
 AssertEqual(6, loadedContent.EncountersById.Count, "GameContent loads the MVP encounter sequence");
 AssertEqual(0, loadedContent.EncountersById["encounter.mvp.normal_01"].RewardProfile.CardPackIds.Count, "GameContent preserves empty card_pack_ids compatibility field");
@@ -402,7 +420,7 @@ Assert(!underPicked.IsValid, "Under-picking main-hand starting cards cannot star
 
 var overPicked = startingDeckSelectionService.Validate(revolverMainSelection with
 {
-    OffHandCardIds = revolverMainSelection.OffHandCardIds.Concat(["card.arm_shock_palm"]).ToList()
+    OffHandCardIds = revolverMainSelection.OffHandCardIds.Concat(["card.arm_counter"]).ToList()
 }, startingPools);
 Assert(!overPicked.IsValid, "Over-picking off-hand starting cards cannot start a run");
 
@@ -412,9 +430,9 @@ var outsidePoolPick = startingDeckSelectionService.Validate(revolverMainSelectio
     [
         "card.revolver_slash",
         "card.revolver_slash",
+        "card.revolver_slash",
         "card.revolver_double_slash",
-        "card.revolver_quick_thrust",
-        "card.revolver_reload_slash",
+        "card.revolver_heavy_cannon",
         "card.arm_guard"
     ]
 }, startingPools);
@@ -893,9 +911,12 @@ var mvpRegressionCardsById = new Dictionary<string, CardDefinition>
     ["card.revolver_quick_thrust"] = strike with { Id = "card.revolver_quick_thrust", Cost = 0 },
     ["card.revolver_reload_slash"] = strike with { Id = "card.revolver_reload_slash" },
     ["card.revolver_heavy_cannon"] = finisher with { Id = "card.revolver_heavy_cannon" },
+    ["card.revolver_bullet_storm"] = finisher with { Id = "card.revolver_bullet_storm" },
     ["card.arm_guard"] = guardAction with { Id = "card.arm_guard" },
     ["card.arm_bind"] = strike with { Id = "card.arm_bind", WeaponId = "weapon.mechanical_arm" },
-    ["card.arm_counter"] = finisher with { Id = "card.arm_counter", WeaponId = "weapon.mechanical_arm" }
+    ["card.arm_crush"] = strike with { Id = "card.arm_crush", WeaponId = "weapon.mechanical_arm" },
+    ["card.arm_counter"] = finisher with { Id = "card.arm_counter", WeaponId = "weapon.mechanical_arm" },
+    ["card.arm_army_sweep"] = finisher with { Id = "card.arm_army_sweep", WeaponId = "weapon.mechanical_arm" }
 };
 var mvpSelectedRun = revolverMainRun with
 {

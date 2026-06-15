@@ -1,3 +1,5 @@
+using RoguelikeCardGame.Domain.Cards;
+
 namespace RoguelikeCardGame.Application.Runs;
 
 public sealed record WeaponStartingPoolDefinition
@@ -31,6 +33,71 @@ public sealed class StartingDeckSelectionService
 {
     public const int MainHandPickCount = 6;
     public const int OffHandPickCount = 4;
+
+    public StartingDeckValidationResult BuildAutomaticStarterDeck(
+        string mainHandWeaponId,
+        string offHandWeaponId,
+        IEnumerable<WeaponStartingPoolDefinition> startingPools,
+        IReadOnlyDictionary<string, CardDefinition> cardsById)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(mainHandWeaponId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(offHandWeaponId);
+        ArgumentNullException.ThrowIfNull(startingPools);
+        ArgumentNullException.ThrowIfNull(cardsById);
+
+        var poolsByWeapon = startingPools.ToDictionary(pool => pool.WeaponId, StringComparer.Ordinal);
+        var errors = new List<string>();
+
+        if (!poolsByWeapon.TryGetValue(mainHandWeaponId, out var mainHandPool))
+        {
+            errors.Add($"main hand: unknown starting weapon '{mainHandWeaponId}'.");
+        }
+
+        if (!poolsByWeapon.TryGetValue(offHandWeaponId, out var offHandPool))
+        {
+            errors.Add($"off hand: unknown starting weapon '{offHandWeaponId}'.");
+        }
+
+        if (errors.Count > 0)
+        {
+            return new StartingDeckValidationResult { Errors = errors };
+        }
+
+        var mainHandCardIds = mainHandPool!.CardIds.ToList();
+        var offHandCardIds = new List<string>();
+        foreach (var cardId in offHandPool!.CardIds)
+        {
+            if (!cardsById.TryGetValue(cardId, out var card))
+            {
+                errors.Add($"off hand: unknown card '{cardId}' in starting pool.");
+                continue;
+            }
+
+            if (card.Type == CardType.Action)
+            {
+                offHandCardIds.Add(cardId);
+            }
+        }
+
+        if (errors.Count > 0)
+        {
+            return new StartingDeckValidationResult
+            {
+                Errors = errors,
+                SelectedCardIds = mainHandCardIds.Concat(offHandCardIds).ToList()
+            };
+        }
+
+        return Validate(
+            new StartingDeckSelection
+            {
+                MainHandWeaponId = mainHandWeaponId,
+                OffHandWeaponId = offHandWeaponId,
+                MainHandCardIds = mainHandCardIds,
+                OffHandCardIds = offHandCardIds
+            },
+            poolsByWeapon.Values);
+    }
 
     public StartingDeckValidationResult Validate(
         StartingDeckSelection selection,

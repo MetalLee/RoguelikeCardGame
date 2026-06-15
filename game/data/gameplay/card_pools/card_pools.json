@@ -9,8 +9,6 @@
       "starting_entries": [
         { "card_id": "card.revolver_slash", "count": 3 },
         { "card_id": "card.revolver_double_slash", "count": 1 },
-        { "card_id": "card.revolver_quick_thrust", "count": 1 },
-        { "card_id": "card.revolver_reload_slash", "count": 1 },
         { "card_id": "card.revolver_heavy_cannon", "count": 1 },
         { "card_id": "card.revolver_bullet_storm", "count": 1 }
       ],
@@ -48,9 +46,7 @@
       "weapon_id": "weapon.mechanical_arm",
       "starting_entries": [
         { "card_id": "card.arm_guard", "count": 3 },
-        { "card_id": "card.arm_bind", "count": 1 },
         { "card_id": "card.arm_crush", "count": 1 },
-        { "card_id": "card.arm_shock_palm", "count": 1 },
         { "card_id": "card.arm_counter", "count": 1 },
         { "card_id": "card.arm_army_sweep", "count": 1 }
       ],
