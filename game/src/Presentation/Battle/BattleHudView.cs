@@ -9,6 +9,18 @@ namespace RoguelikeCardGame.Presentation.Battle;
 
 public sealed class BattleHudView
 {
+    private static readonly Vector2 PlayerHudPosition = new(42, 38);
+    private static readonly Vector2 PlayerHudSize = new(1260, 199);
+    private static readonly Vector2 ColorEnergyHudPosition = new(204, 126);
+    private static readonly Vector2 ColorEnergyHudSize = new(500, 112);
+    private static readonly Vector2 ColorEnergySlotSize = new(70, 98);
+    private static readonly Vector2 ColorEnergySlotFrameSize = new(66, 66);
+    private static readonly Vector2 ColorEnergyFlameSize = new(84, 84);
+    private const float ColorEnergySlotGap = 4f;
+    private const float ColorEnergySlotTop = 8f;
+    private static readonly Vector2 RelicStripPosition = new(50, 286);
+    private static readonly Vector2 RelicStripSize = new(350, 48);
+
     private Func<string, Texture2D?>? loadTexture;
     private Func<string, Font?>? loadFont;
 
@@ -41,7 +53,7 @@ public sealed class BattleHudView
 
         if (run.RelicIds.Count > 0)
         {
-            AddAt(rootControl, CreateRelicStrip(run, gameContent), new Vector2(50, 152), new Vector2(350, 48));
+            AddAt(rootControl, CreateRelicStrip(run, gameContent), RelicStripPosition, RelicStripSize);
         }
 
         var endTurn = CreateEndTurnButton();
@@ -56,7 +68,7 @@ public sealed class BattleHudView
     private void RenderPlayerHud(Control root, CombatState combat)
     {
         var vitals = CreatePlayerVitalsHud(combat);
-        AddAt(root, vitals, new Vector2(42, 38), new Vector2(1260, 199));
+        AddAt(root, vitals, PlayerHudPosition, PlayerHudSize);
     }
 
     private void RenderColorEnergyHud(Control root, CombatState combat)
@@ -65,48 +77,43 @@ public sealed class BattleHudView
         {
             TooltipText = ColorEnergyTooltip(combat.ColorEnergy)
         };
-        var slotSize = new Vector2(88, 110);
-        var slotGap = 12f;
-        var totalWidth = slotSize.X * ColorEnergyPool.DefaultCapacity + slotGap * (ColorEnergyPool.DefaultCapacity - 1);
-        var startX = (640f - totalWidth) * 0.5f;
+        var totalWidth = ColorEnergySlotSize.X * ColorEnergyPool.DefaultCapacity + ColorEnergySlotGap * (ColorEnergyPool.DefaultCapacity - 1);
+        var startX = (ColorEnergyHudSize.X - totalWidth) * 0.5f;
         for (var index = 0; index < ColorEnergyPool.DefaultCapacity; index++)
         {
             var color = index < combat.ColorEnergy.Slots.Count
                 ? combat.ColorEnergy.Slots[index].Color
                 : ColorType.Colorless;
             var slot = CreateColorEnergySlot(color, filled: index < combat.ColorEnergy.Slots.Count);
-            slot.Position = new Vector2(startX + (slotSize.X + slotGap) * index, 8);
-            slot.Size = slotSize;
-            slot.CustomMinimumSize = slotSize;
+            slot.Position = new Vector2(startX + (ColorEnergySlotSize.X + ColorEnergySlotGap) * index, ColorEnergySlotTop);
+            slot.Size = ColorEnergySlotSize;
+            slot.CustomMinimumSize = ColorEnergySlotSize;
             ColorEnergyPanel.AddChild(slot);
         }
 
-        AddAt(root, ColorEnergyPanel, new Vector2(640, 246), new Vector2(640, 128));
+        AddAt(root, ColorEnergyPanel, ColorEnergyHudPosition, ColorEnergyHudSize);
     }
 
     private Control CreateColorEnergySlot(ColorType color, bool filled)
     {
-        var slotSize = new Vector2(88, 110);
-        var frameSize = new Vector2(80, 80);
-        var flameSize = new Vector2(106, 106);
         var root = new Control
         {
-            CustomMinimumSize = slotSize,
-            Size = slotSize,
+            CustomMinimumSize = ColorEnergySlotSize,
+            Size = ColorEnergySlotSize,
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
 
-        var frame = CreateImage("asset.ui.battle.color_energy.slot.empty", frameSize, TextureRect.StretchModeEnum.KeepAspectCentered);
-        frame.Position = new Vector2((slotSize.X - frameSize.X) * 0.5f, 28);
-        frame.Size = frameSize;
+        var frame = CreateImage("asset.ui.battle.color_energy.slot.empty", ColorEnergySlotFrameSize, TextureRect.StretchModeEnum.KeepAspectCentered);
+        frame.Position = new Vector2((ColorEnergySlotSize.X - ColorEnergySlotFrameSize.X) * 0.5f, 26);
+        frame.Size = ColorEnergySlotFrameSize;
         root.AddChild(frame);
 
         if (filled)
         {
             var frameTextures = ColorEnergyFlameTextures(color);
-            var fill = CreateImage(frameTextures[0], flameSize, TextureRect.StretchModeEnum.KeepAspectCentered);
-            fill.Position = new Vector2((slotSize.X - flameSize.X) * 0.5f, 5);
-            fill.Size = flameSize;
+            var fill = CreateImage(frameTextures[0], ColorEnergyFlameSize, TextureRect.StretchModeEnum.KeepAspectCentered);
+            fill.Position = new Vector2((ColorEnergySlotSize.X - ColorEnergyFlameSize.X) * 0.5f, 7);
+            fill.Size = ColorEnergyFlameSize;
             fill.ZIndex = 1;
             root.AddChild(fill);
             AddColorEnergyFlameTimer(root, fill, frameTextures);
