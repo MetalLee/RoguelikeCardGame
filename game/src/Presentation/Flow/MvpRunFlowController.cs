@@ -234,7 +234,7 @@ public sealed class MvpRunFlowController
         screen.Render(combat, run, encounter, message);
     }
 
-    private async void PlayCard(string cardId, int handIndex, string? targetEnemyInstanceId)
+    private async void PlayCard(string cardInstanceId, string cardId, int handIndex, string? targetEnemyInstanceId)
     {
         if (!TryBeginBattleAnimation(out var operationVersion))
         {
@@ -255,7 +255,8 @@ public sealed class MvpRunFlowController
                 card,
                 targetEnemyInstanceId,
                 handIndex,
-                ResolveEnchantmentForCard(card.Id));
+                ResolveEnchantmentForInstance(cardInstanceId),
+                cardInstanceId);
             combat = result.Combat;
             var eventsToAnimate = result.Events.ToList();
 
@@ -338,12 +339,10 @@ public sealed class MvpRunFlowController
         };
     }
 
-    private CardEnchantment? ResolveEnchantmentForCard(string cardId)
+    private CardEnchantment? ResolveEnchantmentForInstance(string cardInstanceId)
     {
         return run?.MasterDeckInstances
-            .FirstOrDefault(instance =>
-                string.Equals(instance.DefinitionId, cardId, StringComparison.Ordinal) &&
-                instance.Enchantment is not null)
+            .FirstOrDefault(instance => string.Equals(instance.InstanceId, cardInstanceId, StringComparison.Ordinal))
             ?.Enchantment;
     }
 
@@ -390,7 +389,7 @@ public sealed class MvpRunFlowController
             }
 
             actionCardsPlayedThisTurn = 0;
-            ShowBattle("魔物行动已结算，新回合开始。");
+            ShowBattle();
         }
         catch (Exception ex)
         {
@@ -549,6 +548,20 @@ public sealed class MvpRunFlowController
         StartCurrentEncounter();
     }
 
+    private void SkipWeaponCardReward()
+    {
+        if (run is null || encounter is null)
+        {
+            ShowStartMenu();
+            return;
+        }
+
+        selectedWeaponRewardCardId = null;
+        run = rewardService.GrantEncounterRelic(run, encounter, content.RelicsById);
+        run = runProgressService.AdvanceAfterRewards(run, encounter);
+        StartCurrentEncounter();
+    }
+
     private List<WeaponRewardPoolDefinition> BuildWeaponRewardPools()
     {
         return content.WeaponsById.Values
@@ -587,6 +600,7 @@ public sealed class MvpRunFlowController
         screen.ColorShardTargetSelected += SelectRewardEnchantTarget;
         screen.ColorShardConfirmed += ConfirmColorShardStep;
         screen.WeaponCardSelected += SelectWeaponRewardCard;
+        screen.WeaponCardSkipped += SkipWeaponCardReward;
         screen.ConfirmRequested += ConfirmReward;
         return screen;
     }

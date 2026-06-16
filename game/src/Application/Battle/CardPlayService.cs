@@ -169,6 +169,17 @@ public sealed class CardPlayService
 		int? handIndex,
 		CardEnchantment? enchantment)
 	{
+		return CanPlayCard(combat, card, targetEnemyInstanceId, handIndex, enchantment, cardInstanceId: null);
+	}
+
+	public PlayCardResult CanPlayCard(
+		CombatState combat,
+		CardDefinition card,
+		string? targetEnemyInstanceId,
+		int? handIndex,
+		CardEnchantment? enchantment,
+		string? cardInstanceId)
+	{
 		ArgumentNullException.ThrowIfNull(combat);
 		ArgumentNullException.ThrowIfNull(card);
 
@@ -177,7 +188,7 @@ public sealed class CardPlayService
 			return PlayCardResult.Failure(combat, PlayCardFailureReason.NotPlayerTurn, "ui.play_card.not_player_turn");
 		}
 
-		if (!IsCardInHandSlot(combat, card, handIndex))
+		if (!IsCardInHandSlot(combat, card, handIndex, cardInstanceId))
 		{
 			return PlayCardResult.Failure(combat, PlayCardFailureReason.CardNotInHand, "ui.play_card.card_not_in_hand");
 		}
@@ -246,7 +257,18 @@ public sealed class CardPlayService
 		int? handIndex,
 		CardEnchantment? enchantment)
 	{
-		var canPlay = CanPlayCard(combat, card, targetEnemyInstanceId, handIndex, enchantment);
+		return PlayCard(combat, card, targetEnemyInstanceId, handIndex, enchantment, cardInstanceId: null);
+	}
+
+	public PlayCardResult PlayCard(
+		CombatState combat,
+		CardDefinition card,
+		string? targetEnemyInstanceId,
+		int? handIndex,
+		CardEnchantment? enchantment,
+		string? cardInstanceId)
+	{
+		var canPlay = CanPlayCard(combat, card, targetEnemyInstanceId, handIndex, enchantment, cardInstanceId);
 		if (!canPlay.Succeeded)
 		{
 			return canPlay with { Events = [CreateRejectedEvent(combat, card, canPlay)] };
@@ -254,7 +276,8 @@ public sealed class CardPlayService
 
 		var logStartIndex = combat.Log.Count;
 		var hand = combat.DeckZones.Hand.ToList();
-		var resolvedHandIndex = ResolveHandIndex(hand, card.Id, handIndex);
+		var resolvedHandIndex = ResolveHandIndex(hand, card.Id, handIndex, cardInstanceId);
+		var playedCardZoneId = hand[resolvedHandIndex];
 		hand.RemoveAt(resolvedHandIndex);
 
 		var spentColors = new List<ColorEnergySlot>();
@@ -296,6 +319,7 @@ public sealed class CardPlayService
 			Metadata = new Dictionary<string, string>
 			{
 				["card_type"] = card.Type.ToString(),
+				["card_instance_id"] = playedCardZoneId,
 				["spent_colors"] = string.Join(",", spentColors.Select(slot => slot.Color.ToString())),
 				["enchantment_color"] = enchantment?.Color.ToString() ?? string.Empty
 			}
@@ -327,7 +351,7 @@ public sealed class CardPlayService
 		}
 
 		var discardPile = working.DeckZones.DiscardPile.ToList();
-		discardPile.Add(card.Id);
+		discardPile.Add(playedCardZoneId);
 		var updated = working with
 		{
 			DeckZones = working.DeckZones with
@@ -839,34 +863,36 @@ public sealed class CardPlayService
 		};
 	}
 
-	private static bool IsCardInHandSlot(CombatState combat, CardDefinition card, int? handIndex)
+	private static bool IsCardInHandSlot(CombatState combat, CardDefinition card, int? handIndex, string? cardInstanceId)
 	{
 		if (handIndex is null)
 		{
-			return combat.DeckZones.Hand.Contains(card.Id);
+			return combat.DeckZones.Hand.Contains(cardInstanceId ?? card.Id);
 		}
 
+		var expectedZoneId = cardInstanceId ?? card.Id;
 		return handIndex.Value >= 0 &&
 			   handIndex.Value < combat.DeckZones.Hand.Count &&
-			   combat.DeckZones.Hand[handIndex.Value] == card.Id;
+			   combat.DeckZones.Hand[handIndex.Value] == expectedZoneId;
 	}
 
-	private static int ResolveHandIndex(IReadOnlyList<string> hand, string cardId, int? handIndex)
+	private static int ResolveHandIndex(IReadOnlyList<string> hand, string cardId, int? handIndex, string? cardInstanceId)
 	{
+		var expectedZoneId = cardInstanceId ?? cardId;
 		if (handIndex is not null)
 		{
-			if (handIndex.Value < 0 || handIndex.Value >= hand.Count || hand[handIndex.Value] != cardId)
+			if (handIndex.Value < 0 || handIndex.Value >= hand.Count || hand[handIndex.Value] != expectedZoneId)
 			{
-				throw new InvalidOperationException($"Card '{cardId}' is not in hand slot {handIndex.Value}.");
+				throw new InvalidOperationException($"Card '{expectedZoneId}' is not in hand slot {handIndex.Value}.");
 			}
 
 			return handIndex.Value;
 		}
 
-		var resolvedIndex = hand.ToList().IndexOf(cardId);
+		var resolvedIndex = hand.ToList().IndexOf(expectedZoneId);
 		if (resolvedIndex < 0)
 		{
-			throw new InvalidOperationException($"Card '{cardId}' is not in hand.");
+			throw new InvalidOperationException($"Card '{expectedZoneId}' is not in hand.");
 		}
 
 		return resolvedIndex;

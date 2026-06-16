@@ -456,6 +456,7 @@ var initialCombat = combatFactory.CreateCombat(
 AssertEqual(CombatStatus.NotStarted, initialCombat.Status, "CombatStateFactory creates a not-started combat");
 AssertEqual(0, initialCombat.ActionPoints, "CombatStateFactory does not restore action points before combat starts");
 AssertEqual(run.MasterDeck.Count, initialCombat.DeckZones.DrawPileCount, "CombatStateFactory places run deck in draw pile");
+AssertEqual(run.MasterDeckInstances[0].InstanceId, initialCombat.DeckZones.DrawPile[0], "CombatStateFactory tracks card instances in combat deck zones");
 AssertEqual(CombatLogEventType.CombatStarted, initialCombat.Log[0].EventType, "CombatStateFactory records combat start event");
 
 var turnService = new CombatTurnService();
@@ -555,7 +556,9 @@ var openingHandA = new CombatTurnService(randomStreamsA.Deck.Shuffle)
     .StartCombat(shuffledCombatA).DeckZones.Hand;
 var openingHandB = new CombatTurnService(randomStreamsB.Deck.Shuffle)
     .StartCombat(shuffledCombatB).DeckZones.Hand;
-AssertSequenceEqual(openingHandA, openingHandB, "Same seed and deck reproduce opening hand order");
+var openingHandDefinitionsA = openingHandA.Select(instanceId => seededRunA.MasterDeckInstances.Single(instance => instance.InstanceId == instanceId).DefinitionId).ToList();
+var openingHandDefinitionsB = openingHandB.Select(instanceId => seededRunB.MasterDeckInstances.Single(instance => instance.InstanceId == instanceId).DefinitionId).ToList();
+AssertSequenceEqual(openingHandDefinitionsA, openingHandDefinitionsB, "Same seed and deck reproduce opening hand definition order");
 AssertEqual(seededRunA.CardsPerTurn, openingHandA.Count, "Seeded opening hand still draws cards per turn");
 
 var differentSeedRun = runFactory.CreateNewRun("run_seed_c", 24681, 60, 3, 5, shuffleDeck, [encounter.Id]);
@@ -564,7 +567,10 @@ var differentSeedCombat = new CombatStateFactory(differentSeedStreams.Deck.Shuff
     .CreateCombat("combat_seed_c", differentSeedRun, encounter, enemiesById);
 var differentSeedOpeningHand = new CombatTurnService(differentSeedStreams.Deck.Shuffle)
     .StartCombat(differentSeedCombat).DeckZones.Hand;
-Assert(!openingHandA.SequenceEqual(differentSeedOpeningHand), "Different seeds produce a different opening hand for the smoke deck");
+var differentSeedOpeningHandDefinitions = differentSeedOpeningHand
+    .Select(instanceId => differentSeedRun.MasterDeckInstances.Single(instance => instance.InstanceId == instanceId).DefinitionId)
+    .ToList();
+Assert(!openingHandDefinitionsA.SequenceEqual(differentSeedOpeningHandDefinitions), "Different seeds produce a different opening hand for the smoke deck");
 
 var reshuffleState = drawCycleState with
 {
@@ -643,6 +649,26 @@ Assert(duplicateSlotResult.Events.Any(item =>
 	item.EventType == CombatLogEventType.CardPlayed &&
 	item.NumericChanges.TryGetValue("hand_index", out var handIndex) &&
 	handIndex == 2), "Card play log records clicked hand slot for presentation animations");
+
+var duplicateInstanceRun = runFactory.CreateNewRun("run_duplicate_instances", 13579, 60, 3, 2, [strike.Id, strike.Id], [encounter.Id]);
+duplicateInstanceRun = runFactory.EnchantCard(duplicateInstanceRun, duplicateInstanceRun.MasterDeckInstances[0].InstanceId, ColorType.Blue);
+var duplicateInstanceCombat = turnService.StartCombat(combatFactory.CreateCombat(
+    combatId: "combat_duplicate_instances",
+    runState: duplicateInstanceRun,
+    encounter: encounter,
+    enemiesById: enemiesById));
+var unenchantedDuplicateInstance = duplicateInstanceRun.MasterDeckInstances[1];
+var unenchantedDuplicateResult = cardPlayService.PlayCard(
+    duplicateInstanceCombat,
+    strike,
+    "enemy_01",
+    handIndex: 1,
+    enchantment: unenchantedDuplicateInstance.Enchantment,
+    cardInstanceId: unenchantedDuplicateInstance.InstanceId);
+Assert(unenchantedDuplicateResult.Succeeded, "Unenchanted duplicate card instance can be played by instance id");
+AssertEqual(ColorType.Colorless, unenchantedDuplicateResult.Combat.ColorEnergy.Slots.Single().Color, "Enchanting one duplicate does not color all same-definition instances");
+AssertEqual(duplicateInstanceRun.MasterDeckInstances[0].InstanceId, unenchantedDuplicateResult.Combat.DeckZones.Hand.Single(), "Playing one duplicate instance leaves the other instance in hand");
+AssertEqual(unenchantedDuplicateInstance.InstanceId, unenchantedDuplicateResult.Combat.DeckZones.DiscardPile.Single(), "Played duplicate instance enters discard by instance id");
 
 var costFailure = cardPlayService.PlayCard(CreatePlayableCombat([strike.Id], actionPoints: 0), strike, "enemy_01");
 Assert(!costFailure.Succeeded, "Action card cannot be played without enough action points");

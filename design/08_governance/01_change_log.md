@@ -15,6 +15,13 @@
 
 ## 日志
 
+### 2026-06-17
+
+- 清理 `game/assets/` 下未登记在 active presentation manifest、且未被代码 / 数据 / 场景直接引用的旧美术资源，包括旧技能牌模板、旧卡牌包、旧连锁 UI、旧魔物占位、旧连锁 VFX 和未接入的小武器图；同步删除对应 `.import` 文件，确保 active 资源入口只保留当前 manifest 覆盖的美术。
+- 继续收紧 `game/assets/art/ui/icons/`：移除 active manifest 中未被实际界面、数据或场景引用的旧图标 asset_id 与对应 PNG / `.import` 文件，仅保留按钮、选择标记、锁定状态和遗物等当前 UI 仍使用的图标。
+- 继续收紧 `game/assets/art/ui/`：移除 active manifest 中未被实际 UI 使用的旧魔物 HUD 条、旧静态彩能填充图及对应 `.import` 文件；当前保留资源仅覆盖玩家生命 / 防御 HUD、彩能空槽与动态彩能火焰、按钮图标和选择标记。
+- 将战斗界面的出牌失败提示和拖拽失败反馈从顶部横条提示框改为主角「左」的心理活动泡泡：使用纯白底、逐渐变大的椭圆联想泡泡承载文字，持续约 2 秒后消失；普通回合流转提示不再使用泡泡显示。同步更新 [[design/03_experience/00_ui_ux|界面与交互]]。
+
 ### 2026-06-16
 
 - 从 [[design/03_experience/assets/魔物序列帧动画/BOSS序列帧动画/喷漆悬浮|Boss 喷气悬浮序列帧]] 裁切并合成 Boss 透明 spritesheet，将 MVP Boss `enemy.black_tower_warden` 的 active 表现资源替换为 `asset.enemy.black_tower_warden.hover.sheet`，不再复用精英魔物占位图。关联 [[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]。

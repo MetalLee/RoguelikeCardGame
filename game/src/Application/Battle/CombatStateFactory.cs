@@ -58,7 +58,7 @@ public sealed class CombatStateFactory
 			ColorEnergy = ColorEnergyPool.Empty(),
 			DeckZones = new DeckZones
 			{
-				DrawPile = shuffleInitialDrawPile(runState.MasterDeck).ToList()
+				DrawPile = shuffleInitialDrawPile(runState.MasterDeckInstances.Select(instance => instance.InstanceId).ToList()).ToList()
 			},
 			Enemies = enemyStates,
 			Log =

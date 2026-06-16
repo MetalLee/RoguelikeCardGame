@@ -11,6 +11,9 @@ public partial class BattleScreen : ComicScreen
 {
     private const float PlayerStageGroundY = 980f;
     private const float PlayerSpriteBottomTransparentPadding = 23f;
+    private const double ThoughtBubbleDurationSeconds = 2.0;
+    private static readonly Vector2 ThoughtBubblePosition = new(346, 382);
+    private static readonly Vector2 ThoughtBubbleSize = new(610, 238);
 
     private readonly CardPlayService cardPlayService = new();
 
@@ -29,12 +32,13 @@ public partial class BattleScreen : ComicScreen
     private Control? handNode;
     private Control? fxLayer;
     private Control? canvasRoot;
-    private Control? dragFeedbackPanel;
+    private Control? thoughtFeedbackPanel;
     private Control? inputBlocker;
     private bool showBattleLog;
-    private string? currentMessage;
+    private string? currentFailureMessage;
+    private int thoughtBubbleVersion;
 
-    public event Action<string, int, string?>? CardRequested;
+    public event Action<string, string, int, string?>? CardRequested;
     public event Action? EndTurnRequested;
     public event Action? RestartRequested;
 
@@ -42,12 +46,12 @@ public partial class BattleScreen : ComicScreen
         CombatState combatState,
         RunState runState,
         EncounterDefinition encounterDefinition,
-        string? message = null)
+        string? failureMessage = null)
     {
         combat = combatState;
         run = runState;
         encounter = encounterDefinition;
-        currentMessage = message;
+        currentFailureMessage = failureMessage;
         battleHudView = null;
         battleEnemyView = null;
         battleHandView = null;
@@ -58,7 +62,7 @@ public partial class BattleScreen : ComicScreen
         handNode = null;
         fxLayer = null;
         canvasRoot = null;
-        dragFeedbackPanel = null;
+        thoughtFeedbackPanel = null;
         inputBlocker = null;
 
         var root = CreateCanvas();
@@ -86,19 +90,19 @@ public partial class BattleScreen : ComicScreen
         battleEnemyView.Render(root, combat, RequireContent(), targetingOverlay, LoadTexture);
 
         battleHandView = new BattleHandView();
-        battleHandView.CardRequested += (cardId, handIndex, targetEnemyId) =>
+        battleHandView.CardRequested += (cardInstanceId, cardId, handIndex, targetEnemyId) =>
         {
             SetInteractionsLocked(true);
-            CardRequested?.Invoke(cardId, handIndex, targetEnemyId);
+            CardRequested?.Invoke(cardInstanceId, cardId, handIndex, targetEnemyId);
         };
         battleHandView.FeedbackRequested += ShowDragFeedback;
         battleHandView.Render(combat, run, RequireContent(), cardPlayService, targetingOverlay, LoadTexture, LoadFont);
         handNode = battleHandView;
         AddAt(root, battleHandView, new Vector2(475, 742), new Vector2(950, 360));
 
-        if (!string.IsNullOrWhiteSpace(message))
+        if (!string.IsNullOrWhiteSpace(failureMessage))
         {
-            AddAt(root, CreateMessagePanel(message), new Vector2(650, 150), new Vector2(620, 44));
+            ShowFailureThoughtBubble(failureMessage);
         }
 
         if (showBattleLog)
@@ -127,7 +131,7 @@ public partial class BattleScreen : ComicScreen
         showBattleLog = !showBattleLog;
         if (combat is not null && run is not null && encounter is not null)
         {
-            Render(combat, run, encounter, currentMessage);
+            Render(combat, run, encounter, currentFailureMessage);
         }
 
         GetViewport().SetInputAsHandled();
@@ -149,27 +153,62 @@ public partial class BattleScreen : ComicScreen
 
     private void ShowDragFeedback(string text)
     {
-        RemoveDragFeedback();
         if (canvasRoot is null || string.IsNullOrWhiteSpace(text))
         {
             return;
         }
 
-        dragFeedbackPanel = CreateMessagePanel(text);
-        dragFeedbackPanel.ZIndex = 120;
-        AddAt(canvasRoot, dragFeedbackPanel, new Vector2(650, 150), new Vector2(620, 44));
+        currentFailureMessage = text;
+        ShowFailureThoughtBubble(text);
     }
 
-    private void RemoveDragFeedback()
+    private void ShowFailureThoughtBubble(string text)
     {
-        if (dragFeedbackPanel is null)
+        RemoveThoughtFeedback();
+        if (canvasRoot is null)
         {
             return;
         }
 
-        dragFeedbackPanel.GetParent()?.RemoveChild(dragFeedbackPanel);
-        dragFeedbackPanel.QueueFree();
-        dragFeedbackPanel = null;
+        thoughtFeedbackPanel = CreateThoughtBubble(text);
+        thoughtFeedbackPanel.ZIndex = 120;
+        AddAt(canvasRoot, thoughtFeedbackPanel, ThoughtBubblePosition, ThoughtBubbleSize);
+        _ = HideThoughtFeedbackAfterDelayAsync(++thoughtBubbleVersion, thoughtFeedbackPanel);
+    }
+
+    private async Task HideThoughtFeedbackAfterDelayAsync(int version, Control panel)
+    {
+        await ToSignal(GetTree().CreateTimer(ThoughtBubbleDurationSeconds), "timeout");
+        if (version != thoughtBubbleVersion || !GodotObject.IsInstanceValid(panel))
+        {
+            return;
+        }
+
+        RemoveThoughtFeedback();
+        currentFailureMessage = null;
+    }
+
+    private void RemoveThoughtFeedback()
+    {
+        thoughtBubbleVersion++;
+        if (thoughtFeedbackPanel is null)
+        {
+            return;
+        }
+
+        thoughtFeedbackPanel.GetParent()?.RemoveChild(thoughtFeedbackPanel);
+        thoughtFeedbackPanel.QueueFree();
+        thoughtFeedbackPanel = null;
+    }
+
+    private ThoughtBubblePanel CreateThoughtBubble(string text)
+    {
+        return new ThoughtBubblePanel
+        {
+            ThoughtText = text,
+            ThoughtFont = LoadFont("asset.font.source_han_sans_sc.medium"),
+            MouseFilter = MouseFilterEnum.Ignore
+        };
     }
 
     private Control CreateLogPreview()

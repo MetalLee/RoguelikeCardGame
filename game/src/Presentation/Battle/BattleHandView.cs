@@ -25,7 +25,7 @@ public sealed partial class BattleHandView : Control
     private HandCardInteraction? draggingCard;
     private bool interactionsLocked;
 
-    public event Action<string, int, string?>? CardRequested;
+    public event Action<string, string, int, string?>? CardRequested;
     public event Action<string>? FeedbackRequested;
     public event Action<string?, bool>? SingleEnemyDragTargetChanged;
 
@@ -64,8 +64,9 @@ public sealed partial class BattleHandView : Control
 
         for (var handIndex = 0; handIndex < combat.DeckZones.Hand.Count; handIndex++)
         {
-            var cardId = combat.DeckZones.Hand[handIndex];
-            var cardControl = CreateCardControl(cardId, handIndex);
+            var cardInstanceId = combat.DeckZones.Hand[handIndex];
+            var card = ResolveCardDefinitionForInstance(cardInstanceId);
+            var cardControl = CreateCardControl(cardInstanceId, card, handIndex);
             var normalized = handCount <= 1 ? 0f : (handIndex / (float)(handCount - 1) - 0.5f) * 2f;
             var arcLift = (1f - Math.Abs(normalized)) * 26f;
             cardControl.Position = new Vector2(startHandX + step * handIndex, 60f - arcLift);
@@ -74,13 +75,13 @@ public sealed partial class BattleHandView : Control
             cardControl.PivotOffset = cardSize * 0.5f;
             cardControl.RotationDegrees = normalized * 8f;
             cardControl.ZIndex = handIndex;
-            InstallCardInteractions(cardControl, cardId, handIndex);
+            InstallCardInteractions(cardControl, cardInstanceId, card, handIndex);
 
             cardNodesByHandIndex[handIndex] = cardControl;
-            if (!cardNodes.TryGetValue(cardId, out var controls))
+            if (!cardNodes.TryGetValue(card.Id, out var controls))
             {
                 controls = new List<Control>();
-                cardNodes[cardId] = controls;
+                cardNodes[card.Id] = controls;
             }
 
             controls.Add(cardControl);
@@ -132,27 +133,26 @@ public sealed partial class BattleHandView : Control
         return cardNodes.TryGetValue(cardId, out var nodes) ? nodes.FirstOrDefault() : null;
     }
 
-    private Control CreateCardControl(string cardId, int handIndex)
+    private Control CreateCardControl(string cardInstanceId, CardDefinition card, int handIndex)
     {
-        var card = RequireContent().CardsById[cardId];
-        var canPlay = PreviewCanPlayCard(card, handIndex);
-        var enchantment = ResolveEnchantmentForCard(card.Id);
+        var canPlay = PreviewCanPlayCard(cardInstanceId, card, handIndex);
+        var enchantment = ResolveEnchantmentForInstance(cardInstanceId);
         var preview = RequireCardPlayService().PreviewCard(RequireCombat(), card, null, enchantment);
         var panel = CardPanel.Create(card, RequireContent(), RequireTextureLoader(), RequireFontLoader(), width: 220, dimmed: !canPlay.Succeeded, enchantment: enchantment, preview: preview);
         panel.MouseFilter = MouseFilterEnum.Ignore;
         return panel;
     }
 
-    private void InstallCardInteractions(Control panel, string cardId, int handIndex)
+    private void InstallCardInteractions(Control panel, string cardInstanceId, CardDefinition card, int handIndex)
     {
-        var card = RequireContent().CardsById[cardId];
-        var canPlay = PreviewCanPlayCard(card, handIndex);
-        var enchantment = ResolveEnchantmentForCard(card.Id);
+        var canPlay = PreviewCanPlayCard(cardInstanceId, card, handIndex);
+        var enchantment = ResolveEnchantmentForInstance(cardInstanceId);
         var preview = RequireCardPlayService().PreviewCard(RequireCombat(), card, card.TargetRule == TargetRule.SingleEnemy ? RequireCombat().Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId : null, enchantment);
         var typeText = BuildCardTooltip(card, preview, canPlay);
         var interaction = new HandCardInteraction(
             panel,
-            cardId,
+            cardInstanceId,
+            card.Id,
             handIndex,
             card,
             panel.Position,
@@ -181,13 +181,13 @@ public sealed partial class BattleHandView : Control
         panel.AddChild(interaction.ValidTargetMask);
     }
 
-    private PlayCardResult PreviewCanPlayCard(CardDefinition card, int handIndex)
+    private PlayCardResult PreviewCanPlayCard(string cardInstanceId, CardDefinition card, int handIndex)
     {
         var activeCombat = RequireCombat();
         var previewTarget = card.TargetRule == TargetRule.SingleEnemy
             ? activeCombat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId
             : null;
-        return RequireCardPlayService().CanPlayCard(activeCombat, card, previewTarget, handIndex, ResolveEnchantmentForCard(card.Id));
+        return RequireCardPlayService().CanPlayCard(activeCombat, card, previewTarget, handIndex, ResolveEnchantmentForInstance(cardInstanceId), cardInstanceId);
     }
 
     private static string ColorEnergyCostText(CardDefinition card)
@@ -241,13 +241,22 @@ public sealed partial class BattleHandView : Control
         return string.Join("\n", builder);
     }
 
-    private CardEnchantment? ResolveEnchantmentForCard(string cardId)
+    private CardInstance ResolveCardInstance(string cardInstanceId)
     {
-        return run?.MasterDeckInstances
-            .FirstOrDefault(instance =>
-                string.Equals(instance.DefinitionId, cardId, StringComparison.Ordinal) &&
-                instance.Enchantment is not null)
-            ?.Enchantment;
+        return RequireRun().MasterDeckInstances.FirstOrDefault(instance =>
+                string.Equals(instance.InstanceId, cardInstanceId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException($"Unknown card instance id '{cardInstanceId}'.");
+    }
+
+    private CardDefinition ResolveCardDefinitionForInstance(string cardInstanceId)
+    {
+        var instance = ResolveCardInstance(cardInstanceId);
+        return RequireContent().CardsById[instance.DefinitionId];
+    }
+
+    private CardEnchantment? ResolveEnchantmentForInstance(string cardInstanceId)
+    {
+        return ResolveCardInstance(cardInstanceId).Enchantment;
     }
 
     private static string ColorEffectText(ColorEffectPreview effect)
@@ -356,7 +365,7 @@ public sealed partial class BattleHandView : Control
 
             RequireTargetingOverlay().UpdateEnemyHighlights(hoveredEnemy);
             var canPlay = hoveredEnemy is not null &&
-                RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, hoveredEnemy, card.HandIndex, ResolveEnchantmentForCard(card.CardId)).Succeeded;
+                RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, hoveredEnemy, card.HandIndex, ResolveEnchantmentForInstance(card.CardInstanceId), card.CardInstanceId).Succeeded;
             SetValidTargetMask(card, canPlay);
             RequireTargetingOverlay().ShowArrowFromViewport(CurrentCardAnchorInViewport(card), viewportMouse, canPlay);
             return;
@@ -372,7 +381,7 @@ public sealed partial class BattleHandView : Control
         RequireTargetingOverlay().HideArrow();
         RequireTargetingOverlay().UpdateEnemyHighlights(null);
         var overReleaseZone = RequireTargetingOverlay().IsPointerOverReleaseZone(viewportMouse);
-        var canReleasePlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, null, card.HandIndex, ResolveEnchantmentForCard(card.CardId)).Succeeded;
+        var canReleasePlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, null, card.HandIndex, ResolveEnchantmentForInstance(card.CardInstanceId), card.CardInstanceId).Succeeded;
         RequireTargetingOverlay().HideReleaseZone();
         SetValidTargetMask(card, overReleaseZone && canReleasePlay);
     }
@@ -393,7 +402,7 @@ public sealed partial class BattleHandView : Control
         if (card.Card.TargetRule == TargetRule.SingleEnemy)
         {
             targetEnemyId = RequireTargetingOverlay().EnemyUnderMouse(RequireCombat().Enemies, viewportMouse);
-            canPlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, targetEnemyId, card.HandIndex, ResolveEnchantmentForCard(card.CardId));
+            canPlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, targetEnemyId, card.HandIndex, ResolveEnchantmentForInstance(card.CardInstanceId), card.CardInstanceId);
             shouldRequest = targetEnemyId is not null && canPlay.Succeeded;
             if (!shouldRequest)
             {
@@ -406,7 +415,7 @@ public sealed partial class BattleHandView : Control
         else
         {
             var overReleaseZone = RequireTargetingOverlay().IsPointerOverReleaseZone(viewportMouse);
-            canPlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, null, card.HandIndex, ResolveEnchantmentForCard(card.CardId));
+            canPlay = RequireCardPlayService().CanPlayCard(RequireCombat(), card.Card, null, card.HandIndex, ResolveEnchantmentForInstance(card.CardInstanceId), card.CardInstanceId);
             shouldRequest = overReleaseZone && canPlay.Succeeded;
             if (overReleaseZone && !canPlay.Succeeded)
             {
@@ -421,7 +430,7 @@ public sealed partial class BattleHandView : Control
         }
 
         interactionsLocked = true;
-        CardRequested?.Invoke(card.CardId, card.HandIndex, targetEnemyId);
+        CardRequested?.Invoke(card.CardInstanceId, card.CardId, card.HandIndex, targetEnemyId);
     }
 
     private void CleanupDragVisuals(bool restoreCard)
@@ -560,6 +569,7 @@ public sealed partial class BattleHandView : Control
     {
         public HandCardInteraction(
             Control node,
+            string cardInstanceId,
             string cardId,
             int handIndex,
             CardDefinition card,
@@ -570,6 +580,7 @@ public sealed partial class BattleHandView : Control
             Color originalModulate)
         {
             Node = node;
+            CardInstanceId = cardInstanceId;
             CardId = cardId;
             HandIndex = handIndex;
             Card = card;
@@ -581,6 +592,8 @@ public sealed partial class BattleHandView : Control
         }
 
         public Control Node { get; }
+
+        public string CardInstanceId { get; }
 
         public string CardId { get; }
 
