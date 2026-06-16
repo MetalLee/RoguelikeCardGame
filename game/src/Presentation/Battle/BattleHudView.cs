@@ -1,8 +1,6 @@
 using Godot;
-using RoguelikeCardGame.Application.Battle;
 using RoguelikeCardGame.Domain.Colors;
 using RoguelikeCardGame.Domain.Combat;
-using RoguelikeCardGame.Domain.Enemies;
 using RoguelikeCardGame.Domain.Runs;
 using RoguelikeCardGame.Infrastructure.Content;
 using RoguelikeCardGame.Presentation.Shared;
@@ -11,16 +9,8 @@ namespace RoguelikeCardGame.Presentation.Battle;
 
 public sealed class BattleHudView
 {
-    private readonly CombatTurnService turnService = new();
-
-    private readonly List<Control> enemyHudNodes = new();
-
-    private Control? root;
-    private CombatState? combat;
-    private GameContent? content;
     private Func<string, Texture2D?>? loadTexture;
     private Func<string, Font?>? loadFont;
-    private bool showFocusedEnemyHud;
 
     public Control? ColorEnergyPanel { get; private set; }
 
@@ -37,13 +27,8 @@ public sealed class BattleHudView
         Func<string, Font?> fontLoader,
         Action endTurnRequested)
     {
-        root = rootControl;
-        combat = combatState;
-        content = gameContent;
         loadTexture = textureLoader;
         loadFont = fontLoader;
-        showFocusedEnemyHud = combatState.Enemies.Count <= 1;
-        ClearEnemyHud();
         ColorEnergyPanel = null;
         BlockPanel = null;
         ActionPointPanel = null;
@@ -59,11 +44,6 @@ public sealed class BattleHudView
             AddAt(rootControl, CreateRelicStrip(run, gameContent), new Vector2(50, 152), new Vector2(350, 48));
         }
 
-        if (showFocusedEnemyHud)
-        {
-            RenderEnemyHud(enemyInstanceId: null);
-        }
-
         var endTurn = CreateEndTurnButton();
         endTurn.Pressed += () =>
         {
@@ -77,86 +57,6 @@ public sealed class BattleHudView
     {
         var vitals = CreatePlayerVitalsHud(combat);
         AddAt(root, vitals, new Vector2(42, 38), new Vector2(1260, 199));
-    }
-
-    public void SetFocusedEnemy(string? enemyInstanceId)
-    {
-        ClearEnemyHud();
-        if (!showFocusedEnemyHud)
-        {
-            return;
-        }
-
-        RenderEnemyHud(enemyInstanceId);
-    }
-
-    private void RenderEnemyHud(string? enemyInstanceId)
-    {
-        if (root is null || combat is null || content is null)
-        {
-            return;
-        }
-
-        var focus = combat.Enemies.FirstOrDefault(enemy => enemy.InstanceId == enemyInstanceId && enemy.CurrentHp > 0) ??
-                    combat.Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0);
-        if (focus is null)
-        {
-            return;
-        }
-
-        var intent = turnService.GetEnemyIntentViews(combat, content.EnemiesById)
-            .FirstOrDefault(view => view.EnemyInstanceId == focus.InstanceId);
-
-        var nameBar = CreateHudImagePanel("asset.ui.battle.enemy_name_bar", content.EnemyName(focus.EnemyId), new Vector2(382, 62), new Rect2(48, 5, 286, 46), 27);
-        AddEnemyHudAt(root, nameBar, new Vector2(1490, 42), new Vector2(382, 62));
-
-        var hpText = focus.CurrentHp <= 0 ? "击败" : $"{focus.CurrentHp}/{focus.MaxHp}";
-        var healthBar = CreateHudImagePanel("asset.ui.battle.enemy_health_bar", hpText, new Vector2(328, 50), new Rect2(80, 3, 194, 42), 26);
-        AddEnemyHudAt(root, healthBar, new Vector2(1538, 102), new Vector2(328, 50));
-
-        var blockBar = CreateHudImagePanel("asset.ui.battle.enemy_block_bar", focus.Block.ToString(), new Vector2(294, 48), new Rect2(76, 3, 160, 40), 25);
-        AddEnemyHudAt(root, blockBar, new Vector2(1572, 154), new Vector2(294, 48));
-
-        if (intent is null)
-        {
-            return;
-        }
-
-        var intentRoot = new Control();
-        var icon = CreateImage(IntentIconAsset(intent.IntentType), new Vector2(38, 38), TextureRect.StretchModeEnum.KeepAspectCentered);
-        icon.Position = new Vector2(0, 1);
-        intentRoot.AddChild(icon);
-
-        var label = CreateHudLabel(content.EnemyIntentText(focus.EnemyId, intent.IntentId), 22, new Color(0.96f, 0.88f, 0.68f), heavy: false);
-        label.Position = new Vector2(44, 0);
-        label.Size = new Vector2(250, 40);
-        label.CustomMinimumSize = label.Size;
-        label.HorizontalAlignment = HorizontalAlignment.Left;
-        label.VerticalAlignment = VerticalAlignment.Center;
-        intentRoot.AddChild(label);
-        AddEnemyHudAt(root, intentRoot, new Vector2(1570, 204), new Vector2(300, 42));
-    }
-
-    private void AddEnemyHudAt(Control parent, Control child, Vector2 position, Vector2 size)
-    {
-        AddAt(parent, child, position, size);
-        enemyHudNodes.Add(child);
-    }
-
-    private void ClearEnemyHud()
-    {
-        foreach (var node in enemyHudNodes)
-        {
-            if (!GodotObject.IsInstanceValid(node))
-            {
-                continue;
-            }
-
-            node.GetParent()?.RemoveChild(node);
-            node.QueueFree();
-        }
-
-        enemyHudNodes.Clear();
     }
 
     private void RenderColorEnergyHud(Control root, CombatState combat)
@@ -203,21 +103,21 @@ public sealed class BattleHudView
 
         if (filled)
         {
-            var frameAssets = ColorEnergyFlameAssets(color);
-            var fill = CreateImage(frameAssets[0], flameSize, TextureRect.StretchModeEnum.KeepAspectCentered);
+            var frameTextures = ColorEnergyFlameTextures(color);
+            var fill = CreateImage(frameTextures[0], flameSize, TextureRect.StretchModeEnum.KeepAspectCentered);
             fill.Position = new Vector2((slotSize.X - flameSize.X) * 0.5f, 5);
             fill.Size = flameSize;
             fill.ZIndex = 1;
             root.AddChild(fill);
-            AddColorEnergyFlameTimer(root, fill, frameAssets);
+            AddColorEnergyFlameTimer(root, fill, frameTextures);
         }
 
         return root;
     }
 
-    private void AddColorEnergyFlameTimer(Control root, TextureRect fill, IReadOnlyList<string> frameAssets)
+    private static void AddColorEnergyFlameTimer(Control root, TextureRect fill, IReadOnlyList<Texture2D?> frameTextures)
     {
-        if (frameAssets.Count <= 1)
+        if (frameTextures.Count <= 1)
         {
             return;
         }
@@ -236,8 +136,8 @@ public sealed class BattleHudView
                 return;
             }
 
-            frameIndex = (frameIndex + 1) % frameAssets.Count;
-            fill.Texture = RequireTextureLoader()(frameAssets[frameIndex]);
+            frameIndex = (frameIndex + 1) % frameTextures.Count;
+            fill.Texture = frameTextures[frameIndex];
         };
         root.AddChild(timer);
     }
@@ -252,12 +152,33 @@ public sealed class BattleHudView
         return "当前彩能：" + string.Join(" / ", pool.Slots.Select(slot => FullColorName(slot.Color)));
     }
 
-    private static IReadOnlyList<string> ColorEnergyFlameAssets(ColorType color)
+    private IReadOnlyList<Texture2D?> ColorEnergyFlameTextures(ColorType color)
     {
-        var key = ColorEnergyAssetKey(color);
         return Enumerable.Range(0, 8)
-            .Select(index => $"asset.ui.battle.color_energy.flame.{key}.{index:00}")
+            .Select(index => CreateColorEnergyFlameFrameTexture(ColorEnergyFlameSheetAsset(color), index))
             .ToArray();
+    }
+
+    private Texture2D? CreateColorEnergyFlameFrameTexture(string sheetAsset, int frameIndex)
+    {
+        const int frameWidth = 160;
+        const int frameHeight = 160;
+        var atlas = RequireTextureLoader()(sheetAsset);
+        if (atlas is null)
+        {
+            return null;
+        }
+
+        return new AtlasTexture
+        {
+            Atlas = atlas,
+            Region = new Rect2(frameIndex * frameWidth, 0, frameWidth, frameHeight)
+        };
+    }
+
+    private static string ColorEnergyFlameSheetAsset(ColorType color)
+    {
+        return $"asset.ui.battle.color_energy.flame.{ColorEnergyAssetKey(color)}.sheet";
     }
 
     private static string ColorEnergyAssetKey(ColorType color)
@@ -284,26 +205,6 @@ public sealed class BattleHudView
             ColorType.Purple => "紫色",
             _ => "无色"
         };
-    }
-
-    private Control CreateHudImagePanel(string assetId, string text, Vector2 size, Rect2 textRect, int fontSize)
-    {
-        var root = new Control
-        {
-            ClipContents = false
-        };
-        var image = CreateImage(assetId, size, TextureRect.StretchModeEnum.Scale);
-        image.Size = size;
-        root.AddChild(image);
-
-        var label = CreateHudLabel(text, fontSize, new Color(1.0f, 0.92f, 0.74f), heavy: true);
-        label.Position = textRect.Position;
-        label.Size = textRect.Size;
-        label.CustomMinimumSize = textRect.Size;
-        label.HorizontalAlignment = HorizontalAlignment.Center;
-        label.VerticalAlignment = VerticalAlignment.Center;
-        root.AddChild(label);
-        return root;
     }
 
     private Control CreatePlayerVitalsHud(CombatState combat)
@@ -513,9 +414,14 @@ public sealed class BattleHudView
 
     private TextureRect CreateImage(string assetId, Vector2 minSize, TextureRect.StretchModeEnum stretchMode)
     {
+        return CreateImage(RequireTextureLoader()(assetId), minSize, stretchMode);
+    }
+
+    private static TextureRect CreateImage(Texture2D? texture, Vector2 minSize, TextureRect.StretchModeEnum stretchMode)
+    {
         return new TextureRect
         {
-            Texture = RequireTextureLoader()(assetId),
+            Texture = texture,
             CustomMinimumSize = minSize,
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = stretchMode,
@@ -532,17 +438,6 @@ public sealed class BattleHudView
     private Func<string, Font?> RequireFontLoader()
     {
         return loadFont ?? throw new InvalidOperationException("BattleHudView requires a font loader.");
-    }
-
-    private static string IntentIconAsset(EnemyIntentType intentType)
-    {
-        return intentType switch
-        {
-            EnemyIntentType.Attack => "asset.ui.icon.attack_intent",
-            EnemyIntentType.Defend => "asset.ui.icon.defend_intent",
-            EnemyIntentType.Mixed => "asset.ui.icon.pressure_mixed_intent",
-            _ => "asset.ui.icon.pressure_mixed_intent"
-        };
     }
 
     private static void AddAt(Control parent, Control child, Vector2 position, Vector2 size)

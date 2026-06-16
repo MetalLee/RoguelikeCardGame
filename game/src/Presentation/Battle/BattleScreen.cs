@@ -17,9 +17,6 @@ public partial class BattleScreen : ComicScreen
     private CombatState? combat;
     private RunState? run;
     private EncounterDefinition? encounter;
-    private string? hoveredEnemyInstanceId;
-    private string? dragPointedEnemyInstanceId;
-    private bool isSingleEnemyDragActive;
     private readonly BattleTargetingOverlay targetingOverlay = new();
     private BattleLogAnimator? logAnimator;
     private BattleHudView? battleHudView;
@@ -50,9 +47,6 @@ public partial class BattleScreen : ComicScreen
         combat = combatState;
         run = runState;
         encounter = encounterDefinition;
-        hoveredEnemyInstanceId = null;
-        dragPointedEnemyInstanceId = null;
-        isSingleEnemyDragActive = false;
         currentMessage = message;
         battleHudView = null;
         battleEnemyView = null;
@@ -89,8 +83,7 @@ public partial class BattleScreen : ComicScreen
         AddAt(root, playerNode, playerPosition, playerSize);
 
         battleEnemyView = new BattleEnemyView();
-        battleEnemyView.EnemyHoveredChanged += OnEnemyHoveredChanged;
-        battleEnemyView.Render(root, combat, RequireContent(), targetingOverlay, LoadTexture, LoadFont);
+        battleEnemyView.Render(root, combat, RequireContent(), targetingOverlay, LoadTexture);
 
         battleHandView = new BattleHandView();
         battleHandView.CardRequested += (cardId, handIndex, targetEnemyId) =>
@@ -99,14 +92,9 @@ public partial class BattleScreen : ComicScreen
             CardRequested?.Invoke(cardId, handIndex, targetEnemyId);
         };
         battleHandView.FeedbackRequested += ShowDragFeedback;
-        battleHandView.SingleEnemyDragTargetChanged += OnSingleEnemyDragTargetChanged;
         battleHandView.Render(combat, run, RequireContent(), cardPlayService, targetingOverlay, LoadTexture, LoadFont);
         handNode = battleHandView;
         AddAt(root, battleHandView, new Vector2(475, 742), new Vector2(950, 360));
-
-        var restart = CreateArtButton("重开", "asset.ui.icon.deck_library", new Vector2(122, 48), new Color(0.36f, 0.31f, 0.26f));
-        restart.Pressed += () => RestartRequested?.Invoke();
-        AddAt(root, restart, new Vector2(44, 214), new Vector2(122, 48));
 
         if (!string.IsNullOrWhiteSpace(message))
         {
@@ -115,6 +103,9 @@ public partial class BattleScreen : ComicScreen
 
         if (showBattleLog)
         {
+            var restart = CreateRestartButton();
+            restart.Pressed += () => RestartRequested?.Invoke();
+            AddAt(root, restart, new Vector2(44, 214), new Vector2(122, 48));
             AddAt(root, CreateLogPreview(), new Vector2(1365, 230), new Vector2(390, 166));
         }
 
@@ -156,25 +147,6 @@ public partial class BattleScreen : ComicScreen
     }
 
 
-    private void OnEnemyHoveredChanged(string? enemyInstanceId)
-    {
-        hoveredEnemyInstanceId = enemyInstanceId;
-        RefreshEnemyHudFocus();
-    }
-
-    private void OnSingleEnemyDragTargetChanged(string? enemyInstanceId, bool isDragging)
-    {
-        isSingleEnemyDragActive = isDragging;
-        dragPointedEnemyInstanceId = enemyInstanceId;
-        RefreshEnemyHudFocus();
-    }
-
-    private void RefreshEnemyHudFocus()
-    {
-        var focusEnemyId = isSingleEnemyDragActive ? dragPointedEnemyInstanceId : hoveredEnemyInstanceId;
-        battleHudView?.SetFocusedEnemy(focusEnemyId);
-    }
-
     private void ShowDragFeedback(string text)
     {
         RemoveDragFeedback();
@@ -209,6 +181,18 @@ public partial class BattleScreen : ComicScreen
         var label = CreateSmallLabel("最近结算：\n" + string.Join("\n", latest));
         panel.AddChild(label);
         return panel;
+    }
+
+    private Button CreateRestartButton()
+    {
+        return new SketchParallelogramButton(
+            "重开",
+            LoadFont("asset.font.source_han_sans_sc.heavy"),
+            20)
+        {
+            TooltipText = "重新开始当前运行",
+            CustomMinimumSize = new Vector2(122, 48)
+        };
     }
 
     private static string LogLine(CombatLogEvent item)

@@ -18,6 +18,19 @@
           "id": { "type": "string" },
           "name_key": { "type": "string" },
           "stand_asset": { "type": "string" },
+          "animation_sheet": {
+            "type": "object",
+            "required": ["sheet_asset", "frame_width", "frame_height", "frame_count", "columns", "frame_seconds"],
+            "additionalProperties": false,
+            "properties": {
+              "sheet_asset": { "type": "string" },
+              "frame_width": { "type": "integer", "minimum": 1 },
+              "frame_height": { "type": "integer", "minimum": 1 },
+              "frame_count": { "type": "integer", "minimum": 1 },
+              "columns": { "type": "integer", "minimum": 1 },
+              "frame_seconds": { "type": "number", "exclusiveMinimum": 0 }
+            }
+          },
           "intent_text_keys": {
             "type": "object",
             "additionalProperties": { "type": "string" }

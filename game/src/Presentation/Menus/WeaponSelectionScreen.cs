@@ -6,13 +6,21 @@ using RoguelikeCardGame.Presentation.Shared;
 
 namespace RoguelikeCardGame.Presentation.Menus;
 
+public enum WeaponSelectionDebugTarget
+{
+    Elite,
+    Boss
+}
+
 public partial class WeaponSelectionScreen : ComicScreen
 {
     public event Action<string, string>? WeaponsConfirmed;
+    public event Action<string, string, WeaponSelectionDebugTarget>? DebugEncounterRequested;
     public event Action? BackRequested;
 
     private string? selectedMainWeaponId;
     private string? selectedOffHandWeaponId;
+    private bool showDebugShortcuts;
 
     private static readonly IReadOnlyList<string?> WeaponSlots =
     [
@@ -71,6 +79,51 @@ public partial class WeaponSelectionScreen : ComicScreen
             }
         };
         AddAt(root, confirm, new Vector2(1010, 930), new Vector2(190, 64));
+
+        if (showDebugShortcuts)
+        {
+            AddDebugEncounterShortcuts(root, heavyFont);
+        }
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is not InputEventKey { Pressed: true, Echo: false } keyEvent ||
+            keyEvent.Keycode != Key.F12)
+        {
+            return;
+        }
+
+        showDebugShortcuts = !showDebugShortcuts;
+        Render();
+        GetViewport().SetInputAsHandled();
+    }
+
+    private void AddDebugEncounterShortcuts(Control root, Font? heavyFont)
+    {
+        var elite = CreateDebugEncounterButton("调试精英", heavyFont, WeaponSelectionDebugTarget.Elite);
+        AddAt(root, elite, new Vector2(1280, 930), new Vector2(190, 64));
+
+        var boss = CreateDebugEncounterButton("调试Boss", heavyFont, WeaponSelectionDebugTarget.Boss);
+        AddAt(root, boss, new Vector2(1500, 930), new Vector2(190, 64));
+    }
+
+    private Button CreateDebugEncounterButton(string text, Font? heavyFont, WeaponSelectionDebugTarget target)
+    {
+        var button = new SketchParallelogramButton(text, heavyFont, 22)
+        {
+            TooltipText = "开发调试：使用当前主副武器直接进入指定遭遇",
+            Disabled = selectedMainWeaponId is null || selectedOffHandWeaponId is null
+        };
+        button.RefreshVisualState();
+        button.Pressed += () =>
+        {
+            if (selectedMainWeaponId is not null && selectedOffHandWeaponId is not null)
+            {
+                DebugEncounterRequested?.Invoke(selectedMainWeaponId, selectedOffHandWeaponId, target);
+            }
+        };
+        return button;
     }
 
     private void AddWeaponSection(

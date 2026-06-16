@@ -15,6 +15,12 @@
 
 ## 日志
 
+### 2026-06-16
+
+- 从 [[design/03_experience/assets/魔物序列帧动画/BOSS序列帧动画/喷漆悬浮|Boss 喷气悬浮序列帧]] 裁切并合成 Boss 透明 spritesheet，将 MVP Boss `enemy.black_tower_warden` 的 active 表现资源替换为 `asset.enemy.black_tower_warden.hover.sheet`，不再复用精英魔物占位图。关联 [[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]。
+- 从 [[design/03_experience/assets/魔物序列帧动画/魔物2动作序列帧动画/魔物2-走|魔物2行走序列帧]] 裁切并合成精英魔物透明 spritesheet，将 MVP 精英魔物 `enemy.elite_guardian` 的 active 表现资源替换为 `asset.enemy.elite_guardian.walk.sheet`。关联 [[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]。
+- 从 [[design/03_experience/assets/魔物序列帧动画/骷髅1-5|骷髅序列帧 1-5]] 与 [[design/03_experience/assets/魔物序列帧动画/骷髅6-12|骷髅序列帧 6-12]] 裁切并合成普通魔物透明 spritesheet，将 MVP 中所有非精英、非 Boss 魔物表现替换为 `asset.enemy.skeleton_smoke.sheet`；彩能火焰也从逐帧 PNG 收敛为每色一张 spritesheet。同步扩展 enemy view 表现数据支持 `animation_sheet`，并让数据校验器校验 sheet 资源引用。关联 [[design/03_experience/01_visual_direction|视觉方向]] 与 [[design/06_technical_production/01_data_pipeline_and_tools|数据管线与工具]]。
+
 ### 2026-06-15
 
 - 根据开发者确认，保留开局主副武器选择，但移除起始卡牌自由选择环节；每把武器固定 6 张初始牌（4 行动 + 2 终结），系统自动将主手 6 张全带、副手 4 张行动牌带入，组成 10 张初始卡组。同步更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/03_experience/00_ui_ux|界面与交互]]、[[design/06_technical_production/00_technical_requirements|技术需求]] 与 [[design/07_production/00_roadmap_milestones|开发路线图与里程碑]]。

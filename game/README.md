@@ -85,6 +85,27 @@ flowchart TD
 
 ## Debug / Metrics
 
+### 武器选择页调试入口
+
+`WeaponSelectionScreen` 带一个临时开发调试入口，默认隐藏。在武器选择界面按 `F12` 后，会显示两个调试按钮：
+
+- `调试精英`：使用当前已选择的主手 / 副手武器自动组牌，并直接进入 MVP Run 序列中的第一个精英遭遇。
+- `调试Boss`：使用当前已选择的主手 / 副手武器自动组牌，并直接进入 MVP Run 序列中的第一个 Boss 遭遇。
+
+两个按钮只有在主手和副手武器都已选择后才可点击。该入口只用于开发期快速检查精英 / Boss 战斗表现和奖励链路；正常 `出发` 主流程仍从第一场普通战斗开始。
+
+实现位置：
+
+- `Presentation/Menus/WeaponSelectionScreen.cs`：`WeaponSelectionDebugTarget`、`DebugEncounterRequested` 事件、`F12` 显隐和调试按钮渲染。
+- `Presentation/Flow/MvpRunFlowController.cs`：订阅 `DebugEncounterRequested`，通过 `DebugEncounterIndexFor` 查找目标遭遇类型，并复用自动起始牌组创建逻辑启动对应战斗。
+
+正式版删除该入口时，应删除：
+
+- `WeaponSelectionDebugTarget` enum。
+- `WeaponSelectionScreen.DebugEncounterRequested` 事件。
+- `WeaponSelectionScreen` 中的 `showDebugShortcuts`、`_UnhandledInput`、`AddDebugEncounterShortcuts`、`CreateDebugEncounterButton`。
+- `MvpRunFlowController` 中对 `DebugEncounterRequested` 的订阅、`StartDebugEncounterFromWeaponSelection` 和 `DebugEncounterIndexFor`。
+
 `PlaytestMetricsService` 已按新版资源口径统计：
 
 - 彩能峰值。

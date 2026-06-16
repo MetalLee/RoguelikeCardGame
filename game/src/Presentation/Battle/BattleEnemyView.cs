@@ -1,29 +1,25 @@
 using Godot;
-using RoguelikeCardGame.Application.Battle;
 using RoguelikeCardGame.Domain.Combat;
-using RoguelikeCardGame.Domain.Enemies;
 using RoguelikeCardGame.Infrastructure.Content;
 
 namespace RoguelikeCardGame.Presentation.Battle;
 
 public sealed partial class BattleEnemyView : Control
 {
-    private const float StageGroundY = 785f;
+    private const float StageGroundY = 980f;
+    private const float EnemyHealthBarHeight = 12f;
 
-    private readonly CombatTurnService turnService = new();
     private static readonly Dictionary<string, EnemySpriteLayout> EnemySpriteLayouts = new(StringComparer.Ordinal)
     {
-        ["enemy.training_dummy"] = new(new Vector2(1254, 1254), 1208f, 0.32f),
-        ["enemy.intent_scout"] = new(new Vector2(1254, 1254), 1185f, 0.31f),
-        ["enemy.splitling"] = new(new Vector2(1254, 1254), 1173f, 0.25f),
-        ["enemy.elite_guardian"] = new(new Vector2(1132, 1390), 1292f, 0.45f),
-        ["enemy.relic_tester"] = new(new Vector2(1254, 1254), 1182f, 0.41f),
-        ["enemy.black_tower_warden"] = new(new Vector2(1402, 1122), 1095f, 0.50f)
+        ["enemy.training_dummy"] = new(new Vector2(360, 360), 552f, 1.0f),
+        ["enemy.intent_scout"] = new(new Vector2(360, 360), 552f, 1.0f),
+        ["enemy.splitling"] = new(new Vector2(360, 360), 552f, 1.0f),
+        ["enemy.elite_guardian"] = new(new Vector2(420, 560), 552f, 1.0f),
+        ["enemy.relic_tester"] = new(new Vector2(360, 360), 552f, 1.12f),
+        ["enemy.black_tower_warden"] = new(new Vector2(700, 560), 552f, 1.0f)
     };
 
     private readonly Dictionary<string, Control> enemyNodes = new(StringComparer.Ordinal);
-
-    public event Action<string?>? EnemyHoveredChanged;
 
     public IReadOnlyDictionary<string, Control> EnemyNodes => enemyNodes;
 
@@ -32,14 +28,10 @@ public sealed partial class BattleEnemyView : Control
         CombatState combat,
         GameContent content,
         BattleTargetingOverlay targetingOverlay,
-        Func<string, Texture2D?> loadTexture,
-        Func<string, Font?> loadFont)
+        Func<string, Texture2D?> loadTexture)
     {
         enemyNodes.Clear();
 
-        var intentsByEnemy = turnService.GetEnemyIntentViews(combat, content.EnemiesById)
-            .ToDictionary(intent => intent.EnemyInstanceId, StringComparer.Ordinal);
-        var showOverheadStatus = combat.Enemies.Count > 1;
         var enemyLayouts = combat.Enemies
             .Select(enemy => (State: enemy, Layout: EnemySpriteLayoutFor(enemy.EnemyId)))
             .ToList();
@@ -51,8 +43,7 @@ public sealed partial class BattleEnemyView : Control
         foreach (var (enemyState, spriteLayout) in enemyLayouts)
         {
             var enemyPosition = new Vector2(enemyX, StageGroundY - spriteLayout.ContentBottom * spriteLayout.Scale);
-            intentsByEnemy.TryGetValue(enemyState.InstanceId, out var intent);
-            var enemyControl = CreateEnemyPanel(enemyState, intent, spriteLayout.DisplaySize, showOverheadStatus, content, targetingOverlay, loadTexture, loadFont);
+            var enemyControl = CreateEnemyPanel(enemyState, spriteLayout.DisplaySize, content, targetingOverlay, loadTexture);
             enemyNodes[enemyState.InstanceId] = enemyControl;
             targetingOverlay.RegisterEnemy(enemyState.InstanceId, enemyControl);
             AddAt(root, enemyControl, enemyPosition, spriteLayout.DisplaySize);
@@ -72,13 +63,10 @@ public sealed partial class BattleEnemyView : Control
 
     private Control CreateEnemyPanel(
         CombatEnemyState enemyState,
-        EnemyIntentView? intent,
         Vector2 displaySize,
-        bool showOverheadStatus,
         GameContent content,
         BattleTargetingOverlay targetingOverlay,
-        Func<string, Texture2D?> loadTexture,
-        Func<string, Font?> loadFont)
+        Func<string, Texture2D?> loadTexture)
     {
         var panel = new Control
         {
@@ -87,25 +75,21 @@ public sealed partial class BattleEnemyView : Control
             ClipContents = false,
             MouseFilter = MouseFilterEnum.Pass
         };
-        panel.MouseEntered += () =>
-        {
-            if (enemyState.CurrentHp > 0)
-            {
-                EnemyHoveredChanged?.Invoke(enemyState.InstanceId);
-            }
-        };
-        panel.MouseExited += () => EnemyHoveredChanged?.Invoke(null);
 
         var enemyView = content.EnemyViewsById[enemyState.EnemyId];
-        var portrait = CreateImage(enemyView.StandAsset, displaySize, TextureRect.StretchModeEnum.Scale, loadTexture);
+        var portrait = CreateImage(
+            EnemyInitialTexture(enemyView, loadTexture),
+            displaySize,
+            TextureRect.StretchModeEnum.Scale);
         portrait.Position = new Vector2(0, 0);
         portrait.Size = displaySize;
         portrait.Modulate = enemyState.CurrentHp <= 0 ? new Color(0.32f, 0.32f, 0.32f, 0.75f) : Colors.White;
         panel.AddChild(portrait);
+        AddEnemyAnimationTimer(panel, portrait, enemyView.AnimationSheet, enemyState.CurrentHp > 0, loadTexture);
 
-        if (showOverheadStatus && enemyState.CurrentHp > 0)
+        if (enemyState.CurrentHp > 0)
         {
-            panel.AddChild(CreateOverheadStatus(enemyState, intent, displaySize, content, loadTexture, loadFont));
+            panel.AddChild(CreateEnemyHealthBar(enemyState, displaySize));
         }
 
         var dragHighlight = targetingOverlay.CreateEnemyDragHighlight(enemyState.InstanceId);
@@ -116,247 +100,104 @@ public sealed partial class BattleEnemyView : Control
         return panel;
     }
 
-    private Control CreateOverheadStatus(
-        CombatEnemyState enemyState,
-        EnemyIntentView? intent,
-        Vector2 displaySize,
-        GameContent content,
-        Func<string, Texture2D?> loadTexture,
-        Func<string, Font?> loadFont)
+    private static Control CreateEnemyHealthBar(CombatEnemyState enemyState, Vector2 displaySize)
     {
-        var width = Math.Clamp(displaySize.X * 0.62f, 190f, 250f);
-        var root = new Control
+        var width = Math.Clamp(displaySize.X * 0.44f, 118f, 230f);
+        var size = new Vector2(width, EnemyHealthBarHeight);
+        return new EnemyHealthStrip
         {
-            Size = new Vector2(width, 92),
-            CustomMinimumSize = new Vector2(width, 92),
-            Position = new Vector2((displaySize.X - width) * 0.5f, -100f),
+            CurrentHp = enemyState.CurrentHp,
+            MaxHp = enemyState.MaxHp,
+            Size = size,
+            CustomMinimumSize = size,
+            Position = new Vector2((displaySize.X - width) * 0.5f, -22f),
             MouseFilter = MouseFilterEnum.Ignore,
-            ZIndex = 35
+            ZIndex = 36
         };
+    }
 
-        var nameBar = CreateOverheadImagePanel(
-            "asset.ui.battle.enemy_name_bar",
-            content.EnemyName(enemyState.EnemyId),
-            new Vector2(width, 28),
-            new Rect2(width * 0.13f, 2f, width * 0.74f, 22f),
-            13,
-            loadTexture,
-            loadFont);
-        root.AddChild(nameBar);
+    private static Texture2D? EnemyInitialTexture(
+        EnemyViewDefinition enemyView,
+        Func<string, Texture2D?> loadTexture)
+    {
+        return enemyView.AnimationSheet is null
+            ? loadTexture(enemyView.StandAsset)
+            : CreateAnimationFrameTexture(enemyView.AnimationSheet, frameIndex: 0, loadTexture);
+    }
 
-        var hpText = enemyState.Block > 0
-            ? $"{enemyState.CurrentHp}/{enemyState.MaxHp}  防{enemyState.Block}"
-            : $"{enemyState.CurrentHp}/{enemyState.MaxHp}";
-        var healthBar = CreateOverheadImagePanel(
-            "asset.ui.battle.enemy_health_bar",
-            hpText,
-            new Vector2(width, 27),
-            new Rect2(width * 0.26f, 2f, width * 0.55f, 22f),
-            13,
-            loadTexture,
-            loadFont);
-        healthBar.Position = new Vector2(0, 30);
-        root.AddChild(healthBar);
+    private static void AddEnemyAnimationTimer(
+        Control panel,
+        TextureRect portrait,
+        AnimationSheetDefinition? animationSheet,
+        bool isAlive,
+        Func<string, Texture2D?> loadTexture)
+    {
+        if (!isAlive || animationSheet is null || animationSheet.FrameCount <= 1)
+        {
+            return;
+        }
 
-        var intentRow = CreateIntentRow(intent, new Vector2(width, 30), loadTexture, loadFont);
-        intentRow.Position = new Vector2(0, 60);
-        root.AddChild(intentRow);
-        return root;
+        var frames = Enumerable
+            .Range(0, animationSheet.FrameCount)
+            .Select(index => CreateAnimationFrameTexture(animationSheet, index, loadTexture))
+            .ToArray();
+        var frameIndex = 0;
+        var timer = new Godot.Timer
+        {
+            WaitTime = animationSheet.FrameSeconds,
+            OneShot = false,
+            Autostart = true
+        };
+        timer.Timeout += () =>
+        {
+            if (!GodotObject.IsInstanceValid(portrait))
+            {
+                return;
+            }
+
+            frameIndex = (frameIndex + 1) % frames.Length;
+            portrait.Texture = frames[frameIndex];
+        };
+        panel.AddChild(timer);
+    }
+
+    private static Texture2D? CreateAnimationFrameTexture(
+        AnimationSheetDefinition animationSheet,
+        int frameIndex,
+        Func<string, Texture2D?> loadTexture)
+    {
+        var atlas = loadTexture(animationSheet.SheetAsset);
+        if (atlas is null)
+        {
+            return null;
+        }
+
+        var column = frameIndex % animationSheet.Columns;
+        var row = frameIndex / animationSheet.Columns;
+        return new AtlasTexture
+        {
+            Atlas = atlas,
+            Region = new Rect2(
+                column * animationSheet.FrameWidth,
+                row * animationSheet.FrameHeight,
+                animationSheet.FrameWidth,
+                animationSheet.FrameHeight)
+        };
     }
 
     private static TextureRect CreateImage(
-        string assetId,
+        Texture2D? texture,
         Vector2 minSize,
-        TextureRect.StretchModeEnum stretchMode,
-        Func<string, Texture2D?> loadTexture)
+        TextureRect.StretchModeEnum stretchMode)
     {
         return new TextureRect
         {
-            Texture = loadTexture(assetId),
+            Texture = texture,
             CustomMinimumSize = minSize,
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = stretchMode,
             TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
             MouseFilter = MouseFilterEnum.Ignore
-        };
-    }
-
-    private static Label CreateOverheadLabel(
-        string text,
-        int fontSize,
-        Color color,
-        Func<string, Font?> loadFont,
-        bool heavy)
-    {
-        var label = new Label
-        {
-            Text = text,
-            VerticalAlignment = VerticalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.Off,
-            ClipText = true,
-            MouseFilter = MouseFilterEnum.Ignore
-        };
-        label.AddThemeFontSizeOverride("font_size", fontSize);
-        label.AddThemeColorOverride("font_color", color);
-        label.AddThemeColorOverride("font_outline_color", new Color(0.95f, 0.82f, 0.58f, 0.65f));
-        label.AddThemeColorOverride("font_shadow_color", new Color(0.08f, 0.04f, 0.02f, 0.35f));
-        label.AddThemeConstantOverride("outline_size", 2);
-        label.AddThemeConstantOverride("shadow_offset_x", 1);
-        label.AddThemeConstantOverride("shadow_offset_y", 2);
-        var font = loadFont(heavy ? "asset.font.source_han_sans_sc.heavy" : "asset.font.source_han_sans_sc.medium");
-        if (font is not null)
-        {
-            label.AddThemeFontOverride("font", font);
-        }
-
-        return label;
-    }
-
-    private static Control CreateOverheadImagePanel(
-        string assetId,
-        string text,
-        Vector2 size,
-        Rect2 textRect,
-        int fontSize,
-        Func<string, Texture2D?> loadTexture,
-        Func<string, Font?> loadFont)
-    {
-        var root = new Control
-        {
-            Size = size,
-            CustomMinimumSize = size,
-            MouseFilter = MouseFilterEnum.Ignore
-        };
-
-        var image = CreateImage(assetId, size, TextureRect.StretchModeEnum.Scale, loadTexture);
-        image.Size = size;
-        root.AddChild(image);
-
-        var label = CreateOverheadLabel(text, fontSize, new Color(1f, 0.91f, 0.70f), loadFont, heavy: true);
-        label.Position = textRect.Position;
-        label.Size = textRect.Size;
-        label.CustomMinimumSize = textRect.Size;
-        label.HorizontalAlignment = HorizontalAlignment.Center;
-        root.AddChild(label);
-        return root;
-    }
-
-    private static Control CreateIntentRow(
-        EnemyIntentView? intent,
-        Vector2 size,
-        Func<string, Texture2D?> loadTexture,
-        Func<string, Font?> loadFont)
-    {
-        var root = new Control
-        {
-            Size = size,
-            CustomMinimumSize = size,
-            MouseFilter = MouseFilterEnum.Ignore
-        };
-        var style = new StyleBoxFlat
-        {
-            BgColor = new Color(0.09f, 0.055f, 0.035f, 0.78f),
-            BorderColor = IntentAccent(intent?.IntentType),
-            BorderWidthLeft = 1,
-            BorderWidthRight = 1,
-            BorderWidthTop = 1,
-            BorderWidthBottom = 1,
-            CornerRadiusBottomLeft = 4,
-            CornerRadiusBottomRight = 4,
-            CornerRadiusTopLeft = 4,
-            CornerRadiusTopRight = 4
-        };
-        var panel = new PanelContainer
-        {
-            Size = size,
-            CustomMinimumSize = size,
-            MouseFilter = MouseFilterEnum.Ignore
-        };
-        panel.AddThemeStyleboxOverride("panel", style);
-        root.AddChild(panel);
-
-        var icon = CreateImage(IntentIconAsset(intent?.IntentType), new Vector2(24, 24), TextureRect.StretchModeEnum.KeepAspectCentered, loadTexture);
-        icon.Position = new Vector2(7, 3);
-        icon.Size = new Vector2(24, 24);
-        root.AddChild(icon);
-
-        var label = CreateOverheadLabel(IntentDisplayText(intent), 13, IntentTextColor(intent?.IntentType), loadFont, heavy: true);
-        label.Position = new Vector2(36, 3);
-        label.Size = new Vector2(size.X - 44, 24);
-        label.HorizontalAlignment = HorizontalAlignment.Left;
-        root.AddChild(label);
-        return root;
-    }
-
-    private static string IntentSummary(EnemyIntentView? intent)
-    {
-        if (intent is null)
-        {
-            return "-";
-        }
-
-        var damage = intent.EffectPreviews
-            .Where(effect => effect.Type == "attack")
-            .Sum(effect => effect.Value ?? 0);
-        var block = intent.EffectPreviews
-            .Where(effect => effect.Type is "gain_block" or "block")
-            .Sum(effect => effect.Value ?? 0);
-
-        return intent.IntentType switch
-        {
-            EnemyIntentType.Attack => damage > 0 ? damage.ToString() : "攻",
-            EnemyIntentType.Defend => block > 0 ? block.ToString() : "防",
-            EnemyIntentType.Mixed => damage > 0 && block > 0 ? $"{damage}+{block}" : damage > 0 ? damage.ToString() : block > 0 ? block.ToString() : "压",
-            _ => "?"
-        };
-    }
-
-    private static string IntentDisplayText(EnemyIntentView? intent)
-    {
-        if (intent is null)
-        {
-            return "意图 -";
-        }
-
-        return intent.IntentType switch
-        {
-            EnemyIntentType.Attack => $"攻击 {IntentSummary(intent)}",
-            EnemyIntentType.Defend => $"防守 {IntentSummary(intent)}",
-            EnemyIntentType.Mixed => $"压迫 {IntentSummary(intent)}",
-            _ => $"意图 {IntentSummary(intent)}"
-        };
-    }
-
-    private static string IntentIconAsset(EnemyIntentType? intentType)
-    {
-        return intentType switch
-        {
-            EnemyIntentType.Attack => "asset.ui.icon.attack_intent",
-            EnemyIntentType.Defend => "asset.ui.icon.defend_intent",
-            EnemyIntentType.Mixed => "asset.ui.icon.pressure_mixed_intent",
-            _ => "asset.ui.icon.pressure_mixed_intent"
-        };
-    }
-
-    private static Color IntentAccent(EnemyIntentType? intentType)
-    {
-        return intentType switch
-        {
-            EnemyIntentType.Attack => new Color(0.78f, 0.13f, 0.08f, 1f),
-            EnemyIntentType.Defend => new Color(0.18f, 0.58f, 0.70f, 1f),
-            EnemyIntentType.Mixed => new Color(0.55f, 0.22f, 0.82f, 1f),
-            _ => new Color(0.62f, 0.42f, 0.16f, 1f)
-        };
-    }
-
-    private static Color IntentTextColor(EnemyIntentType? intentType)
-    {
-        return intentType switch
-        {
-            EnemyIntentType.Attack => new Color(0.72f, 0.06f, 0.04f),
-            EnemyIntentType.Defend => new Color(0.08f, 0.40f, 0.50f),
-            EnemyIntentType.Mixed => new Color(0.43f, 0.13f, 0.64f),
-            _ => new Color(0.28f, 0.16f, 0.06f)
         };
     }
 
@@ -371,5 +212,40 @@ public sealed partial class BattleEnemyView : Control
     private readonly record struct EnemySpriteLayout(Vector2 SourceSize, float ContentBottom, float Scale)
     {
         public Vector2 DisplaySize => SourceSize * Scale;
+    }
+}
+
+internal sealed partial class EnemyHealthStrip : Control
+{
+    private const float BorderWidth = 2.5f;
+    private const float FillInset = 2f;
+
+    private static readonly Color Ink = new(0f, 0f, 0f, 1f);
+    private static readonly Color Paper = new(1f, 1f, 1f, 1f);
+
+    public int CurrentHp { get; init; }
+
+    public int MaxHp { get; init; }
+
+    public override void _Draw()
+    {
+        var rect = new Rect2(Vector2.Zero, Size);
+        DrawRect(rect, Paper, filled: true);
+
+        var fillRect = new Rect2(
+            new Vector2(FillInset, FillInset),
+            new Vector2(Math.Max(0f, Size.X - FillInset * 2f), Math.Max(0f, Size.Y - FillInset * 2f)));
+        var healthRatio = MaxHp <= 0
+            ? 0f
+            : Math.Clamp((float)CurrentHp / MaxHp, 0f, 1f);
+        if (healthRatio > 0f && fillRect.Size.X > 0f && fillRect.Size.Y > 0f)
+        {
+            DrawRect(
+                new Rect2(fillRect.Position, new Vector2(fillRect.Size.X * healthRatio, fillRect.Size.Y)),
+                Ink,
+                filled: true);
+        }
+
+        DrawRect(rect, Ink, filled: false, width: BorderWidth);
     }
 }

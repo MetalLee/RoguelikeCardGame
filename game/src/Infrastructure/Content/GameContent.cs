@@ -32,7 +32,24 @@ public sealed record EnemyViewDefinition
 
     public required string StandAsset { get; init; }
 
+    public AnimationSheetDefinition? AnimationSheet { get; init; }
+
     public Dictionary<string, string> IntentTextKeys { get; init; } = new(StringComparer.Ordinal);
+}
+
+public sealed record AnimationSheetDefinition
+{
+    public required string SheetAsset { get; init; }
+
+    public int FrameWidth { get; init; }
+
+    public int FrameHeight { get; init; }
+
+    public int FrameCount { get; init; }
+
+    public int Columns { get; init; }
+
+    public double FrameSeconds { get; init; }
 }
 
 public sealed record RelicViewDefinition
@@ -712,9 +729,25 @@ public sealed class GameContent
             Id = item.GetProperty("id").GetStringRequired("id"),
             NameKey = item.GetProperty("name_key").GetStringRequired("name_key"),
             StandAsset = item.GetProperty("stand_asset").GetStringRequired("stand_asset"),
+            AnimationSheet = item.TryGetProperty("animation_sheet", out var animationSheet)
+                ? ParseAnimationSheet(animationSheet)
+                : null,
             IntentTextKeys = item.GetProperty("intent_text_keys")
                 .EnumerateObject()
                 .ToDictionary(entry => entry.Name, entry => entry.Value.GetStringRequired(entry.Name), StringComparer.Ordinal)
+        };
+    }
+
+    private static AnimationSheetDefinition ParseAnimationSheet(JsonElement item)
+    {
+        return new AnimationSheetDefinition
+        {
+            SheetAsset = item.GetProperty("sheet_asset").GetStringRequired("sheet_asset"),
+            FrameWidth = item.GetProperty("frame_width").GetInt32(),
+            FrameHeight = item.GetProperty("frame_height").GetInt32(),
+            FrameCount = item.GetProperty("frame_count").GetInt32(),
+            Columns = item.GetProperty("columns").GetInt32(),
+            FrameSeconds = item.GetProperty("frame_seconds").GetDouble()
         };
     }
 

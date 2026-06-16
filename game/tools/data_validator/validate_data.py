@@ -471,6 +471,16 @@ def validate_unified_gameplay(project_root: Path, documents: dict[str, dict[str,
         else:
             require_text(localization, view.get("name_key"), f"enemy_views:{enemy_id}.name_key", errors)
             require_asset(asset_ids, view.get("stand_asset"), f"enemy_views:{enemy_id}.stand_asset", errors)
+            animation_sheet = view.get("animation_sheet")
+            if animation_sheet is not None:
+                if not isinstance(animation_sheet, dict):
+                    errors.append(f"enemy_views:{enemy_id}.animation_sheet: must be an object when present")
+                else:
+                    require_asset(asset_ids, animation_sheet.get("sheet_asset"), f"enemy_views:{enemy_id}.animation_sheet.sheet_asset", errors)
+                    frame_count = animation_sheet.get("frame_count")
+                    columns = animation_sheet.get("columns")
+                    if isinstance(frame_count, int) and isinstance(columns, int) and columns > frame_count:
+                        errors.append(f"enemy_views:{enemy_id}.animation_sheet.columns: cannot exceed frame_count")
             for intent_id, key in view.get("intent_text_keys", {}).items():
                 require_text(localization, key, f"enemy_views:{enemy_id}.intent_text_keys.{intent_id}", errors)
 

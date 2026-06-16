@@ -79,6 +79,7 @@ public sealed class MvpRunFlowController
         {
             var screen = screenHost.ShowScreen<WeaponSelectionScreen>(WeaponSelectionScenePath);
             screen.WeaponsConfirmed += ConfirmWeapons;
+            screen.DebugEncounterRequested += StartDebugEncounterFromWeaponSelection;
             screen.BackRequested += ShowStartMenu;
             screen.Render();
         }
@@ -86,6 +87,46 @@ public sealed class MvpRunFlowController
         {
             screenHost.ShowFatalError(ex);
         }
+    }
+
+    private void StartDebugEncounterFromWeaponSelection(
+        string mainHandWeaponId,
+        string offHandWeaponId,
+        WeaponSelectionDebugTarget target)
+    {
+        try
+        {
+            ResetFlowInteractionState();
+            run = CreateRunFromWeaponSelection(mainHandWeaponId, offHandWeaponId) with
+            {
+                CurrentEncounterIndex = DebugEncounterIndexFor(target)
+            };
+            StartCurrentEncounter();
+        }
+        catch (Exception ex)
+        {
+            screenHost.ShowFatalError(ex);
+        }
+    }
+
+    private int DebugEncounterIndexFor(WeaponSelectionDebugTarget target)
+    {
+        var nodeType = target switch
+        {
+            WeaponSelectionDebugTarget.Elite => EncounterNodeType.Elite,
+            WeaponSelectionDebugTarget.Boss => EncounterNodeType.Boss,
+            _ => throw new InvalidOperationException($"Unsupported debug target '{target}'.")
+        };
+
+        var index = content.MvpRun.EncounterSequence.FindIndex(encounterId =>
+            content.EncountersById.TryGetValue(encounterId, out var definition) &&
+            definition.NodeType == nodeType);
+        if (index < 0)
+        {
+            throw new InvalidOperationException($"No {nodeType} encounter exists in the MVP run sequence.");
+        }
+
+        return index;
     }
 
     private void ConfirmWeapons(string mainHandWeaponId, string offHandWeaponId)
@@ -114,6 +155,12 @@ public sealed class MvpRunFlowController
     private void ConfirmStartingDeck(string mainHandWeaponId, string offHandWeaponId)
     {
         ResetFlowInteractionState();
+        run = CreateRunFromWeaponSelection(mainHandWeaponId, offHandWeaponId);
+        StartCurrentEncounter();
+    }
+
+    private RunState CreateRunFromWeaponSelection(string mainHandWeaponId, string offHandWeaponId)
+    {
         var validation = startingDeckSelectionService.BuildAutomaticStarterDeck(
             mainHandWeaponId,
             offHandWeaponId,
@@ -133,7 +180,7 @@ public sealed class MvpRunFlowController
         combatFactory = new CombatStateFactory(randomStreams.Deck.Shuffle);
         turnService = new CombatTurnService(randomStreams.Deck.Shuffle);
         cardPlayService = new CardPlayService(turnService);
-        run = runFactory.CreateNewRunFromWeaponSelection(
+        return runFactory.CreateNewRunFromWeaponSelection(
             runId: $"run_{DateTime.UtcNow:yyyyMMddHHmmss}",
             seed: seed,
             playerMaxHp: sequence.PlayerMaxHp,
@@ -143,7 +190,6 @@ public sealed class MvpRunFlowController
             offHandWeaponId: offHandWeaponId,
             selectedCardIds: validation.SelectedCardIds,
             encounterSequence: sequence.EncounterSequence);
-        StartCurrentEncounter();
     }
 
     private void StartCurrentEncounter()
