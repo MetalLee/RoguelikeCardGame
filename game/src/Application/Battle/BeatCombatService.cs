@@ -175,6 +175,10 @@ public sealed class BeatCombatService
 
         var logStartIndex = combat.Log.Count;
         var working = combat;
+        var lockedEnemyBeats = round.PlayerBeats
+            .Where(playerBeat => playerBeat.Target?.Kind == BeatTargetKind.EnemyBeat && playerBeat.Target.EnemyBeatIndex is not null)
+            .Select(playerBeat => (playerBeat.Target!.EnemyInstanceId, playerBeat.Target.EnemyBeatIndex!.Value))
+            .ToHashSet();
 
         foreach (var playerBeat in round.PlayerBeats.OrderBy(beat => beat.BeatIndex))
         {
@@ -225,6 +229,32 @@ public sealed class BeatCombatService
                     working = AppendBeatEnergyGeneratedLog(working, playerBeat, card, accepted, afterPool.Count);
                 }
             }
+        }
+
+        foreach (var enemyBeat in round.EnemyBeats
+            .Where(enemyBeat => !lockedEnemyBeats.Contains((enemyBeat.EnemyInstanceId, enemyBeat.BeatIndex)))
+            .OrderBy(enemyBeat => enemyBeat.BeatIndex))
+        {
+            var enemyIndex = working.Enemies.FindIndex(enemy => string.Equals(enemy.InstanceId, enemyBeat.EnemyInstanceId, StringComparison.Ordinal));
+            if (enemyIndex < 0 || working.Enemies[enemyIndex].CurrentHp <= 0)
+            {
+                continue;
+            }
+
+            var enemyState = working.Enemies[enemyIndex];
+            if (!enemiesById.TryGetValue(enemyState.EnemyId, out var enemyDefinition))
+            {
+                throw new InvalidOperationException($"Unknown enemy definition id '{enemyState.EnemyId}'.");
+            }
+
+            var collision = ResolveActionCollision(
+                [],
+                enemyBeat.Actions,
+                enemyDefinition.Resistances,
+                new BeatResistanceProfile());
+
+            working = ApplyBeatCollision(working, enemyIndex, collision);
+            working = AppendUnblockedEnemyBeatResolvedLog(working, enemyBeat, collision);
         }
 
         working = ApplyBeatOutcome(working);
@@ -519,6 +549,35 @@ public sealed class BeatCombatService
                 ["card_instance_id"] = playerBeat.CardInstanceId ?? string.Empty,
                 ["target_kind"] = target.Kind.ToString(),
                 ["enemy_beat_index"] = target.EnemyBeatIndex?.ToString() ?? string.Empty
+            }
+        });
+
+        return combat with { Log = log };
+    }
+
+    private static CombatState AppendUnblockedEnemyBeatResolvedLog(
+        CombatState combat,
+        EnemyBeatSlot enemyBeat,
+        BeatCollisionResult collision)
+    {
+        var log = combat.Log.ToList();
+        log.Add(new CombatLogEvent
+        {
+            EventId = $"{combat.CombatId}_turn_{combat.TurnNumber}_enemy_beat_{enemyBeat.EnemyInstanceId}_{enemyBeat.BeatIndex}_resolved_{log.Count + 1}",
+            EventType = CombatLogEventType.BeatActionResolved,
+            TurnNumber = combat.TurnNumber,
+            SourceId = enemyBeat.ActionCardId,
+            TargetIds = ["player"],
+            NumericChanges = new Dictionary<string, int>
+            {
+                ["beat_index"] = enemyBeat.BeatIndex,
+                ["player_damage"] = collision.PlayerDamageTaken,
+                ["successful_enemy_actions"] = collision.SuccessfulEnemyActions
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["enemy_instance_id"] = enemyBeat.EnemyInstanceId,
+                ["target_kind"] = "Player"
             }
         });
 

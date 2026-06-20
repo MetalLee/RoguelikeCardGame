@@ -457,6 +457,41 @@ AssertEqual(1, resolvedBeatRound.Combat.ColorEnergy.Count, "Successful unopposed
 AssertEqual(21, resolvedBeatRound.Combat.Enemies[0].CurrentHp, "Weakness-adjusted beat damage is applied to enemy HP");
 Assert(resolvedBeatRound.Events.Any(item => item.EventType == CombatLogEventType.BeatEnergyGenerated), "Beat energy generation is logged");
 
+var unblockedEnemyBeatCombat = CreatePlayableCombat(
+    [beatSlashCard.Id, finisher.Id],
+    actionPoints: 0,
+    colorEnergy: ColorEnergyPool.Empty(),
+    enemies: [CreateEnemyState("enemy_01", currentHp: 30, maxHp: 30, enemyId: beatEnemy.Id)]) with
+{
+    BeatRound = new BeatRoundState
+    {
+        BeatCount = 3,
+        PlayerBeats = [],
+        EnemyBeats =
+        [
+            new EnemyBeatSlot
+            {
+                EnemyInstanceId = "enemy_01",
+                BeatIndex = 1,
+                ActionCardId = "enemy_card.unblocked_slash",
+                Actions =
+                [
+                    new BeatActionDefinition { Kind = BeatActionKind.Attack, AttackType = BeatAttackType.Slash, Value = 4 }
+                ]
+            }
+        ]
+    }
+};
+var resolvedUnblockedEnemyBeat = beatService.ResolveBeatRound(unblockedEnemyBeatCombat, beatCards, beatEnemies);
+AssertEqual(56, resolvedUnblockedEnemyBeat.Combat.PlayerHp, "Unblocked enemy beat action damages the player");
+AssertEqual(0, resolvedUnblockedEnemyBeat.Combat.ColorEnergy.Count, "Unblocked enemy beat action does not generate player color energy");
+Assert(
+    resolvedUnblockedEnemyBeat.Events.Any(item =>
+        item.EventType == CombatLogEventType.BeatActionResolved &&
+        item.SourceId == "enemy_card.unblocked_slash" &&
+        item.TargetIds.Contains("player")),
+    "Unblocked enemy beat action is logged");
+
 var finisherReadyCombat = resolvedBeatRound.Combat with
 {
     ColorEnergy = ColorEnergyPool.Empty().Add(ColorType.Colorless, 3),
