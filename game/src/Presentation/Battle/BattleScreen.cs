@@ -15,11 +15,15 @@ public partial class BattleScreen : ComicScreen
     private static readonly Vector2 BeatLanePosition = new(440, 626);
     private static readonly Vector2 BeatLaneSize = new(570, 82);
     private static readonly Vector2 BeatSlotSize = new(170, 58);
+    private static readonly Vector2 EnemyBeatLanePosition = new(1065, 470);
+    private static readonly Vector2 EnemyBeatLaneSize = new(710, 180);
+    private static readonly Vector2 EnemyBeatSlotSize = new(150, 56);
     private static readonly Vector2 ThoughtBubblePosition = new(346, 382);
     private static readonly Vector2 ThoughtBubbleSize = new(610, 238);
 
     private readonly CardPlayService cardPlayService = new();
     private readonly Dictionary<int, Control> playerBeatSlotNodes = new();
+    private readonly Dictionary<(string EnemyInstanceId, int BeatIndex), Control> enemyBeatSlotNodes = new();
 
     private CombatState? combat;
     private RunState? run;
@@ -39,12 +43,14 @@ public partial class BattleScreen : ComicScreen
     private Control? canvasRoot;
     private Control? thoughtFeedbackPanel;
     private Control? inputBlocker;
+    private int? activeTargetingPlayerBeatIndex;
     private bool showBattleLog;
     private string? currentFailureMessage;
     private int thoughtBubbleVersion;
 
     public event Action<string, string, int, string?>? CardRequested;
     public event Action<string, string, int, int>? BeatCardDroppedOnSlot;
+    public event Action<int, BeatTarget>? BeatTargetSelected;
     public event Action? EndTurnRequested;
     public event Action? RestartRequested;
 
@@ -71,7 +77,9 @@ public partial class BattleScreen : ComicScreen
         canvasRoot = null;
         thoughtFeedbackPanel = null;
         inputBlocker = null;
+        activeTargetingPlayerBeatIndex = null;
         playerBeatSlotNodes.Clear();
+        enemyBeatSlotNodes.Clear();
 
         var root = CreateCanvas();
         canvasRoot = root;
@@ -96,6 +104,12 @@ public partial class BattleScreen : ComicScreen
 
         battleEnemyView = new BattleEnemyView();
         battleEnemyView.Render(root, combat, RequireContent(), targetingOverlay, LoadTexture);
+
+        var enemyBeatLane = CreateEnemyBeatLane(combat);
+        if (enemyBeatLane is not null)
+        {
+            AddAt(root, enemyBeatLane, EnemyBeatLanePosition, EnemyBeatLaneSize);
+        }
 
         beatLane = CreateBeatLane(combat);
         if (beatLane is not null)
@@ -137,6 +151,11 @@ public partial class BattleScreen : ComicScreen
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (HandleBeatTargetingInput(@event))
+        {
+            return;
+        }
+
         if (@event is not InputEventKey { Pressed: true, Echo: false } keyEvent ||
             keyEvent.Keycode != Key.F12)
         {
@@ -249,6 +268,105 @@ public partial class BattleScreen : ComicScreen
         return panel;
     }
 
+    private Control? CreateEnemyBeatLane(CombatState combatState)
+    {
+        if (combatState.BeatRound is null || combatState.BeatRound.EnemyBeats.Count == 0)
+        {
+            return null;
+        }
+
+        var panel = CreateFramedPanel(Vector2.Zero, BloodLine);
+        panel.MouseFilter = MouseFilterEnum.Ignore;
+
+        var column = new VBoxContainer
+        {
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        column.AddThemeConstantOverride("separation", 8);
+        panel.AddChild(column);
+
+        foreach (var group in combatState.BeatRound.EnemyBeats
+            .GroupBy(beat => beat.EnemyInstanceId)
+            .OrderBy(group => EnemyOrder(group.Key)))
+        {
+            column.AddChild(CreateEnemyBeatGroup(combatState, group.Key, group.OrderBy(beat => beat.BeatIndex)));
+        }
+
+        return panel;
+    }
+
+    private Control CreateEnemyBeatGroup(
+        CombatState combatState,
+        string enemyInstanceId,
+        IEnumerable<EnemyBeatSlot> enemyBeats)
+    {
+        var groupPanel = new PanelContainer
+        {
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        groupPanel.AddThemeStyleboxOverride("panel", CreateButtonStyle(BloodLine, 0.64f));
+
+        var row = new HBoxContainer
+        {
+            Alignment = BoxContainer.AlignmentMode.Begin,
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        row.AddThemeConstantOverride("separation", 8);
+        groupPanel.AddChild(row);
+
+        var nameLabel = CreateSmallLabel(EnemyDisplayName(combatState, enemyInstanceId));
+        nameLabel.CustomMinimumSize = new Vector2(116, EnemyBeatSlotSize.Y);
+        nameLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        nameLabel.VerticalAlignment = VerticalAlignment.Center;
+        nameLabel.AddThemeFontSizeOverride("font_size", 16);
+        nameLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.76f, 0.54f));
+        row.AddChild(nameLabel);
+
+        foreach (var enemyBeat in enemyBeats)
+        {
+            row.AddChild(CreateEnemyBeatSlot(combatState, enemyBeat));
+        }
+
+        if (CanTargetEnemyBody(combatState, enemyInstanceId))
+        {
+            var bodyLabel = CreateSmallLabel("本体可锁定");
+            bodyLabel.CustomMinimumSize = new Vector2(108, EnemyBeatSlotSize.Y);
+            bodyLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            bodyLabel.VerticalAlignment = VerticalAlignment.Center;
+            bodyLabel.AddThemeFontSizeOverride("font_size", 15);
+            bodyLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.88f, 0.36f));
+            row.AddChild(bodyLabel);
+        }
+
+        return groupPanel;
+    }
+
+    private Control CreateEnemyBeatSlot(CombatState combatState, EnemyBeatSlot enemyBeat)
+    {
+        var lockedBy = PlayerBeatLockingEnemyBeat(combatState, enemyBeat.EnemyInstanceId, enemyBeat.BeatIndex);
+        var slot = new PanelContainer
+        {
+            CustomMinimumSize = EnemyBeatSlotSize,
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        enemyBeatSlotNodes[(enemyBeat.EnemyInstanceId, enemyBeat.BeatIndex)] = slot;
+        slot.AddThemeStyleboxOverride("panel", CreateButtonStyle(lockedBy is null ? BloodLine : GoldLine, lockedBy is null ? 0.78f : 0.96f));
+
+        var label = CreateSmallLabel(
+            lockedBy is null
+                ? $"敌 {enemyBeat.BeatIndex + 1}\n{BeatActionSummary(enemyBeat)}"
+                : $"已锁定 P{lockedBy.Value + 1}\n{BeatActionSummary(enemyBeat)}");
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        label.ClipText = true;
+        label.AddThemeFontSizeOverride("font_size", 14);
+        label.AddThemeColorOverride("font_color", lockedBy is null
+            ? new Color(1.0f, 0.78f, 0.62f)
+            : new Color(1.0f, 0.92f, 0.42f));
+        slot.AddChild(label);
+        return slot;
+    }
+
     private Control? CreateBeatLane(CombatState combatState)
     {
         if (combatState.BeatRound is null)
@@ -277,24 +395,170 @@ public partial class BattleScreen : ComicScreen
 
     private Control CreateBeatSlot(PlayerBeatSlot beat)
     {
+        var hasCard = !string.IsNullOrWhiteSpace(beat.CardId);
+        var hasTarget = beat.Target is not null;
         var slot = new PanelContainer
         {
             CustomMinimumSize = BeatSlotSize,
             MouseFilter = MouseFilterEnum.Ignore
         };
         playerBeatSlotNodes[beat.BeatIndex] = slot;
-        slot.AddThemeStyleboxOverride("panel", CreateButtonStyle(FinisherLine, 0.82f));
+        slot.AddThemeStyleboxOverride("panel", CreateButtonStyle(hasTarget ? GoldLine : FinisherLine, hasCard ? 0.94f : 0.82f));
 
-        var label = CreateSmallLabel(string.IsNullOrWhiteSpace(beat.CardId)
+        var label = CreateSmallLabel(!hasCard
             ? $"第 {beat.BeatIndex + 1} 拍"
-            : beat.CardId);
+            : $"{beat.CardId}\n{BeatTargetText(beat.Target)}");
         label.HorizontalAlignment = HorizontalAlignment.Center;
         label.VerticalAlignment = VerticalAlignment.Center;
         label.ClipText = true;
-        label.AddThemeFontSizeOverride("font_size", 18);
-        label.AddThemeColorOverride("font_color", new Color(1.0f, 0.86f, 0.50f));
+        label.AddThemeFontSizeOverride("font_size", hasCard ? 14 : 18);
+        label.AddThemeColorOverride("font_color", hasTarget
+            ? new Color(1.0f, 0.92f, 0.42f)
+            : new Color(1.0f, 0.86f, 0.50f));
         slot.AddChild(label);
         return slot;
+    }
+
+    private bool HandleBeatTargetingInput(InputEvent @event)
+    {
+        if (combat?.BeatRound is null || inputBlocker?.Visible == true)
+        {
+            return false;
+        }
+
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left } mouseButton)
+        {
+            if (mouseButton.Pressed)
+            {
+                var beatIndex = TargetablePlayerBeatIndexUnderMouse(mouseButton.Position);
+                if (beatIndex is null)
+                {
+                    return false;
+                }
+
+                activeTargetingPlayerBeatIndex = beatIndex.Value;
+                UpdateBeatTargetingArrow(mouseButton.Position);
+                GetViewport().SetInputAsHandled();
+                return true;
+            }
+
+            if (activeTargetingPlayerBeatIndex is null)
+            {
+                return false;
+            }
+
+            var selectedTarget = TargetUnderMouse(mouseButton.Position);
+            targetingOverlay.HideArrow();
+            var playerBeatIndex = activeTargetingPlayerBeatIndex.Value;
+            activeTargetingPlayerBeatIndex = null;
+            if (selectedTarget is null)
+            {
+                ShowDragFeedback("需要把箭头指向魔物拍位；全部拍位锁定后可指向魔物本体");
+                GetViewport().SetInputAsHandled();
+                return true;
+            }
+
+            BeatTargetSelected?.Invoke(playerBeatIndex, selectedTarget);
+            GetViewport().SetInputAsHandled();
+            return true;
+        }
+
+        if (@event is InputEventMouseMotion mouseMotion && activeTargetingPlayerBeatIndex is not null)
+        {
+            UpdateBeatTargetingArrow(mouseMotion.Position);
+            GetViewport().SetInputAsHandled();
+            return true;
+        }
+
+        return false;
+    }
+
+    private void UpdateBeatTargetingArrow(Vector2 viewportMouse)
+    {
+        if (activeTargetingPlayerBeatIndex is null ||
+            !playerBeatSlotNodes.TryGetValue(activeTargetingPlayerBeatIndex.Value, out var slot))
+        {
+            targetingOverlay.HideArrow();
+            return;
+        }
+
+        targetingOverlay.ShowArrowFromViewport(CenterOf(slot), viewportMouse, TargetUnderMouse(viewportMouse) is not null);
+    }
+
+    private int? TargetablePlayerBeatIndexUnderMouse(Vector2 viewportPoint)
+    {
+        if (combat?.BeatRound is null)
+        {
+            return null;
+        }
+
+        foreach (var pair in playerBeatSlotNodes.OrderBy(item => item.Key))
+        {
+            if (!IsPointInsideControl(pair.Value, viewportPoint))
+            {
+                continue;
+            }
+
+            var beat = combat.BeatRound.PlayerBeats.FirstOrDefault(slot => slot.BeatIndex == pair.Key);
+            if (beat is null ||
+                string.IsNullOrWhiteSpace(beat.CardInstanceId) ||
+                string.IsNullOrWhiteSpace(beat.CardId) ||
+                beat.Target is not null)
+            {
+                return null;
+            }
+
+            return pair.Key;
+        }
+
+        return null;
+    }
+
+    private BeatTarget? TargetUnderMouse(Vector2 viewportPoint)
+    {
+        if (combat?.BeatRound is null)
+        {
+            return null;
+        }
+
+        foreach (var pair in enemyBeatSlotNodes.OrderByDescending(item => EnemyOrder(item.Key.EnemyInstanceId)).ThenByDescending(item => item.Key.BeatIndex))
+        {
+            if (!IsPointInsideControl(pair.Value, viewportPoint) ||
+                PlayerBeatLockingEnemyBeat(combat, pair.Key.EnemyInstanceId, pair.Key.BeatIndex) is not null)
+            {
+                continue;
+            }
+
+            return new BeatTarget
+            {
+                Kind = BeatTargetKind.EnemyBeat,
+                EnemyInstanceId = pair.Key.EnemyInstanceId,
+                EnemyBeatIndex = pair.Key.BeatIndex
+            };
+        }
+
+        if (battleEnemyView is null)
+        {
+            return null;
+        }
+
+        foreach (var enemy in combat.Enemies.Where(enemy => enemy.CurrentHp > 0).Reverse())
+        {
+            if (!CanTargetEnemyBody(combat, enemy.InstanceId) ||
+                !battleEnemyView.EnemyNodes.TryGetValue(enemy.InstanceId, out var enemyNode) ||
+                !IsPointInsideControl(enemyNode, viewportPoint))
+            {
+                continue;
+            }
+
+            return new BeatTarget
+            {
+                Kind = BeatTargetKind.EnemyBody,
+                EnemyInstanceId = enemy.InstanceId
+            };
+        }
+
+        return null;
     }
 
     private int? PlayerBeatIndexUnderMouse(Vector2 viewportPoint)
@@ -324,6 +588,102 @@ public partial class BattleScreen : ComicScreen
         }
 
         return null;
+    }
+
+    private int EnemyOrder(string enemyInstanceId)
+    {
+        return combat?.Enemies.FindIndex(enemy => string.Equals(enemy.InstanceId, enemyInstanceId, StringComparison.Ordinal)) ?? 0;
+    }
+
+    private static int? PlayerBeatLockingEnemyBeat(CombatState combatState, string enemyInstanceId, int enemyBeatIndex)
+    {
+        return combatState.BeatRound?.PlayerBeats
+            .Where(beat =>
+                beat.Target?.Kind == BeatTargetKind.EnemyBeat &&
+                string.Equals(beat.Target.EnemyInstanceId, enemyInstanceId, StringComparison.Ordinal) &&
+                beat.Target.EnemyBeatIndex == enemyBeatIndex)
+            .Select(beat => (int?)beat.BeatIndex)
+            .FirstOrDefault();
+    }
+
+    private static bool CanTargetEnemyBody(CombatState combatState, string enemyInstanceId)
+    {
+        if (combatState.BeatRound is null)
+        {
+            return false;
+        }
+
+        var enemyBeatKeys = combatState.BeatRound.EnemyBeats
+            .Where(beat => string.Equals(beat.EnemyInstanceId, enemyInstanceId, StringComparison.Ordinal))
+            .Select(beat => beat.BeatIndex)
+            .ToHashSet();
+        if (enemyBeatKeys.Count == 0)
+        {
+            return true;
+        }
+
+        var lockedBeatKeys = combatState.BeatRound.PlayerBeats
+            .Where(beat =>
+                beat.Target?.Kind == BeatTargetKind.EnemyBeat &&
+                string.Equals(beat.Target.EnemyInstanceId, enemyInstanceId, StringComparison.Ordinal) &&
+                beat.Target.EnemyBeatIndex is not null)
+            .Select(beat => beat.Target!.EnemyBeatIndex!.Value)
+            .ToHashSet();
+        return enemyBeatKeys.All(lockedBeatKeys.Contains);
+    }
+
+    private static string EnemyDisplayName(CombatState combatState, string enemyInstanceId)
+    {
+        var index = combatState.Enemies.FindIndex(enemy => string.Equals(enemy.InstanceId, enemyInstanceId, StringComparison.Ordinal));
+        return index < 0 ? "魔物" : $"魔物 {index + 1}";
+    }
+
+    private static string BeatActionSummary(EnemyBeatSlot enemyBeat)
+    {
+        if (enemyBeat.Hidden)
+        {
+            return "未知";
+        }
+
+        if (enemyBeat.Actions.Count == 0)
+        {
+            return enemyBeat.ActionCardId;
+        }
+
+        return string.Join(" / ", enemyBeat.Actions.Select(BeatActionText));
+    }
+
+    private static string BeatActionText(BeatActionDefinition action)
+    {
+        var repeat = action.Repeat > 1 ? $"x{action.Repeat}" : "";
+        return action.Kind switch
+        {
+            BeatActionKind.Attack => $"{AttackTypeText(action.AttackType)}{action.Value}{repeat}",
+            BeatActionKind.Block => $"防{action.Value}{repeat}",
+            BeatActionKind.Dodge => $"闪{action.DodgeChancePercent}%",
+            _ => action.Kind.ToString()
+        };
+    }
+
+    private static string AttackTypeText(BeatAttackType? attackType)
+    {
+        return attackType switch
+        {
+            BeatAttackType.Slash => "斩",
+            BeatAttackType.Strike => "击",
+            BeatAttackType.Projectile => "弹",
+            _ => "攻"
+        };
+    }
+
+    private static string BeatTargetText(BeatTarget? target)
+    {
+        return target?.Kind switch
+        {
+            BeatTargetKind.EnemyBeat => $"目标：敌拍 {target.EnemyBeatIndex.GetValueOrDefault() + 1}",
+            BeatTargetKind.EnemyBody => "目标：本体",
+            _ => "拖出箭头选目标"
+        };
     }
 
     private static bool IsPointInsideControl(Control control, Vector2 viewportPoint)

@@ -243,6 +243,7 @@ public sealed class MvpRunFlowController
         var screen = screenHost.ShowScreen<BattleScreen>(BattleScenePath);
         screen.CardRequested += PlayCard;
         screen.BeatCardDroppedOnSlot += PlaceBeatCard;
+        screen.BeatTargetSelected += SelectBeatTarget;
         screen.EndTurnRequested += EndTurn;
         screen.RestartRequested += StartNewRun;
         screen.Render(combat, run, encounter, message);
@@ -284,6 +285,47 @@ public sealed class MvpRunFlowController
         }
 
         ShowBattle();
+    }
+
+    private void SelectBeatTarget(int playerBeatIndex, BeatTarget target)
+    {
+        if (combat is null || combat.BeatRound is null)
+        {
+            ShowBattle("当前三拍回合尚未准备完成");
+            return;
+        }
+
+        try
+        {
+            var beatCombatService = new BeatCombatService();
+            combat = target.Kind == BeatTargetKind.EnemyBody
+                ? beatPlanningService.SetEnemyBodyTarget(combat, playerBeatIndex, target.EnemyInstanceId, beatCombatService)
+                : beatPlanningService.SetEnemyBeatTarget(
+                    combat,
+                    playerBeatIndex,
+                    target.EnemyInstanceId,
+                    target.EnemyBeatIndex ?? -1,
+                    beatCombatService);
+        }
+        catch (InvalidOperationException)
+        {
+            ShowBattle(BeatTargetFailureText(target));
+            return;
+        }
+        catch (Exception ex)
+        {
+            screenHost.ShowFatalError(ex);
+            return;
+        }
+
+        ShowBattle();
+    }
+
+    private static string BeatTargetFailureText(BeatTarget target)
+    {
+        return target.Kind == BeatTargetKind.EnemyBody
+            ? "无法锁定魔物本体：请先锁定该魔物的全部拍位"
+            : "无法锁定该敌方拍位：它可能已被其他玩家拍位锁定";
     }
 
     private async void PlayCard(string cardInstanceId, string cardId, int handIndex, string? targetEnemyInstanceId)
