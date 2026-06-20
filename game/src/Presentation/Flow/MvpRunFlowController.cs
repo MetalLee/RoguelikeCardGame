@@ -661,6 +661,7 @@ public sealed class MvpRunFlowController
 
         var result = new BeatCombatService().ResolveBeatRound(combat, content.CardsById, content.EnemiesById);
         combat = result.Combat;
+        combat = beatPlanningService.DiscardSlottedActionCards(combat);
 
         await PlayBattleAnimationsAsync(animationScreen, result.Events, null, null);
         if (!IsCurrentFlow(operationVersion))
