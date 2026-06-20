@@ -24,6 +24,59 @@ public sealed class CombatTurnService
 		return StartPlayerTurn(combat, turnNumber: 1, includeNewTurnPreparedEvent: false);
 	}
 
+	public CombatState StartBeatCombat(CombatState combat)
+	{
+		ArgumentNullException.ThrowIfNull(combat);
+		if (combat.Status != CombatStatus.NotStarted)
+		{
+			throw new InvalidOperationException("Beat combat can only be started from NotStarted status.");
+		}
+
+		var stateBeforeDraw = combat with
+		{
+			Status = CombatStatus.PlayerTurn,
+			TurnNumber = 1,
+			PlayerBlock = 0,
+			ActionPoints = 0,
+			ColorEnergy = ColorEnergyPool.Empty(),
+			BeatRound = null
+		};
+		var drawn = DrawCards(stateBeforeDraw, 5);
+		return drawn with
+		{
+			Log = drawn.Log.Append(new CombatLogEvent
+			{
+				EventId = $"{combat.CombatId}_beat_turn_1_started",
+				EventType = CombatLogEventType.TurnStarted,
+				TurnNumber = 1,
+				NumericChanges = new Dictionary<string, int>
+				{
+					["cards_drawn"] = 5
+				}
+			}).ToList()
+		};
+	}
+
+	public CombatState PrepareNextBeatRound(CombatState combat)
+	{
+		ArgumentNullException.ThrowIfNull(combat);
+		if (combat.Status != CombatStatus.EnemyTurn)
+		{
+			throw new InvalidOperationException("Next beat round can only be prepared after resolution.");
+		}
+
+		var stateBeforeDraw = combat with
+		{
+			Status = CombatStatus.PlayerTurn,
+			TurnNumber = combat.TurnNumber + 1,
+			PlayerBlock = 0,
+			ActionPoints = 0,
+			ColorEnergy = combat.ColorEnergy.Clear(),
+			BeatRound = null
+		};
+		return DrawCards(stateBeforeDraw, 2);
+	}
+
 	public CombatState DrawCards(CombatState combat, int count)
 	{
 		ArgumentNullException.ThrowIfNull(combat);

@@ -469,6 +469,59 @@ var beatEnemies = new Dictionary<string, EnemyDefinition>
 {
     [beatEnemy.Id] = beatEnemy
 };
+
+var beatTurnService = new CombatTurnService();
+var beatStartCombat = new CombatState
+{
+    CombatId = "combat_beat_draw",
+    EncounterId = "encounter.test",
+    Status = CombatStatus.NotStarted,
+    TurnNumber = 0,
+    PlayerMaxHp = 60,
+    PlayerHp = 60,
+    CardsPerTurn = 2,
+    DeckZones = new DeckZones
+    {
+        DrawPile = ["c1", "c2", "c3", "c4", "c5", "c6", "c7"]
+    },
+    Enemies = []
+};
+var startedBeatCombat = beatTurnService.StartBeatCombat(beatStartCombat);
+AssertEqual(5, startedBeatCombat.DeckZones.Hand.Count, "Beat combat starts by drawing five cards");
+AssertEqual(CombatStatus.PlayerTurn, startedBeatCombat.Status, "Beat combat starts in player turn");
+AssertEqual(0, startedBeatCombat.ActionPoints, "Beat combat does not use action points");
+var withKeptHand = startedBeatCombat with
+{
+    Status = CombatStatus.EnemyTurn,
+    ColorEnergy = ColorEnergyPool.Empty().Add(ColorType.Colorless, 2),
+    BeatRound = new BeatRoundState { BeatCount = 3 },
+    DeckZones = startedBeatCombat.DeckZones with
+    {
+        Hand = ["c1", "c2", "kept"],
+        DrawPile = ["c6", "c7"]
+    }
+};
+var nextBeatRound = beatTurnService.PrepareNextBeatRound(withKeptHand);
+AssertEqual(5, nextBeatRound.DeckZones.Hand.Count, "Beat combat preserves hand and draws two more cards");
+Assert(nextBeatRound.DeckZones.Hand.Contains("kept"), "Beat combat keeps unplayed hand cards");
+AssertEqual(0, nextBeatRound.ColorEnergy.Count, "Beat combat clears color energy between rounds");
+AssertEqual(null, nextBeatRound.BeatRound, "Beat combat clears the resolved beat round before the next planning phase");
+
+var beatRoundCombat = new CombatState
+{
+    CombatId = "combat_beat_round_factory",
+    EncounterId = "encounter.test",
+    Status = CombatStatus.PlayerTurn,
+    TurnNumber = 1,
+    PlayerMaxHp = 60,
+    PlayerHp = 60,
+    Enemies = [CreateEnemyState("enemy_01", currentHp: 20, maxHp: 20, enemyId: beatEnemy.Id)]
+};
+var createdBeatRound = new BeatCombatRoundFactory().CreateRound(beatRoundCombat, beatEnemies, playerBeatCount: 3);
+AssertEqual(3, createdBeatRound.PlayerBeats.Count, "Beat round factory creates requested player beat slots");
+AssertEqual(beatEnemy.BeatSequences[0].Beats.Count, createdBeatRound.EnemyBeats.Count, "Beat round factory maps first enemy beat sequence");
+AssertEqual("enemy_card.dummy_slash", createdBeatRound.EnemyBeats[0].ActionCardId, "Beat round factory maps enemy action card id");
+AssertEqual(beatEnemy.BeatSequences[0].Beats[0].Actions, createdBeatRound.EnemyBeats[0].Actions, "Beat round factory maps enemy beat actions");
 var resolvedBeatRound = beatService.ResolveBeatRound(beatCombat, beatCards, beatEnemies);
 AssertEqual(1, resolvedBeatRound.Combat.ColorEnergy.Count, "Successful unopposed attack generates one colorless energy");
 AssertEqual(21, resolvedBeatRound.Combat.Enemies[0].CurrentHp, "Weakness-adjusted beat damage is applied to enemy HP");
