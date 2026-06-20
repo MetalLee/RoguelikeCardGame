@@ -229,6 +229,26 @@ AssertEqual(strike.WeaponId, deserializedCard?.WeaponId, "CardDefinition keeps w
 AssertEqual(1, deserializedCard?.ColorEnergyGeneration?.Amount, "CardDefinition keeps action color energy generation");
 AssertEqual(strike.VfxAsset, deserializedCard?.VfxAsset, "CardDefinition keeps card VFX asset");
 
+var slashAction = new BeatActionDefinition
+{
+    Kind = BeatActionKind.Attack,
+    AttackType = BeatAttackType.Slash,
+    Value = 6,
+    Repeat = 2
+};
+var blockAction = new BeatActionDefinition
+{
+    Kind = BeatActionKind.Block,
+    Value = 4,
+    Repeat = 1
+};
+var serializedBeatActions = JsonSerializer.Serialize(new[] { slashAction, blockAction }, options);
+var deserializedBeatActions = JsonSerializer.Deserialize<List<BeatActionDefinition>>(serializedBeatActions, options);
+AssertEqual(2, deserializedBeatActions?.Count, "Beat actions serialize and deserialize");
+AssertEqual(BeatActionKind.Attack, deserializedBeatActions?[0].Kind, "Beat action keeps attack kind");
+AssertEqual(BeatAttackType.Slash, deserializedBeatActions?[0].AttackType, "Beat action keeps slash type");
+AssertEqual(2, deserializedBeatActions?[0].Repeat, "Beat action keeps repeat count");
+
 var runFactory = new RunStateFactory();
 var run = runFactory.CreateNewRun(
     runId: "run_smoke_001",
