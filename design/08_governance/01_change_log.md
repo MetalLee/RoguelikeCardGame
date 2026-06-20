@@ -15,6 +15,11 @@
 
 ## 日志
 
+### 2026-06-20
+
+- 根据 [[inspiration/2026-06-20_combat_identity_and_animation_brainstorm_qa|战斗特色化与动画爽感头脑风暴 Q&A]]，确认当前战斗重构核心卖点为“三拍拆招 + 成功产彩 + 终结分镜切入”，用于区别传统玩家回合连续出牌和单纯动作对撞。同步更新 [[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]] 与 [[design/03_experience/00_ui_ux|界面与交互]]。
+- 新增并落地 [[docs/superpowers/specs/2026-06-20-combat-rework-design|战斗重构设计：三拍拆招、成功产彩与终结分镜切入]] 的第一版实现切片方向：每轮公开魔物动作序列，玩家 3 拍编排行动牌并选择魔物任意未锁定拍位对撞，成功动作固定产 1 点无色彩能，终结牌进入终结槽并在满足彩能后由玩家手动释放；第一版重构 MVP 暂不做彩能附魔和五色终结转译。
+
 ### 2026-06-17
 
 - 清理 `game/assets/` 下未登记在 active presentation manifest、且未被代码 / 数据 / 场景直接引用的旧美术资源，包括旧技能牌模板、旧卡牌包、旧连锁 UI、旧魔物占位、旧连锁 VFX 和未接入的小武器图；同步删除对应 `.import` 文件，确保 active 资源入口只保留当前 manifest 覆盖的美术。
