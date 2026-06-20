@@ -151,6 +151,11 @@ public partial class BattleScreen : ComicScreen
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (HandleBeatTargetingInput(@event))
+        {
+            return;
+        }
+
         if (@event is not InputEventKey { Pressed: true, Echo: false } keyEvent ||
             keyEvent.Keycode != Key.F12)
         {
@@ -164,11 +169,6 @@ public partial class BattleScreen : ComicScreen
         }
 
         GetViewport().SetInputAsHandled();
-    }
-
-    public override void _Input(InputEvent @event)
-    {
-        HandleBeatTargetingInput(@event);
     }
 
     public static string FailureText(PlayCardResult result)
