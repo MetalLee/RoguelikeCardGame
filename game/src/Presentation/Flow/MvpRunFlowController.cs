@@ -263,6 +263,41 @@ public sealed class MvpRunFlowController
             return;
         }
 
+        if (combat.Status != CombatStatus.PlayerTurn)
+        {
+            ShowBattle("当前不是玩家回合");
+            return;
+        }
+
+        if (card.Type != CardType.Action)
+        {
+            ShowBattle("只有行动牌可以放入拍位");
+            return;
+        }
+
+        if (handIndex < 0 ||
+            handIndex >= combat.DeckZones.Hand.Count ||
+            !string.Equals(combat.DeckZones.Hand[handIndex], cardInstanceId, StringComparison.Ordinal))
+        {
+            ShowBattle("这张牌已经不在手牌中");
+            return;
+        }
+
+        var playerBeat = combat.BeatRound.PlayerBeats.FirstOrDefault(beat => beat.BeatIndex == beatIndex);
+        if (playerBeat is null)
+        {
+            screenHost.ShowFatalError(new InvalidOperationException($"Player beat index {beatIndex} does not exist for beat placement."));
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(playerBeat.CardInstanceId) ||
+            !string.IsNullOrWhiteSpace(playerBeat.CardId) ||
+            playerBeat.Target is not null)
+        {
+            ShowBattle("无法放入该拍位");
+            return;
+        }
+
         try
         {
             combat = beatPlanningService.PlaceActionCardInBeat(
@@ -273,9 +308,9 @@ public sealed class MvpRunFlowController
                 beatIndex,
                 card);
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
-            ShowBattle("无法放入该拍位");
+            screenHost.ShowFatalError(ex);
             return;
         }
         catch (Exception ex)
@@ -295,6 +330,11 @@ public sealed class MvpRunFlowController
             return;
         }
 
+        if (!ValidateBeatTargetSelection(playerBeatIndex, target))
+        {
+            return;
+        }
+
         try
         {
             var beatCombatService = new BeatCombatService();
@@ -307,9 +347,9 @@ public sealed class MvpRunFlowController
                     target.EnemyBeatIndex ?? -1,
                     beatCombatService);
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
-            ShowBattle(BeatTargetFailureText(target));
+            screenHost.ShowFatalError(ex);
             return;
         }
         catch (Exception ex)
@@ -321,11 +361,115 @@ public sealed class MvpRunFlowController
         ShowBattle();
     }
 
-    private static string BeatTargetFailureText(BeatTarget target)
+    private bool ValidateBeatTargetSelection(int playerBeatIndex, BeatTarget target)
     {
-        return target.Kind == BeatTargetKind.EnemyBody
-            ? "无法锁定魔物本体：请先锁定该魔物的全部拍位"
-            : "无法锁定该敌方拍位：它可能已被其他玩家拍位锁定";
+        if (combat?.BeatRound is null)
+        {
+            ShowBattle("当前三拍回合尚未准备完成");
+            return false;
+        }
+
+        if (combat.Status != CombatStatus.PlayerTurn)
+        {
+            screenHost.ShowFatalError(new InvalidOperationException("Beat target selection was requested outside the player turn."));
+            return false;
+        }
+
+        var playerBeat = combat.BeatRound.PlayerBeats.FirstOrDefault(beat => beat.BeatIndex == playerBeatIndex);
+        if (playerBeat is null)
+        {
+            screenHost.ShowFatalError(new InvalidOperationException($"Player beat index {playerBeatIndex} does not exist for beat target selection."));
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(playerBeat.CardInstanceId) || string.IsNullOrWhiteSpace(playerBeat.CardId))
+        {
+            screenHost.ShowFatalError(new InvalidOperationException($"Player beat index {playerBeatIndex} has no slotted card for beat target selection."));
+            return false;
+        }
+
+        if (playerBeat.Target is not null)
+        {
+            ShowBattle("该拍位已经锁定目标");
+            return false;
+        }
+
+        if (!combat.Enemies.Any(enemy =>
+                enemy.CurrentHp > 0 &&
+                string.Equals(enemy.InstanceId, target.EnemyInstanceId, StringComparison.Ordinal)))
+        {
+            screenHost.ShowFatalError(new InvalidOperationException($"Target enemy '{target.EnemyInstanceId}' is missing or defeated for beat target selection."));
+            return false;
+        }
+
+        if (target.Kind == BeatTargetKind.EnemyBeat)
+        {
+            if (target.EnemyBeatIndex is null)
+            {
+                screenHost.ShowFatalError(new InvalidOperationException("Enemy beat target selection did not include an enemy beat index."));
+                return false;
+            }
+
+            var enemyBeatExists = combat.BeatRound.EnemyBeats.Any(beat =>
+                string.Equals(beat.EnemyInstanceId, target.EnemyInstanceId, StringComparison.Ordinal) &&
+                beat.BeatIndex == target.EnemyBeatIndex.Value);
+            if (!enemyBeatExists)
+            {
+                screenHost.ShowFatalError(new InvalidOperationException($"Enemy '{target.EnemyInstanceId}' has no beat index {target.EnemyBeatIndex.Value}."));
+                return false;
+            }
+
+            if (IsEnemyBeatLocked(combat.BeatRound, target.EnemyInstanceId, target.EnemyBeatIndex.Value))
+            {
+                ShowBattle("无法锁定该魔物拍位：它已被其他己方拍位锁定");
+                return false;
+            }
+
+            return true;
+        }
+
+        if (target.Kind == BeatTargetKind.EnemyBody)
+        {
+            if (!CanTargetEnemyBody(combat.BeatRound, target.EnemyInstanceId))
+            {
+                ShowBattle("无法锁定魔物本体：请先锁定该魔物的全部拍位");
+                return false;
+            }
+
+            return true;
+        }
+
+        screenHost.ShowFatalError(new InvalidOperationException($"Unsupported beat target kind '{target.Kind}'."));
+        return false;
+    }
+
+    private static bool IsEnemyBeatLocked(BeatRoundState round, string enemyInstanceId, int enemyBeatIndex)
+    {
+        return round.PlayerBeats.Any(beat =>
+            beat.Target?.Kind == BeatTargetKind.EnemyBeat &&
+            string.Equals(beat.Target.EnemyInstanceId, enemyInstanceId, StringComparison.Ordinal) &&
+            beat.Target.EnemyBeatIndex == enemyBeatIndex);
+    }
+
+    private static bool CanTargetEnemyBody(BeatRoundState round, string enemyInstanceId)
+    {
+        var enemyBeatIndices = round.EnemyBeats
+            .Where(beat => string.Equals(beat.EnemyInstanceId, enemyInstanceId, StringComparison.Ordinal))
+            .Select(beat => beat.BeatIndex)
+            .ToHashSet();
+        if (enemyBeatIndices.Count == 0)
+        {
+            return true;
+        }
+
+        var lockedBeatIndices = round.PlayerBeats
+            .Where(beat =>
+                beat.Target?.Kind == BeatTargetKind.EnemyBeat &&
+                string.Equals(beat.Target.EnemyInstanceId, enemyInstanceId, StringComparison.Ordinal) &&
+                beat.Target.EnemyBeatIndex is not null)
+            .Select(beat => beat.Target!.EnemyBeatIndex!.Value)
+            .ToHashSet();
+        return enemyBeatIndices.All(lockedBeatIndices.Contains);
     }
 
     private async void PlayCard(string cardInstanceId, string cardId, int handIndex, string? targetEnemyInstanceId)
