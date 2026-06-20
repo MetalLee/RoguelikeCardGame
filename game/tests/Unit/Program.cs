@@ -522,6 +522,33 @@ AssertEqual(3, createdBeatRound.PlayerBeats.Count, "Beat round factory creates r
 AssertEqual(beatEnemy.BeatSequences[0].Beats.Count, createdBeatRound.EnemyBeats.Count, "Beat round factory maps first enemy beat sequence");
 AssertEqual("enemy_card.dummy_slash", createdBeatRound.EnemyBeats[0].ActionCardId, "Beat round factory maps enemy action card id");
 AssertEqual(beatEnemy.BeatSequences[0].Beats[0].Actions, createdBeatRound.EnemyBeats[0].Actions, "Beat round factory maps enemy beat actions");
+
+var beatFlowStartCombat = new CombatState
+{
+    CombatId = "combat_beat_flow",
+    EncounterId = "encounter.test",
+    Status = CombatStatus.NotStarted,
+    TurnNumber = 0,
+    PlayerMaxHp = 60,
+    PlayerHp = 60,
+    CardsPerTurn = 2,
+    DeckZones = new DeckZones
+    {
+        DrawPile = ["c1", "c2", "c3", "c4", "c5", "c6", "c7"]
+    },
+    Enemies = [CreateEnemyState("enemy_01", currentHp: 20, maxHp: 20, enemyId: beatEnemy.Id)]
+};
+var startedBeatFlow = beatTurnService.StartBeatCombat(beatFlowStartCombat);
+var resolvingBeatFlow = startedBeatFlow with
+{
+    BeatRound = new BeatCombatRoundFactory().CreateRound(startedBeatFlow, beatEnemies, playerBeatCount: 3)
+};
+var resolvedBeatFlow = beatService.ResolveBeatRound(resolvingBeatFlow, beatCards, beatEnemies);
+AssertEqual(CombatStatus.EnemyTurn, resolvedBeatFlow.Combat.Status, "Resolved beat round advances to between-round cleanup status");
+var nextBeatFlowRound = beatTurnService.PrepareNextBeatRound(resolvedBeatFlow.Combat);
+AssertEqual(7, nextBeatFlowRound.DeckZones.Hand.Count, "Beat flow preserves starting hand and draws two cards after resolution");
+Assert(nextBeatFlowRound.DeckZones.Hand.Contains("c1"), "Beat flow keeps cards drawn at combat start");
+Assert(nextBeatFlowRound.DeckZones.Hand.Contains("c7"), "Beat flow draws cards for the next round");
 var resolvedBeatRound = beatService.ResolveBeatRound(beatCombat, beatCards, beatEnemies);
 AssertEqual(1, resolvedBeatRound.Combat.ColorEnergy.Count, "Successful unopposed attack generates one colorless energy");
 AssertEqual(21, resolvedBeatRound.Combat.Enemies[0].CurrentHp, "Weakness-adjusted beat damage is applied to enemy HP");
@@ -571,6 +598,7 @@ AssertThrows(
 
 var finisherReadyCombat = resolvedBeatRound.Combat with
 {
+    Status = CombatStatus.PlayerTurn,
     ColorEnergy = ColorEnergyPool.Empty().Add(ColorType.Colorless, 3),
     BeatRound = resolvedBeatRound.Combat.BeatRound! with
     {
@@ -584,6 +612,7 @@ var finisherReadyCombat = resolvedBeatRound.Combat with
 var releasedFinisher = beatService.ReleaseSlottedFinisher(finisherReadyCombat, finisher, "enemy_01");
 AssertEqual(0, releasedFinisher.Combat.ColorEnergy.Count, "Slotted finisher consumes required colorless energy");
 AssertEqual("finisher_001", releasedFinisher.Combat.BeatRound?.FinisherSlot.CardInstanceId, "Finisher release does not consume the finisher card from slot");
+AssertEqual(CombatStatus.PlayerTurn, releasedFinisher.Combat.Status, "Slotted finisher release keeps the current beat round status");
 Assert(releasedFinisher.Events.Any(item => item.EventType == CombatLogEventType.FinisherReleased), "Finisher release is logged");
 
 AssertThrows(

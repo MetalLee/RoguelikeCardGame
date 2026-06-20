@@ -272,6 +272,11 @@ public sealed class BeatCombatService
         }
 
         working = ApplyBeatOutcome(working);
+        if (working.Status is not CombatStatus.Victory and not CombatStatus.Defeat)
+        {
+            working = working with { Status = CombatStatus.EnemyTurn };
+        }
+
         return new BeatRoundResolveResult
         {
             Combat = working,
