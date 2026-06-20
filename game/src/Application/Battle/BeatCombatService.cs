@@ -186,7 +186,6 @@ public sealed class BeatCombatService
         BeatResistanceProfile defenderResistance,
         BeatActionDefinition block)
     {
-        var blockValue = block.Value > 0 ? block.Value + 1 : 0;
-        return Math.Max(0, DamageAgainstResistance(attack, defenderResistance) - blockValue);
+        return Math.Max(0, DamageAgainstResistance(attack, defenderResistance) - block.Value);
     }
 }

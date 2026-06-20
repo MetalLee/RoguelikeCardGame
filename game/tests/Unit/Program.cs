@@ -310,9 +310,22 @@ var clash = beatService.ResolveActionCollision(
     ],
     enemyResistance: new BeatResistanceProfile { Strike = BeatResistanceGrade.Weakness },
     playerResistance: new BeatResistanceProfile());
-AssertEqual(0, clash.PlayerDamageTaken, "Block reduces incoming attack to zero when value is high enough");
+AssertEqual(1, clash.PlayerDamageTaken, "Block subtracts its value from incoming attack damage");
 AssertEqual(9, clash.EnemyDamageTaken, "Remaining strike action hits weakness for 150 percent damage");
 AssertEqual(2, clash.SuccessfulPlayerActions, "Effective block and successful attack both count as successful actions");
+
+var fullyBlocked = beatService.ResolveActionCollision(
+    playerActions:
+    [
+        new BeatActionDefinition { Kind = BeatActionKind.Block, Value = 5 }
+    ],
+    enemyActions:
+    [
+        new BeatActionDefinition { Kind = BeatActionKind.Attack, AttackType = BeatAttackType.Slash, Value = 5 }
+    ],
+    enemyResistance: new BeatResistanceProfile(),
+    playerResistance: new BeatResistanceProfile());
+AssertEqual(0, fullyBlocked.PlayerDamageTaken, "Equal block value reduces incoming attack to zero");
 
 var resisted = beatService.ResolveActionCollision(
     playerActions:
