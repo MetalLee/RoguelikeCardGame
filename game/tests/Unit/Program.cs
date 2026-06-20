@@ -406,6 +406,74 @@ var emptyBeat = beatService.ValidatePlayerBeatTargets(
     beatTargetCombat);
 Assert(emptyBeat.Succeeded, "Empty player beats without targets are allowed");
 
+const string beatCombatCardInstanceId = "card_beat_slash_001";
+var beatCombat = CreatePlayableCombat(
+    [beatSlashCard.Id, finisher.Id],
+    actionPoints: 0,
+    colorEnergy: ColorEnergyPool.Empty(),
+    enemies: [CreateEnemyState("enemy_01", currentHp: 30, maxHp: 30, enemyId: beatEnemy.Id)]) with
+{
+    BeatRound = new BeatRoundState
+    {
+        BeatCount = 3,
+        PlayerBeats =
+        [
+            new PlayerBeatSlot
+            {
+                BeatIndex = 0,
+                CardInstanceId = beatCombatCardInstanceId,
+                CardId = beatSlashCard.Id,
+                Target = new BeatTarget { Kind = BeatTargetKind.EnemyBeat, EnemyInstanceId = "enemy_01", EnemyBeatIndex = 0 }
+            }
+        ],
+        EnemyBeats =
+        [
+            new EnemyBeatSlot
+            {
+                EnemyInstanceId = "enemy_01",
+                BeatIndex = 0,
+                ActionCardId = "enemy_card.dummy",
+                Actions = []
+            }
+        ],
+        FinisherSlot = new FinisherSlotState
+        {
+            CardInstanceId = "finisher_001",
+            CardId = finisher.Id
+        }
+    }
+};
+var beatCards = new Dictionary<string, CardDefinition>
+{
+    [beatSlashCard.Id] = beatSlashCard,
+    [finisher.Id] = finisher
+};
+var beatEnemies = new Dictionary<string, EnemyDefinition>
+{
+    [beatEnemy.Id] = beatEnemy
+};
+var resolvedBeatRound = beatService.ResolveBeatRound(beatCombat, beatCards, beatEnemies);
+AssertEqual(1, resolvedBeatRound.Combat.ColorEnergy.Count, "Successful unopposed attack generates one colorless energy");
+AssertEqual(21, resolvedBeatRound.Combat.Enemies[0].CurrentHp, "Weakness-adjusted beat damage is applied to enemy HP");
+Assert(resolvedBeatRound.Events.Any(item => item.EventType == CombatLogEventType.BeatEnergyGenerated), "Beat energy generation is logged");
+
+var finisherReadyCombat = resolvedBeatRound.Combat with
+{
+    ColorEnergy = ColorEnergyPool.Empty().Add(ColorType.Colorless, 3),
+    BeatRound = resolvedBeatRound.Combat.BeatRound! with
+    {
+        FinisherSlot = new FinisherSlotState
+        {
+            CardInstanceId = "finisher_001",
+            CardId = finisher.Id
+        }
+    }
+};
+var releasedFinisher = beatService.ReleaseSlottedFinisher(finisherReadyCombat, finisher, "enemy_01");
+AssertEqual(0, releasedFinisher.Combat.ColorEnergy.Count, "Slotted finisher consumes required colorless energy");
+AssertEqual("finisher_001", releasedFinisher.Combat.BeatRound?.FinisherSlot.CardInstanceId, "Finisher release does not consume the finisher card from slot");
+Assert(releasedFinisher.Events.Any(item => item.EventType == CombatLogEventType.FinisherReleased), "Finisher release is logged");
+
 var runFactory = new RunStateFactory();
 var run = runFactory.CreateNewRun(
     runId: "run_smoke_001",

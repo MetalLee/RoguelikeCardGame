@@ -1,4 +1,7 @@
+using RoguelikeCardGame.Domain.Cards;
+using RoguelikeCardGame.Domain.Colors;
 using RoguelikeCardGame.Domain.Combat;
+using RoguelikeCardGame.Domain.Enemies;
 
 namespace RoguelikeCardGame.Application.Battle;
 
@@ -156,6 +159,135 @@ public sealed class BeatCombatService
         }
 
         return BeatTargetValidationResult.Success();
+    }
+
+    public BeatRoundResolveResult ResolveBeatRound(
+        CombatState combat,
+        IReadOnlyDictionary<string, CardDefinition> cardsById,
+        IReadOnlyDictionary<string, EnemyDefinition> enemiesById)
+    {
+        var round = combat.BeatRound ?? throw new InvalidOperationException("Combat has no beat round to resolve.");
+        var validation = ValidatePlayerBeatTargets(round, combat);
+        if (!validation.Succeeded)
+        {
+            throw new InvalidOperationException(validation.Message ?? "Beat round target validation failed.");
+        }
+
+        var logStartIndex = combat.Log.Count;
+        var working = combat;
+
+        foreach (var playerBeat in round.PlayerBeats.OrderBy(beat => beat.BeatIndex))
+        {
+            if (string.IsNullOrWhiteSpace(playerBeat.CardId) || playerBeat.Target is null)
+            {
+                continue;
+            }
+
+            if (!cardsById.TryGetValue(playerBeat.CardId, out var card))
+            {
+                throw new InvalidOperationException($"Unknown beat card id '{playerBeat.CardId}'.");
+            }
+
+            var target = playerBeat.Target;
+            var enemyIndex = working.Enemies.FindIndex(enemy => string.Equals(enemy.InstanceId, target.EnemyInstanceId, StringComparison.Ordinal));
+            if (enemyIndex < 0 || working.Enemies[enemyIndex].CurrentHp <= 0)
+            {
+                continue;
+            }
+
+            var enemyState = working.Enemies[enemyIndex];
+            if (!enemiesById.TryGetValue(enemyState.EnemyId, out var enemyDefinition))
+            {
+                throw new InvalidOperationException($"Unknown enemy definition id '{enemyState.EnemyId}'.");
+            }
+
+            var playerActions = PlayerActionsForTarget(card, target);
+            var enemyActions = target.Kind == BeatTargetKind.EnemyBeat
+                ? EnemyActionsForBeat(round, target)
+                : [];
+            var collision = ResolveActionCollision(
+                playerActions,
+                enemyActions,
+                enemyDefinition.Resistances,
+                new BeatResistanceProfile());
+
+            working = ApplyBeatCollision(working, enemyIndex, collision);
+            working = AppendBeatActionResolvedLog(working, playerBeat, card, target, collision);
+
+            if (collision.SuccessfulPlayerActions > 0)
+            {
+                var before = working.ColorEnergy.Count;
+                var afterPool = working.ColorEnergy.Add(ColorType.Colorless, collision.SuccessfulPlayerActions);
+                var accepted = afterPool.Count - before;
+                working = working with { ColorEnergy = afterPool };
+                if (accepted > 0)
+                {
+                    working = AppendBeatEnergyGeneratedLog(working, playerBeat, card, accepted, afterPool.Count);
+                }
+            }
+        }
+
+        working = ApplyBeatOutcome(working);
+        return new BeatRoundResolveResult
+        {
+            Combat = working,
+            Events = working.Log.Skip(logStartIndex).ToList()
+        };
+    }
+
+    public BeatRoundResolveResult ReleaseSlottedFinisher(
+        CombatState combat,
+        CardDefinition finisher,
+        string targetEnemyInstanceId)
+    {
+        var round = combat.BeatRound ?? throw new InvalidOperationException("Combat has no beat round for slotted finisher release.");
+        if (!string.Equals(round.FinisherSlot.CardId, finisher.Id, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Slotted finisher '{round.FinisherSlot.CardId}' does not match requested finisher '{finisher.Id}'.");
+        }
+
+        if (finisher.ColorEnergyCost is null)
+        {
+            throw new InvalidOperationException($"Finisher '{finisher.Id}' has no color energy cost.");
+        }
+
+        var spendAmount = SpendAmount(finisher.ColorEnergyCost, combat.ColorEnergy);
+        if (!combat.ColorEnergy.CanSpend(finisher.ColorEnergyCost.Mode, spendAmount, finisher.ColorEnergyCost.MinAmount))
+        {
+            throw new InvalidOperationException($"Not enough color energy to release finisher '{finisher.Id}'.");
+        }
+
+        var targetIndex = combat.Enemies.FindIndex(enemy => string.Equals(enemy.InstanceId, targetEnemyInstanceId, StringComparison.Ordinal));
+        if (targetIndex < 0 || combat.Enemies[targetIndex].CurrentHp <= 0)
+        {
+            throw new InvalidOperationException($"Target enemy '{targetEnemyInstanceId}' is missing or defeated.");
+        }
+
+        var logStartIndex = combat.Log.Count;
+        var spent = combat.ColorEnergy.Spend(finisher.ColorEnergyCost.Mode, spendAmount, finisher.ColorEnergyCost.MinAmount);
+        var damage = finisher.Effects
+            .Where(effect => string.Equals(effect.Type, "damage", StringComparison.Ordinal))
+            .Sum(effect => effect.Value ?? 0);
+        var enemies = combat.Enemies.ToList();
+        var target = enemies[targetIndex];
+        enemies[targetIndex] = target with
+        {
+            CurrentHp = Math.Max(0, target.CurrentHp - damage)
+        };
+
+        var working = combat with
+        {
+            ColorEnergy = spent.Pool,
+            Enemies = enemies
+        };
+        working = AppendFinisherReleasedLog(working, finisher, round.FinisherSlot, targetEnemyInstanceId, damage, spent.Spent.Count);
+        working = ApplyBeatOutcome(working);
+
+        return new BeatRoundResolveResult
+        {
+            Combat = working,
+            Events = working.Log.Skip(logStartIndex).ToList()
+        };
     }
 
     public BeatCollisionResult ResolveActionCollision(
@@ -320,5 +452,180 @@ public sealed class BeatCombatService
         BeatActionDefinition block)
     {
         return Math.Max(0, DamageAgainstResistance(attack, defenderResistance) - block.Value);
+    }
+
+    private static IReadOnlyList<BeatActionDefinition> PlayerActionsForTarget(CardDefinition card, BeatTarget target)
+    {
+        return target.Kind == BeatTargetKind.EnemyBody
+            ? card.BeatActions.Where(action => action.Kind == BeatActionKind.Attack).ToList()
+            : card.BeatActions;
+    }
+
+    private static IReadOnlyList<BeatActionDefinition> EnemyActionsForBeat(BeatRoundState round, BeatTarget target)
+    {
+        return round.EnemyBeats
+            .FirstOrDefault(enemyBeat =>
+                string.Equals(enemyBeat.EnemyInstanceId, target.EnemyInstanceId, StringComparison.Ordinal) &&
+                enemyBeat.BeatIndex == target.EnemyBeatIndex)
+            ?.Actions ?? [];
+    }
+
+    private static CombatState ApplyBeatCollision(CombatState combat, int enemyIndex, BeatCollisionResult collision)
+    {
+        var enemies = combat.Enemies.ToList();
+        var target = enemies[enemyIndex];
+        enemies[enemyIndex] = target with
+        {
+            CurrentHp = Math.Max(0, target.CurrentHp - collision.EnemyDamageTaken)
+        };
+
+        return combat with
+        {
+            PlayerHp = Math.Max(0, combat.PlayerHp - collision.PlayerDamageTaken),
+            Enemies = enemies
+        };
+    }
+
+    private static CombatState AppendBeatActionResolvedLog(
+        CombatState combat,
+        PlayerBeatSlot playerBeat,
+        CardDefinition card,
+        BeatTarget target,
+        BeatCollisionResult collision)
+    {
+        var log = combat.Log.ToList();
+        log.Add(new CombatLogEvent
+        {
+            EventId = $"{combat.CombatId}_turn_{combat.TurnNumber}_beat_{playerBeat.BeatIndex}_resolved_{log.Count + 1}",
+            EventType = CombatLogEventType.BeatActionResolved,
+            TurnNumber = combat.TurnNumber,
+            SourceId = card.Id,
+            TargetIds = [target.EnemyInstanceId],
+            NumericChanges = new Dictionary<string, int>
+            {
+                ["beat_index"] = playerBeat.BeatIndex,
+                ["enemy_damage"] = collision.EnemyDamageTaken,
+                ["player_damage"] = collision.PlayerDamageTaken,
+                ["successful_player_actions"] = collision.SuccessfulPlayerActions,
+                ["successful_enemy_actions"] = collision.SuccessfulEnemyActions
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["card_instance_id"] = playerBeat.CardInstanceId ?? string.Empty,
+                ["target_kind"] = target.Kind.ToString(),
+                ["enemy_beat_index"] = target.EnemyBeatIndex?.ToString() ?? string.Empty
+            }
+        });
+
+        return combat with { Log = log };
+    }
+
+    private static CombatState AppendBeatEnergyGeneratedLog(
+        CombatState combat,
+        PlayerBeatSlot playerBeat,
+        CardDefinition card,
+        int accepted,
+        int colorEnergyAfter)
+    {
+        var log = combat.Log.ToList();
+        log.Add(new CombatLogEvent
+        {
+            EventId = $"{combat.CombatId}_turn_{combat.TurnNumber}_beat_{playerBeat.BeatIndex}_energy_{log.Count + 1}",
+            EventType = CombatLogEventType.BeatEnergyGenerated,
+            TurnNumber = combat.TurnNumber,
+            SourceId = card.Id,
+            TargetIds = ["color_energy_pool"],
+            NumericChanges = new Dictionary<string, int>
+            {
+                ["color_energy_generated"] = accepted,
+                ["color_energy_after"] = colorEnergyAfter
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["color"] = ColorType.Colorless.ToString(),
+                ["card_instance_id"] = playerBeat.CardInstanceId ?? string.Empty
+            }
+        });
+
+        return combat with { Log = log };
+    }
+
+    private static CombatState AppendFinisherReleasedLog(
+        CombatState combat,
+        CardDefinition finisher,
+        FinisherSlotState slot,
+        string targetEnemyInstanceId,
+        int damage,
+        int spentEnergy)
+    {
+        var log = combat.Log.ToList();
+        log.Add(new CombatLogEvent
+        {
+            EventId = $"{combat.CombatId}_turn_{combat.TurnNumber}_finisher_{finisher.Id}_{log.Count + 1}",
+            EventType = CombatLogEventType.FinisherReleased,
+            TurnNumber = combat.TurnNumber,
+            SourceId = finisher.Id,
+            TargetIds = [targetEnemyInstanceId],
+            NumericChanges = new Dictionary<string, int>
+            {
+                ["damage"] = damage,
+                ["color_energy_spent"] = spentEnergy,
+                ["color_energy_after"] = combat.ColorEnergy.Count
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["card_instance_id"] = slot.CardInstanceId ?? string.Empty,
+                ["finisher_attack_type"] = finisher.FinisherAttackType?.ToString() ?? string.Empty
+            }
+        });
+
+        return combat with { Log = log };
+    }
+
+    private static int SpendAmount(ColorEnergyCost cost, ColorEnergyPool pool)
+    {
+        return cost.Mode switch
+        {
+            ColorEnergySpendMode.Fixed => cost.Amount,
+            ColorEnergySpendMode.X => cost.Amount > 0 ? cost.Amount : pool.Count,
+            ColorEnergySpendMode.All => pool.Count,
+            _ => 0
+        };
+    }
+
+    private static CombatState ApplyBeatOutcome(CombatState combat)
+    {
+        if (combat.PlayerHp <= 0 && combat.Status != CombatStatus.Defeat)
+        {
+            return AppendCombatEndedLog(combat with { Status = CombatStatus.Defeat }, CombatStatus.Defeat);
+        }
+
+        if (combat.Enemies.Count > 0 && combat.Enemies.All(enemy => enemy.CurrentHp <= 0) && combat.Status != CombatStatus.Victory)
+        {
+            return AppendCombatEndedLog(combat with { Status = CombatStatus.Victory }, CombatStatus.Victory);
+        }
+
+        return combat;
+    }
+
+    private static CombatState AppendCombatEndedLog(CombatState combat, CombatStatus status)
+    {
+        var log = combat.Log.ToList();
+        log.Add(new CombatLogEvent
+        {
+            EventId = $"{combat.CombatId}_turn_{combat.TurnNumber}_combat_ended_{status.ToString().ToLowerInvariant()}_{log.Count + 1}",
+            EventType = CombatLogEventType.CombatEnded,
+            TurnNumber = combat.TurnNumber,
+            NumericChanges = new Dictionary<string, int>
+            {
+                ["player_hp"] = combat.PlayerHp
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["status"] = status.ToString()
+            }
+        });
+
+        return combat with { Log = log };
     }
 }
