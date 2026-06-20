@@ -406,6 +406,66 @@ var emptyBeat = beatService.ValidatePlayerBeatTargets(
     beatTargetCombat);
 Assert(emptyBeat.Succeeded, "Empty player beats without targets are allowed");
 
+var beatPlanning = new BeatRoundPlanningService();
+const string planningBeatSlashInstanceA = "card_instance.beat_slash_001";
+const string planningGuardInstance = "card_instance.guard_001";
+const string planningBeatSlashInstanceB = "card_instance.beat_slash_002";
+var planningCombat = CreatePlayableCombat(
+    [planningBeatSlashInstanceA, planningGuardInstance, planningBeatSlashInstanceB],
+    actionPoints: 0,
+    enemies: [CreateEnemyState("enemy_01", currentHp: 30, maxHp: 30, enemyId: beatEnemy.Id)]) with
+{
+    BeatRound = new BeatRoundFactoryForTest().CreateEmptyRound(enemyInstanceId: "enemy_01")
+};
+var placedBeat = beatPlanning.PlaceActionCardInBeat(
+    planningCombat,
+    cardInstanceId: planningCombat.DeckZones.Hand[0],
+    cardId: beatSlashCard.Id,
+    handIndex: 0,
+    beatIndex: 1,
+    beatSlashCard);
+AssertEqual(beatSlashCard.Id, placedBeat.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 1).CardId, "Beat planning places the action card in the selected beat");
+Assert(!placedBeat.DeckZones.Hand.Contains(planningCombat.DeckZones.Hand[0]), "Beat planning removes the slotted action card instance from hand");
+
+var targetedBeat = beatPlanning.SetEnemyBeatTarget(
+    placedBeat,
+    beatIndex: 1,
+    enemyInstanceId: "enemy_01",
+    enemyBeatIndex: 0,
+    new BeatCombatService());
+AssertEqual(BeatTargetKind.EnemyBeat, targetedBeat.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 1).Target?.Kind, "Beat planning assigns an enemy beat target");
+AssertEqual(0, targetedBeat.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 1).Target?.EnemyBeatIndex, "Beat planning stores the enemy beat index");
+
+var secondPlacedBeat = beatPlanning.PlaceActionCardInBeat(
+    targetedBeat,
+    cardInstanceId: targetedBeat.DeckZones.Hand[0],
+    cardId: guardAction.Id,
+    handIndex: 0,
+    beatIndex: 2,
+    guardAction);
+AssertThrows(
+    () => beatPlanning.SetEnemyBodyTarget(secondPlacedBeat, beatIndex: 2, enemyInstanceId: "enemy_01", new BeatCombatService()),
+    "Enemy body cannot be targeted until all enemy beats are locked");
+
+var allBeatsLocked = beatPlanning.SetEnemyBeatTarget(
+    secondPlacedBeat,
+    beatIndex: 2,
+    enemyInstanceId: "enemy_01",
+    enemyBeatIndex: 1,
+    new BeatCombatService());
+var thirdPlacedBeat = beatPlanning.PlaceActionCardInBeat(
+    allBeatsLocked,
+    cardInstanceId: allBeatsLocked.DeckZones.Hand[0],
+    cardId: beatSlashCard.Id,
+    handIndex: 0,
+    beatIndex: 0,
+    beatSlashCard);
+var bodyTargetedBeat = beatPlanning.SetEnemyBodyTarget(thirdPlacedBeat, beatIndex: 0, enemyInstanceId: "enemy_01", new BeatCombatService());
+AssertEqual(BeatTargetKind.EnemyBody, bodyTargetedBeat.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 0).Target?.Kind, "Enemy body can be targeted after all enemy beats are locked");
+
+var discardAfterBeat = beatPlanning.DiscardSlottedActionCards(bodyTargetedBeat);
+Assert(discardAfterBeat.DeckZones.DiscardPile.Contains(planningCombat.DeckZones.Hand[0]), "Beat planning discards slotted action card instances after beat resolution");
+
 var missingCardIdWithInstance = beatService.ValidatePlayerBeatTargets(
     CreateBeatTargetRound(
         beatCount: 3,
@@ -1770,5 +1830,45 @@ static void Assert(bool condition, string message)
     if (!condition)
     {
         throw new InvalidOperationException(message);
+    }
+}
+
+sealed class BeatRoundFactoryForTest
+{
+    public BeatRoundState CreateEmptyRound(string enemyInstanceId)
+    {
+        return new BeatRoundState
+        {
+            BeatCount = 3,
+            PlayerBeats =
+            [
+                new PlayerBeatSlot { BeatIndex = 0 },
+                new PlayerBeatSlot { BeatIndex = 1 },
+                new PlayerBeatSlot { BeatIndex = 2 }
+            ],
+            EnemyBeats =
+            [
+                new EnemyBeatSlot
+                {
+                    EnemyInstanceId = enemyInstanceId,
+                    BeatIndex = 0,
+                    ActionCardId = "enemy_card.test_slash",
+                    Actions =
+                    [
+                        new BeatActionDefinition { Kind = BeatActionKind.Attack, AttackType = BeatAttackType.Slash, Value = 4 }
+                    ]
+                },
+                new EnemyBeatSlot
+                {
+                    EnemyInstanceId = enemyInstanceId,
+                    BeatIndex = 1,
+                    ActionCardId = "enemy_card.test_guard",
+                    Actions =
+                    [
+                        new BeatActionDefinition { Kind = BeatActionKind.Block, Value = 3 }
+                    ]
+                }
+            ]
+        };
     }
 }
