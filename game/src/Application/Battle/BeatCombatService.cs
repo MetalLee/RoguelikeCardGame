@@ -44,6 +44,7 @@ public enum BeatTargetValidationFailureReason
     EnemyBeatIndexMissing,
     EnemyBeatMissing,
     DuplicateEnemyBeatTarget,
+    CardIdMissing,
     BodyTargetRequiresAllEnemyBeatsLocked
 }
 
@@ -81,8 +82,16 @@ public sealed class BeatCombatService
                     $"Player beat index {playerBeat.BeatIndex} is assigned more than once.");
             }
 
-            var hasCard = !string.IsNullOrWhiteSpace(playerBeat.CardInstanceId) ||
-                !string.IsNullOrWhiteSpace(playerBeat.CardId);
+            var hasCardInstance = !string.IsNullOrWhiteSpace(playerBeat.CardInstanceId);
+            var hasCardId = !string.IsNullOrWhiteSpace(playerBeat.CardId);
+            if (hasCardInstance && !hasCardId)
+            {
+                return BeatTargetValidationResult.Failure(
+                    BeatTargetValidationFailureReason.CardIdMissing,
+                    $"Player beat index {playerBeat.BeatIndex} has a card instance but no card id.");
+            }
+
+            var hasCard = hasCardInstance || hasCardId;
             if (!hasCard)
             {
                 if (playerBeat.Target is not null)
@@ -166,6 +175,8 @@ public sealed class BeatCombatService
         IReadOnlyDictionary<string, CardDefinition> cardsById,
         IReadOnlyDictionary<string, EnemyDefinition> enemiesById)
     {
+        EnsureCombatNotEnded(combat);
+
         var round = combat.BeatRound ?? throw new InvalidOperationException("Combat has no beat round to resolve.");
         var validation = ValidatePlayerBeatTargets(round, combat);
         if (!validation.Succeeded)
@@ -176,7 +187,10 @@ public sealed class BeatCombatService
         var logStartIndex = combat.Log.Count;
         var working = combat;
         var lockedEnemyBeats = round.PlayerBeats
-            .Where(playerBeat => playerBeat.Target?.Kind == BeatTargetKind.EnemyBeat && playerBeat.Target.EnemyBeatIndex is not null)
+            .Where(playerBeat =>
+                !string.IsNullOrWhiteSpace(playerBeat.CardId) &&
+                playerBeat.Target?.Kind == BeatTargetKind.EnemyBeat &&
+                playerBeat.Target.EnemyBeatIndex is not null)
             .Select(playerBeat => (playerBeat.Target!.EnemyInstanceId, playerBeat.Target.EnemyBeatIndex!.Value))
             .ToHashSet();
 
@@ -270,6 +284,8 @@ public sealed class BeatCombatService
         CardDefinition finisher,
         string targetEnemyInstanceId)
     {
+        EnsureCombatNotEnded(combat);
+
         var round = combat.BeatRound ?? throw new InvalidOperationException("Combat has no beat round for slotted finisher release.");
         if (!string.Equals(round.FinisherSlot.CardId, finisher.Id, StringComparison.Ordinal))
         {
@@ -655,6 +671,14 @@ public sealed class BeatCombatService
             ColorEnergySpendMode.All => pool.Count,
             _ => 0
         };
+    }
+
+    private static void EnsureCombatNotEnded(CombatState combat)
+    {
+        if (combat.Status is CombatStatus.Victory or CombatStatus.Defeat)
+        {
+            throw new InvalidOperationException($"Combat '{combat.CombatId}' has already ended with status {combat.Status}.");
+        }
     }
 
     private static CombatState ApplyBeatOutcome(CombatState combat)

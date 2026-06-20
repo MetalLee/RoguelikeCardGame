@@ -406,6 +406,23 @@ var emptyBeat = beatService.ValidatePlayerBeatTargets(
     beatTargetCombat);
 Assert(emptyBeat.Succeeded, "Empty player beats without targets are allowed");
 
+var missingCardIdWithInstance = beatService.ValidatePlayerBeatTargets(
+    CreateBeatTargetRound(
+        beatCount: 3,
+        enemyBeatIndexes: [0, 1, 2],
+        playerBeats:
+        [
+            new PlayerBeatSlot
+            {
+                BeatIndex = 0,
+                CardInstanceId = "card_instance_without_definition_id",
+                Target = CreateEnemyBeatTarget(0)
+            }
+        ]),
+    beatTargetCombat);
+Assert(!missingCardIdWithInstance.Succeeded, "Player beats with a card instance require a card id for resolution");
+AssertEqual(BeatTargetValidationFailureReason.CardIdMissing, missingCardIdWithInstance.FailureReason, "Missing beat card id exposes failure reason");
+
 const string beatCombatCardInstanceId = "card_beat_slash_001";
 var beatCombat = CreatePlayableCombat(
     [beatSlashCard.Id, finisher.Id],
@@ -492,6 +509,13 @@ Assert(
         item.TargetIds.Contains("player")),
     "Unblocked enemy beat action is logged");
 
+AssertThrows(
+    () => beatService.ResolveBeatRound(beatCombat with { Status = CombatStatus.Defeat }, beatCards, beatEnemies),
+    "Defeated combat cannot resolve another beat round");
+AssertThrows(
+    () => beatService.ResolveBeatRound(beatCombat with { Status = CombatStatus.Victory }, beatCards, beatEnemies),
+    "Victorious combat cannot resolve another beat round");
+
 var finisherReadyCombat = resolvedBeatRound.Combat with
 {
     ColorEnergy = ColorEnergyPool.Empty().Add(ColorType.Colorless, 3),
@@ -508,6 +532,13 @@ var releasedFinisher = beatService.ReleaseSlottedFinisher(finisherReadyCombat, f
 AssertEqual(0, releasedFinisher.Combat.ColorEnergy.Count, "Slotted finisher consumes required colorless energy");
 AssertEqual("finisher_001", releasedFinisher.Combat.BeatRound?.FinisherSlot.CardInstanceId, "Finisher release does not consume the finisher card from slot");
 Assert(releasedFinisher.Events.Any(item => item.EventType == CombatLogEventType.FinisherReleased), "Finisher release is logged");
+
+AssertThrows(
+    () => beatService.ReleaseSlottedFinisher(finisherReadyCombat with { Status = CombatStatus.Defeat }, finisher, "enemy_01"),
+    "Defeated combat cannot release a slotted finisher");
+AssertThrows(
+    () => beatService.ReleaseSlottedFinisher(finisherReadyCombat with { Status = CombatStatus.Victory }, finisher, "enemy_01"),
+    "Victorious combat cannot release a slotted finisher");
 
 var actionCardInFinisherSlot = strike with
 {
