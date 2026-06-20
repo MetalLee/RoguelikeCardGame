@@ -482,7 +482,7 @@ public partial class BattleScreen : ComicScreen
             return;
         }
 
-        targetingOverlay.ShowArrowFromViewport(CenterOf(slot), viewportMouse, TargetUnderMouse(viewportMouse) is not null);
+        targetingOverlay.ShowArrowFromViewport(ControlCenterInViewport(slot), viewportMouse, TargetUnderMouse(viewportMouse) is not null);
     }
 
     private int? TargetablePlayerBeatIndexUnderMouse(Vector2 viewportPoint)
@@ -704,6 +704,11 @@ public partial class BattleScreen : ComicScreen
             localPoint.Y >= 0 &&
             localPoint.X <= size.X &&
             localPoint.Y <= size.Y;
+    }
+
+    private static Vector2 ControlCenterInViewport(Control control)
+    {
+        return control.GetGlobalTransformWithCanvas() * (control.Size * 0.5f);
     }
 
     private Button CreateRestartButton()
