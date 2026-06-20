@@ -474,6 +474,29 @@ AssertEqual(0, releasedFinisher.Combat.ColorEnergy.Count, "Slotted finisher cons
 AssertEqual("finisher_001", releasedFinisher.Combat.BeatRound?.FinisherSlot.CardInstanceId, "Finisher release does not consume the finisher card from slot");
 Assert(releasedFinisher.Events.Any(item => item.EventType == CombatLogEventType.FinisherReleased), "Finisher release is logged");
 
+var actionCardInFinisherSlot = strike with
+{
+    Id = "card.action_in_finisher_slot",
+    Type = CardType.Action,
+    Cost = 0,
+    ColorEnergyCost = new ColorEnergyCost { Mode = ColorEnergySpendMode.Fixed, Amount = 3, MinAmount = 3 },
+    Effects = [new EffectDefinition { Type = "damage", Target = "selected_enemy", Value = 9 }]
+};
+var actionSlottedCombat = finisherReadyCombat with
+{
+    BeatRound = finisherReadyCombat.BeatRound! with
+    {
+        FinisherSlot = new FinisherSlotState
+        {
+            CardInstanceId = "action_slot_001",
+            CardId = actionCardInFinisherSlot.Id
+        }
+    }
+};
+AssertThrows(
+    () => beatService.ReleaseSlottedFinisher(actionSlottedCombat, actionCardInFinisherSlot, "enemy_01"),
+    "Slotted finisher release rejects non-finisher card definitions");
+
 var runFactory = new RunStateFactory();
 var run = runFactory.CreateNewRun(
     runId: "run_smoke_001",

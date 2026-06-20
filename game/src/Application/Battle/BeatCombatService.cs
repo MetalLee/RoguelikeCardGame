@@ -246,6 +246,11 @@ public sealed class BeatCombatService
             throw new InvalidOperationException($"Slotted finisher '{round.FinisherSlot.CardId}' does not match requested finisher '{finisher.Id}'.");
         }
 
+        if (finisher.Type != CardType.Finisher)
+        {
+            throw new InvalidOperationException($"Slotted card '{finisher.Id}' must be a finisher to release from the finisher slot.");
+        }
+
         if (finisher.ColorEnergyCost is null)
         {
             throw new InvalidOperationException($"Finisher '{finisher.Id}' has no color energy cost.");
