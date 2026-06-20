@@ -250,20 +250,20 @@ public sealed class MvpRunFlowController
 
     private void PlaceBeatCard(string cardInstanceId, string cardId, int handIndex, int beatIndex)
     {
+        if (combat is null || combat.BeatRound is null)
+        {
+            ShowBattle("无法放入该拍位");
+            return;
+        }
+
+        if (!content.CardsById.TryGetValue(cardId, out var card))
+        {
+            screenHost.ShowFatalError(new InvalidOperationException($"Unknown card id '{cardId}' for beat placement."));
+            return;
+        }
+
         try
         {
-            if (combat is null || combat.BeatRound is null)
-            {
-                ShowBattle("当前三拍回合尚未准备完成");
-                return;
-            }
-
-            if (!content.CardsById.TryGetValue(cardId, out var card))
-            {
-                ShowBattle($"找不到卡牌数据：{cardId}");
-                return;
-            }
-
             combat = beatPlanningService.PlaceActionCardInBeat(
                 combat,
                 cardInstanceId,
@@ -271,12 +271,19 @@ public sealed class MvpRunFlowController
                 handIndex,
                 beatIndex,
                 card);
-            ShowBattle();
+        }
+        catch (InvalidOperationException)
+        {
+            ShowBattle("无法放入该拍位");
+            return;
         }
         catch (Exception ex)
         {
-            ShowBattle(ex.Message);
+            screenHost.ShowFatalError(ex);
+            return;
         }
+
+        ShowBattle();
     }
 
     private async void PlayCard(string cardInstanceId, string cardId, int handIndex, string? targetEnemyInstanceId)
