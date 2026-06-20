@@ -46,3 +46,6 @@ game/logs/*
 # personal cfg and plugins
 .claudian
 .obsidian
+
+# Local implementation worktrees
+.worktrees/
