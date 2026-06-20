@@ -12,6 +12,9 @@ public partial class BattleScreen : ComicScreen
     private const float PlayerStageGroundY = 980f;
     private const float PlayerSpriteBottomTransparentPadding = 23f;
     private const double ThoughtBubbleDurationSeconds = 2.0;
+    private static readonly Vector2 BeatLanePosition = new(440, 626);
+    private static readonly Vector2 BeatLaneSize = new(570, 82);
+    private static readonly Vector2 BeatSlotSize = new(170, 58);
     private static readonly Vector2 ThoughtBubblePosition = new(346, 382);
     private static readonly Vector2 ThoughtBubbleSize = new(610, 238);
 
@@ -94,7 +97,7 @@ public partial class BattleScreen : ComicScreen
         beatLane = CreateBeatLane(combat);
         if (beatLane is not null)
         {
-            AddAt(root, beatLane, new Vector2(550, 650), new Vector2(800, 82));
+            AddAt(root, beatLane, BeatLanePosition, BeatLaneSize);
         }
 
         battleHandView = new BattleHandView();
@@ -260,7 +263,7 @@ public partial class BattleScreen : ComicScreen
     {
         var slot = new PanelContainer
         {
-            CustomMinimumSize = new Vector2(236, 58),
+            CustomMinimumSize = BeatSlotSize,
             MouseFilter = MouseFilterEnum.Ignore
         };
         slot.AddThemeStyleboxOverride("panel", CreateButtonStyle(FinisherLine, 0.82f));
