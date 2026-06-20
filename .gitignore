@@ -49,3 +49,6 @@ game/logs/*
 
 # Local implementation worktrees
 .worktrees/
+
+# Superpowers
+.superpowers/
