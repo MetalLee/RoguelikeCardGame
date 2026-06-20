@@ -1,33 +1,33 @@
-# Beat Placement Auto Target Design
+# 拍位放入后自动瞄准交互设计
 
-## Goal
+## 目标
 
-Improve beat combat card placement so the player does not need to click a filled player beat slot a second time before selecting an enemy beat target.
+优化三拍战斗的行动牌放入流程：玩家将行动牌放入己方拍位后，不需要再次点击该拍位，系统立即进入从该拍位指向魔物拍位的临时瞄准状态。
 
-## Interaction
+## 交互流程
 
-1. The player drags an action card from hand to an empty player beat slot.
-2. Releasing the mouse on that empty slot places the card into the slot.
-3. The placed slot immediately becomes a temporary targeting anchor.
-4. An arrow starts from that player beat slot and follows the mouse.
-5. The player clicks an unlocked enemy beat to set the collision target.
-6. If all beats of that enemy are locked, the player may click the enemy body instead.
-7. If the player right-clicks or left-clicks empty space while targeting, the newly placed card returns to hand and the player beat slot is cleared.
+1. 玩家从手牌拖动 1 张行动牌到空玩家拍位。
+2. 玩家在该空拍位上松开鼠标，系统将该行动牌放入拍位。
+3. 放入成功后，该拍位立即成为临时瞄准锚点。
+4. 箭头从该玩家拍位出发并跟随鼠标。
+5. 玩家点击未锁定魔物拍位，设置动作对撞目标。
+6. 若该魔物所有拍位都已锁定，玩家可以点击该魔物本体作为目标。
+7. 若玩家在临时瞄准期间右键或左键点击空白区域，本次刚放入的行动牌退回手牌，玩家拍位清空。
 
-## Scope
+## 范围
 
-- This replaces the previous "place card, then click the player beat slot again" targeting start.
-- Only the most recently placed, untargeted action card can be auto-targeted.
-- Cancellation restores the card instance to the hand and clears the player beat slot.
-- Existing target validation remains authoritative in `BeatRoundPlanningService` and `BeatCombatService`.
+- 本交互替代此前“先放牌，再点击该玩家拍位启动瞄准”的方式。
+- 只有最近一次放入且尚未锁定目标的行动牌会进入自动瞄准状态。
+- 取消会恢复同一个 `CardInstanceId` 到手牌，并清空对应玩家拍位。
+- 目标合法性仍以 `BeatRoundPlanningService` 和 `BeatCombatService` 的规则校验为准。
 
-## Error Handling
+## 错误处理
 
-- Expected cancellation is not an error and shows no fatal screen.
-- Invalid target selection keeps the same stable battle feedback.
-- Unexpected state mismatches still route through fatal error handling.
+- 玩家主动取消不是错误，不进入 fatal。
+- 非法目标选择使用稳定的战斗内反馈。
+- 非预期状态不一致继续进入 fatal 错误处理。
 
-## Verification
+## 验证
 
-- Unit tests cover rollback from a slotted beat back to hand.
-- Godot build and headless project startup must pass.
+- 单元测试覆盖从已放入拍位撤回到手牌。
+- Godot 构建和 headless 项目启动必须通过。

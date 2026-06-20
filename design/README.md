@@ -23,7 +23,7 @@
 
 ### 01 Core Gameplay
 
-定义玩家每回合、每场战斗、每局 Run、长期成长中的核心体验。
+定义玩家每轮、每场战斗、每局 Run、长期成长中的核心体验。
 
 - [[design/01_core_gameplay/00_core_loop|核心循环]]
 - [[design/01_core_gameplay/01_run_structure|单局结构]]

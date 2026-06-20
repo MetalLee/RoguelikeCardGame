@@ -4,6 +4,8 @@
 
 **Goal:** Make the beat combat prototype playable by allowing action cards to be dragged into player beat slots, then targeted at visible enemy beats or enemy bodies.
 
+**Revision note (2026-06-21):** The original plan assumed the player would place a card, then click the filled player beat slot to start targeting. Current confirmed interaction supersedes that detail: releasing an action card on an empty player beat slot immediately places the card and starts a temporary targeting arrow from that slot. Right-clicking or clicking empty space cancels this temporary targeting and returns the newly placed card to hand. See `docs/superpowers/specs/2026-06-21-beat-placement-auto-target-design.md`.
+
 **Architecture:** Add a small application service for immutable beat-round planning changes so drag/drop UI does not own rules. `BattleScreen` owns hit-testing for player beat slots, enemy beat slots, enemy body targets, and the targeting arrow. `MvpRunFlowController` receives UI intents, updates `CombatState`, and keeps existing `ResolveBeatRound` as the final rules authority.
 
 **Tech Stack:** Godot 4.6 .NET / C#, existing `game/tests/Unit/Program.cs` smoke tests, generated Godot UI controls, existing `BeatCombatService`.
@@ -883,12 +885,12 @@ Keep this before victory/defeat handling and before `PrepareNextBeatRound`.
 
 - [ ] **Step 2: Update UI documentation**
 
-Append to `design/03_experience/00_ui_ux.md` under the three-beat UI section:
+Append to `design/03_experience/00_ui_ux.md` under the three-beat UI section. The original text below has been superseded by the 2026-06-21 auto-targeting revision:
 
 ```markdown
 ### 三拍槽位瞄准交互
 
-第一版可玩原型采用“两步式”操作：玩家先将行动牌拖入空的玩家拍位，再从该拍位拉出箭头选择目标。若魔物仍有未锁定拍位，只能选择未锁定魔物拍作为对撞目标；当该魔物所有拍位都已锁定后，才允许从已填入行动牌的玩家拍位选择魔物本体。手牌不允许直接拖到魔物拍或魔物本体。
+第一版可玩原型采用“两步式连续操作”：玩家先将行动牌拖入空的玩家拍位并松开鼠标，系统立即以该拍位作为临时锚点拉出箭头，等待玩家选择目标。若魔物仍有未锁定拍位，只能选择未锁定魔物拍作为对撞目标；当该魔物所有拍位都已锁定后，才允许从已填入行动牌的玩家拍位选择魔物本体。手牌不允许直接拖到魔物拍或魔物本体。若玩家在临时瞄准期间右键取消或点击空白区域，本次刚放入的行动牌退回手牌，该玩家拍位清空。
 ```
 
 - [ ] **Step 3: Run final verification**
