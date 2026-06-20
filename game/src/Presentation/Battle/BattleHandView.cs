@@ -27,6 +27,7 @@ public sealed partial class BattleHandView : Control
     private bool beatPrototypeMode;
 
     public event Action<string, string, int, string?>? CardRequested;
+    public event Action<string, string, int, Vector2>? BeatCardDropRequested;
     public event Action<string>? FeedbackRequested;
     public event Action<string?, bool>? SingleEnemyDragTargetChanged;
 
@@ -336,9 +337,12 @@ public sealed partial class BattleHandView : Control
 
         if (beatPrototypeMode)
         {
-            FeedbackRequested?.Invoke("当前原型请使用三拍区/结束结算");
-            GetViewport().SetInputAsHandled();
-            return;
+            if (card.Card.Type != CardType.Action)
+            {
+                FeedbackRequested?.Invoke("终结牌暂时只能显示在终结槽，不能放入三拍槽");
+                GetViewport().SetInputAsHandled();
+                return;
+            }
         }
 
         BeginCardDrag(card);
@@ -375,7 +379,7 @@ public sealed partial class BattleHandView : Control
         draggingCard = card;
         card.IsHovered = false;
         card.Node.ZIndex = 85;
-        if (card.Card.TargetRule == TargetRule.SingleEnemy)
+        if (!beatPrototypeMode && card.Card.TargetRule == TargetRule.SingleEnemy)
         {
             card.Node.Position = card.OriginalPosition + new Vector2(0, -62);
             card.Node.RotationDegrees = 0;
@@ -402,7 +406,7 @@ public sealed partial class BattleHandView : Control
         }
 
         var viewportMouse = GetViewport().GetMousePosition();
-        if (card.Card.TargetRule == TargetRule.SingleEnemy)
+        if (!beatPrototypeMode && card.Card.TargetRule == TargetRule.SingleEnemy)
         {
             RequireTargetingOverlay().HideReleaseZone();
             var hoveredEnemy = RequireTargetingOverlay().EnemyUnderMouse(RequireCombat().Enemies, viewportMouse);
@@ -444,6 +448,13 @@ public sealed partial class BattleHandView : Control
         }
 
         var viewportMouse = GetViewport().GetMousePosition();
+        if (beatPrototypeMode)
+        {
+            CleanupDragVisuals(restoreCard: true);
+            BeatCardDropRequested?.Invoke(card.CardInstanceId, card.CardId, card.HandIndex, viewportMouse);
+            return;
+        }
+
         string? targetEnemyId = null;
         PlayCardResult canPlay;
         var shouldRequest = false;

@@ -30,6 +30,7 @@ public sealed class MvpRunFlowController
     private readonly RunProgressService runProgressService = new();
     private readonly StartingDeckSelectionService startingDeckSelectionService = new();
     private readonly RewardService rewardService = new();
+    private readonly BeatRoundPlanningService beatPlanningService = new();
 
     private RunRandomStreams? randomStreams;
     private CombatStateFactory combatFactory = new();
@@ -241,9 +242,41 @@ public sealed class MvpRunFlowController
 
         var screen = screenHost.ShowScreen<BattleScreen>(BattleScenePath);
         screen.CardRequested += PlayCard;
+        screen.BeatCardDroppedOnSlot += PlaceBeatCard;
         screen.EndTurnRequested += EndTurn;
         screen.RestartRequested += StartNewRun;
         screen.Render(combat, run, encounter, message);
+    }
+
+    private void PlaceBeatCard(string cardInstanceId, string cardId, int handIndex, int beatIndex)
+    {
+        try
+        {
+            if (combat is null || combat.BeatRound is null)
+            {
+                ShowBattle("当前三拍回合尚未准备完成");
+                return;
+            }
+
+            if (!content.CardsById.TryGetValue(cardId, out var card))
+            {
+                ShowBattle($"找不到卡牌数据：{cardId}");
+                return;
+            }
+
+            combat = beatPlanningService.PlaceActionCardInBeat(
+                combat,
+                cardInstanceId,
+                cardId,
+                handIndex,
+                beatIndex,
+                card);
+            ShowBattle();
+        }
+        catch (Exception ex)
+        {
+            ShowBattle(ex.Message);
+        }
     }
 
     private async void PlayCard(string cardInstanceId, string cardId, int handIndex, string? targetEnemyInstanceId)

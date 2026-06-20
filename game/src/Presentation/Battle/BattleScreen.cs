@@ -19,6 +19,7 @@ public partial class BattleScreen : ComicScreen
     private static readonly Vector2 ThoughtBubbleSize = new(610, 238);
 
     private readonly CardPlayService cardPlayService = new();
+    private readonly Dictionary<int, Control> playerBeatSlotNodes = new();
 
     private CombatState? combat;
     private RunState? run;
@@ -43,6 +44,7 @@ public partial class BattleScreen : ComicScreen
     private int thoughtBubbleVersion;
 
     public event Action<string, string, int, string?>? CardRequested;
+    public event Action<string, string, int, int>? BeatCardDroppedOnSlot;
     public event Action? EndTurnRequested;
     public event Action? RestartRequested;
 
@@ -69,6 +71,7 @@ public partial class BattleScreen : ComicScreen
         canvasRoot = null;
         thoughtFeedbackPanel = null;
         inputBlocker = null;
+        playerBeatSlotNodes.Clear();
 
         var root = CreateCanvas();
         canvasRoot = root;
@@ -107,6 +110,7 @@ public partial class BattleScreen : ComicScreen
             CardRequested?.Invoke(cardInstanceId, cardId, handIndex, targetEnemyId);
         };
         battleHandView.FeedbackRequested += ShowDragFeedback;
+        battleHandView.BeatCardDropRequested += HandleBeatCardDropRequested;
         battleHandView.Render(combat, run, RequireContent(), cardPlayService, targetingOverlay, LoadTexture, LoadFont, beatPrototype: combat.BeatRound is not null);
         handNode = battleHandView;
         AddAt(root, battleHandView, new Vector2(475, 742), new Vector2(950, 360));
@@ -171,6 +175,18 @@ public partial class BattleScreen : ComicScreen
 
         currentFailureMessage = text;
         ShowFailureThoughtBubble(text);
+    }
+
+    private void HandleBeatCardDropRequested(string cardInstanceId, string cardId, int handIndex, Vector2 viewportMouse)
+    {
+        var beatIndex = PlayerBeatIndexUnderMouse(viewportMouse);
+        if (beatIndex is null)
+        {
+            ShowDragFeedback("需要把行动牌拖到一个空的玩家拍位");
+            return;
+        }
+
+        BeatCardDroppedOnSlot?.Invoke(cardInstanceId, cardId, handIndex, beatIndex.Value);
     }
 
     private void ShowFailureThoughtBubble(string text)
@@ -266,6 +282,7 @@ public partial class BattleScreen : ComicScreen
             CustomMinimumSize = BeatSlotSize,
             MouseFilter = MouseFilterEnum.Ignore
         };
+        playerBeatSlotNodes[beat.BeatIndex] = slot;
         slot.AddThemeStyleboxOverride("panel", CreateButtonStyle(FinisherLine, 0.82f));
 
         var label = CreateSmallLabel(string.IsNullOrWhiteSpace(beat.CardId)
@@ -278,6 +295,55 @@ public partial class BattleScreen : ComicScreen
         label.AddThemeColorOverride("font_color", new Color(1.0f, 0.86f, 0.50f));
         slot.AddChild(label);
         return slot;
+    }
+
+    private int? PlayerBeatIndexUnderMouse(Vector2 viewportPoint)
+    {
+        if (combat?.BeatRound is null)
+        {
+            return null;
+        }
+
+        foreach (var pair in playerBeatSlotNodes.OrderBy(item => item.Key))
+        {
+            if (!IsPointInsideControl(pair.Value, viewportPoint))
+            {
+                continue;
+            }
+
+            var beat = combat.BeatRound.PlayerBeats.FirstOrDefault(slot => slot.BeatIndex == pair.Key);
+            if (beat is null ||
+                !string.IsNullOrWhiteSpace(beat.CardInstanceId) ||
+                !string.IsNullOrWhiteSpace(beat.CardId) ||
+                beat.Target is not null)
+            {
+                return null;
+            }
+
+            return pair.Key;
+        }
+
+        return null;
+    }
+
+    private static bool IsPointInsideControl(Control control, Vector2 viewportPoint)
+    {
+        if (!GodotObject.IsInstanceValid(control) || !control.Visible)
+        {
+            return false;
+        }
+
+        var localPoint = control.GetGlobalTransformWithCanvas().AffineInverse() * viewportPoint;
+        var size = control.Size;
+        if (size.X <= 0 || size.Y <= 0)
+        {
+            size = control.CustomMinimumSize;
+        }
+
+        return localPoint.X >= 0 &&
+            localPoint.Y >= 0 &&
+            localPoint.X <= size.X &&
+            localPoint.Y <= size.Y;
     }
 
     private Button CreateRestartButton()
