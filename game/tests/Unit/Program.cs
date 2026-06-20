@@ -436,6 +436,17 @@ var targetedBeat = beatPlanning.SetEnemyBeatTarget(
 AssertEqual(BeatTargetKind.EnemyBeat, targetedBeat.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 1).Target?.Kind, "Beat planning assigns an enemy beat target");
 AssertEqual(0, targetedBeat.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 1).Target?.EnemyBeatIndex, "Beat planning stores the enemy beat index");
 
+var cancelledPlacement = beatPlanning.CancelUntargetedBeatPlacement(
+    placedBeat,
+    beatIndex: 1,
+    cardInstanceId: planningBeatSlashInstanceA);
+AssertEqual(null, cancelledPlacement.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 1).CardId, "Cancelling beat placement clears the player beat card id");
+AssertEqual(null, cancelledPlacement.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 1).CardInstanceId, "Cancelling beat placement clears the player beat card instance id");
+Assert(cancelledPlacement.DeckZones.Hand.Contains(planningBeatSlashInstanceA), "Cancelling beat placement returns the card instance to hand");
+AssertThrows(
+    () => beatPlanning.CancelUntargetedBeatPlacement(targetedBeat, beatIndex: 1, cardInstanceId: planningBeatSlashInstanceA),
+    "Targeted beat placements cannot be cancelled back to hand");
+
 var secondPlacedBeat = beatPlanning.PlaceActionCardInBeat(
     targetedBeat,
     cardInstanceId: targetedBeat.DeckZones.Hand[0],

@@ -44,6 +44,7 @@ public partial class BattleScreen : ComicScreen
     private Control? thoughtFeedbackPanel;
     private Control? inputBlocker;
     private int? activeTargetingPlayerBeatIndex;
+    private string? activeTargetingCardInstanceId;
     private bool showBattleLog;
     private string? currentFailureMessage;
     private int thoughtBubbleVersion;
@@ -51,6 +52,7 @@ public partial class BattleScreen : ComicScreen
     public event Action<string, string, int, string?>? CardRequested;
     public event Action<string, string, int, int>? BeatCardDroppedOnSlot;
     public event Action<int, BeatTarget>? BeatTargetSelected;
+    public event Action<int, string>? BeatTargetCancelled;
     public event Action? EndTurnRequested;
     public event Action? RestartRequested;
 
@@ -78,6 +80,7 @@ public partial class BattleScreen : ComicScreen
         thoughtFeedbackPanel = null;
         inputBlocker = null;
         activeTargetingPlayerBeatIndex = null;
+        activeTargetingCardInstanceId = null;
         playerBeatSlotNodes.Clear();
         enemyBeatSlotNodes.Clear();
 
@@ -151,11 +154,6 @@ public partial class BattleScreen : ComicScreen
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (HandleBeatTargetingInput(@event))
-        {
-            return;
-        }
-
         if (@event is not InputEventKey { Pressed: true, Echo: false } keyEvent ||
             keyEvent.Keycode != Key.F12)
         {
@@ -169,6 +167,44 @@ public partial class BattleScreen : ComicScreen
         }
 
         GetViewport().SetInputAsHandled();
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (activeTargetingPlayerBeatIndex is not null)
+        {
+            HandleBeatTargetingInput(@event);
+        }
+    }
+
+    public override void _Process(double delta)
+    {
+        if (activeTargetingPlayerBeatIndex is not null)
+        {
+            UpdateBeatTargetingArrow(GetViewport().GetMousePosition());
+        }
+    }
+
+    public void BeginBeatTargetingFromSlot(int playerBeatIndex, string cardInstanceId)
+    {
+        if (combat?.BeatRound is null ||
+            inputBlocker?.Visible == true ||
+            !playerBeatSlotNodes.ContainsKey(playerBeatIndex))
+        {
+            return;
+        }
+
+        var beat = combat.BeatRound.PlayerBeats.FirstOrDefault(slot => slot.BeatIndex == playerBeatIndex);
+        if (beat is null ||
+            beat.Target is not null ||
+            !string.Equals(beat.CardInstanceId, cardInstanceId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        activeTargetingPlayerBeatIndex = playerBeatIndex;
+        activeTargetingCardInstanceId = cardInstanceId;
+        UpdateBeatTargetingArrow(GetViewport().GetMousePosition());
     }
 
     public static string FailureText(PlayCardResult result)
@@ -421,42 +457,34 @@ public partial class BattleScreen : ComicScreen
 
     private bool HandleBeatTargetingInput(InputEvent @event)
     {
-        if (combat?.BeatRound is null || inputBlocker?.Visible == true)
+        if (combat?.BeatRound is null ||
+            inputBlocker?.Visible == true ||
+            activeTargetingPlayerBeatIndex is null)
         {
             return false;
         }
 
-        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left } mouseButton)
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true })
         {
-            if (mouseButton.Pressed)
-            {
-                var beatIndex = TargetablePlayerBeatIndexUnderMouse(mouseButton.Position);
-                if (beatIndex is null)
-                {
-                    return false;
-                }
+            CancelActiveBeatTargeting();
+            GetViewport().SetInputAsHandled();
+            return true;
+        }
 
-                activeTargetingPlayerBeatIndex = beatIndex.Value;
-                UpdateBeatTargetingArrow(mouseButton.Position);
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } mouseButton)
+        {
+            var selectedTarget = TargetUnderMouse(mouseButton.Position);
+            if (selectedTarget is null)
+            {
+                CancelActiveBeatTargeting();
                 GetViewport().SetInputAsHandled();
                 return true;
             }
 
-            if (activeTargetingPlayerBeatIndex is null)
-            {
-                return false;
-            }
-
-            var selectedTarget = TargetUnderMouse(mouseButton.Position);
             targetingOverlay.HideArrow();
             var playerBeatIndex = activeTargetingPlayerBeatIndex.Value;
             activeTargetingPlayerBeatIndex = null;
-            if (selectedTarget is null)
-            {
-                ShowDragFeedback("需要把箭头指向魔物拍位；全部拍位锁定后可指向魔物本体");
-                GetViewport().SetInputAsHandled();
-                return true;
-            }
+            activeTargetingCardInstanceId = null;
 
             BeatTargetSelected?.Invoke(playerBeatIndex, selectedTarget);
             GetViewport().SetInputAsHandled();
@@ -473,6 +501,19 @@ public partial class BattleScreen : ComicScreen
         return false;
     }
 
+    private void CancelActiveBeatTargeting()
+    {
+        targetingOverlay.HideArrow();
+        if (activeTargetingPlayerBeatIndex is int beatIndex &&
+            !string.IsNullOrWhiteSpace(activeTargetingCardInstanceId))
+        {
+            BeatTargetCancelled?.Invoke(beatIndex, activeTargetingCardInstanceId);
+        }
+
+        activeTargetingPlayerBeatIndex = null;
+        activeTargetingCardInstanceId = null;
+    }
+
     private void UpdateBeatTargetingArrow(Vector2 viewportMouse)
     {
         if (activeTargetingPlayerBeatIndex is null ||
@@ -483,35 +524,6 @@ public partial class BattleScreen : ComicScreen
         }
 
         targetingOverlay.ShowArrowFromViewport(ControlCenterInViewport(slot), viewportMouse, TargetUnderMouse(viewportMouse) is not null);
-    }
-
-    private int? TargetablePlayerBeatIndexUnderMouse(Vector2 viewportPoint)
-    {
-        if (combat?.BeatRound is null)
-        {
-            return null;
-        }
-
-        foreach (var pair in playerBeatSlotNodes.OrderBy(item => item.Key))
-        {
-            if (!IsPointInsideControl(pair.Value, viewportPoint))
-            {
-                continue;
-            }
-
-            var beat = combat.BeatRound.PlayerBeats.FirstOrDefault(slot => slot.BeatIndex == pair.Key);
-            if (beat is null ||
-                string.IsNullOrWhiteSpace(beat.CardInstanceId) ||
-                string.IsNullOrWhiteSpace(beat.CardId) ||
-                beat.Target is not null)
-            {
-                return null;
-            }
-
-            return pair.Key;
-        }
-
-        return null;
     }
 
     private BeatTarget? TargetUnderMouse(Vector2 viewportPoint)

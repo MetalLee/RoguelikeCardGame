@@ -232,7 +232,7 @@ public sealed class MvpRunFlowController
         ShowBattle();
     }
 
-    private void ShowBattle(string? message = null)
+    private void ShowBattle(string? message = null, int? autoTargetBeatIndex = null, string? autoTargetCardInstanceId = null)
     {
         if (combat is null || encounter is null || run is null)
         {
@@ -244,9 +244,14 @@ public sealed class MvpRunFlowController
         screen.CardRequested += PlayCard;
         screen.BeatCardDroppedOnSlot += PlaceBeatCard;
         screen.BeatTargetSelected += SelectBeatTarget;
+        screen.BeatTargetCancelled += CancelBeatTargeting;
         screen.EndTurnRequested += EndTurn;
         screen.RestartRequested += StartNewRun;
         screen.Render(combat, run, encounter, message);
+        if (autoTargetBeatIndex is not null && !string.IsNullOrWhiteSpace(autoTargetCardInstanceId))
+        {
+            screen.BeginBeatTargetingFromSlot(autoTargetBeatIndex.Value, autoTargetCardInstanceId);
+        }
     }
 
     private void PlaceBeatCard(string cardInstanceId, string cardId, int handIndex, int beatIndex)
@@ -307,6 +312,32 @@ public sealed class MvpRunFlowController
                 handIndex,
                 beatIndex,
                 card);
+        }
+        catch (InvalidOperationException ex)
+        {
+            screenHost.ShowFatalError(ex);
+            return;
+        }
+        catch (Exception ex)
+        {
+            screenHost.ShowFatalError(ex);
+            return;
+        }
+
+        ShowBattle(autoTargetBeatIndex: beatIndex, autoTargetCardInstanceId: cardInstanceId);
+    }
+
+    private void CancelBeatTargeting(int playerBeatIndex, string cardInstanceId)
+    {
+        if (combat is null || combat.BeatRound is null)
+        {
+            ShowBattle("当前三拍回合尚未准备完成");
+            return;
+        }
+
+        try
+        {
+            combat = beatPlanningService.CancelUntargetedBeatPlacement(combat, playerBeatIndex, cardInstanceId);
         }
         catch (InvalidOperationException ex)
         {

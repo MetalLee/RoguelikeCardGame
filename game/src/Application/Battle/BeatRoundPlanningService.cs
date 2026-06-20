@@ -115,6 +115,48 @@ public sealed class BeatRoundPlanningService
         };
     }
 
+    public CombatState CancelUntargetedBeatPlacement(
+        CombatState combat,
+        int beatIndex,
+        string cardInstanceId)
+    {
+        EnsurePlayerTurn(combat);
+        var round = RequireBeatRound(combat);
+        var playerBeats = round.PlayerBeats.ToList();
+        var playerBeatIndex = playerBeats.FindIndex(beat => beat.BeatIndex == beatIndex);
+        if (playerBeatIndex < 0)
+        {
+            throw new InvalidOperationException($"Player beat index {beatIndex} does not exist.");
+        }
+
+        var playerBeat = playerBeats[playerBeatIndex];
+        if (!string.Equals(playerBeat.CardInstanceId, cardInstanceId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Player beat index {beatIndex} does not contain card instance '{cardInstanceId}'.");
+        }
+
+        if (playerBeat.Target is not null)
+        {
+            throw new InvalidOperationException($"Player beat index {beatIndex} already has a target.");
+        }
+
+        playerBeats[playerBeatIndex] = playerBeat with
+        {
+            CardInstanceId = null,
+            CardId = null,
+            Target = null
+        };
+
+        var hand = combat.DeckZones.Hand.ToList();
+        hand.Add(cardInstanceId);
+
+        return combat with
+        {
+            BeatRound = round with { PlayerBeats = playerBeats },
+            DeckZones = combat.DeckZones with { Hand = hand }
+        };
+    }
+
     private static CombatState SetTarget(
         CombatState combat,
         int beatIndex,
