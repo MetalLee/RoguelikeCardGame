@@ -17,6 +17,11 @@ public enum CombatLogEventType
     PlayerTurnEnded,
     EnemyTurnPlaceholderResolved,
     NewTurnPrepared,
+    BeatActionResolved,
+    BeatEnergyGenerated,
+    FinisherSlotted,
+    FinisherReleased,
+    BeatRoundResolved,
     CombatEnded
 }
 
