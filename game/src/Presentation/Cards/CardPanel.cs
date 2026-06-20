@@ -111,7 +111,7 @@ public static class CardPanel
 			heavyFont));
 
 		canvas.AddChild(CreateRulesLabel(
-			content.CardRules(card.Id),
+			RulesTextWithBeatActions(card, content),
 			layout.RulesRect,
 			60,
 			mediumFont,
@@ -247,6 +247,45 @@ public static class CardPanel
 			.Replace("伤害", "[color=#a61f17]伤害[/color]", StringComparison.Ordinal)
 			.Replace("抽", "[color=#247a90]抽[/color]", StringComparison.Ordinal);
 		return escaped;
+	}
+
+	private static string RulesTextWithBeatActions(CardDefinition card, GameContent content)
+	{
+		var rules = content.CardRules(card.Id);
+		if (card.BeatActions.Count == 0)
+		{
+			return rules;
+		}
+
+		return $"{rules}\n{BeatActionSummary(card.BeatActions)}";
+	}
+
+	private static string BeatActionSummary(IReadOnlyList<BeatActionDefinition> actions)
+	{
+		return string.Join(" -> ", actions.Select(BeatActionText));
+	}
+
+	private static string BeatActionText(BeatActionDefinition action)
+	{
+		var text = action.Kind switch
+		{
+			BeatActionKind.Attack => $"{BeatAttackText(action.AttackType)} {action.Value}",
+			BeatActionKind.Block => $"格挡 {action.Value}",
+			BeatActionKind.Dodge => $"闪避 {action.DodgeChancePercent}%",
+			_ => action.Kind.ToString()
+		};
+		return action.Repeat > 1 ? $"{text} x{action.Repeat}" : text;
+	}
+
+	private static string BeatAttackText(BeatAttackType? attackType)
+	{
+		return attackType switch
+		{
+			BeatAttackType.Slash => "斩击",
+			BeatAttackType.Strike => "钝击",
+			BeatAttackType.Projectile => "弹射",
+			_ => "斩击"
+		};
 	}
 
 	private static string EscapeBbcode(string text)

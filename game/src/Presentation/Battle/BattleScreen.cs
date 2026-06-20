@@ -30,6 +30,7 @@ public partial class BattleScreen : ComicScreen
     private Control? blockPanel;
     private Control? actionPointPanel;
     private Control? handNode;
+    private Control? beatLane;
     private Control? fxLayer;
     private Control? canvasRoot;
     private Control? thoughtFeedbackPanel;
@@ -60,6 +61,7 @@ public partial class BattleScreen : ComicScreen
         blockPanel = null;
         actionPointPanel = null;
         handNode = null;
+        beatLane = null;
         fxLayer = null;
         canvasRoot = null;
         thoughtFeedbackPanel = null;
@@ -88,6 +90,12 @@ public partial class BattleScreen : ComicScreen
 
         battleEnemyView = new BattleEnemyView();
         battleEnemyView.Render(root, combat, RequireContent(), targetingOverlay, LoadTexture);
+
+        beatLane = CreateBeatLane(combat);
+        if (beatLane is not null)
+        {
+            AddAt(root, beatLane, new Vector2(550, 650), new Vector2(800, 82));
+        }
 
         battleHandView = new BattleHandView();
         battleHandView.CardRequested += (cardInstanceId, cardId, handIndex, targetEnemyId) =>
@@ -220,6 +228,53 @@ public partial class BattleScreen : ComicScreen
         var label = CreateSmallLabel("最近结算：\n" + string.Join("\n", latest));
         panel.AddChild(label);
         return panel;
+    }
+
+    private Control? CreateBeatLane(CombatState combatState)
+    {
+        if (combatState.BeatRound is null)
+        {
+            return null;
+        }
+
+        var panel = CreateFramedPanel(Vector2.Zero, FinisherLine);
+        panel.MouseFilter = MouseFilterEnum.Ignore;
+
+        var row = new HBoxContainer
+        {
+            Alignment = BoxContainer.AlignmentMode.Center,
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        row.AddThemeConstantOverride("separation", 12);
+        panel.AddChild(row);
+
+        foreach (var beat in combatState.BeatRound.PlayerBeats.OrderBy(slot => slot.BeatIndex))
+        {
+            row.AddChild(CreateBeatSlot(beat));
+        }
+
+        return panel;
+    }
+
+    private Control CreateBeatSlot(PlayerBeatSlot beat)
+    {
+        var slot = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(236, 58),
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        slot.AddThemeStyleboxOverride("panel", CreateButtonStyle(FinisherLine, 0.82f));
+
+        var label = CreateSmallLabel(string.IsNullOrWhiteSpace(beat.CardId)
+            ? $"第 {beat.BeatIndex + 1} 拍"
+            : beat.CardId);
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        label.ClipText = true;
+        label.AddThemeFontSizeOverride("font_size", 18);
+        label.AddThemeColorOverride("font_color", new Color(1.0f, 0.86f, 0.50f));
+        slot.AddChild(label);
+        return slot;
     }
 
     private Button CreateRestartButton()

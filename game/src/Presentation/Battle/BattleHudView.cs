@@ -16,6 +16,8 @@ public sealed class BattleHudView
     private static readonly Vector2 ColorEnergySlotSize = new(70, 98);
     private static readonly Vector2 ColorEnergySlotFrameSize = new(66, 66);
     private static readonly Vector2 ColorEnergyFlameSize = new(84, 84);
+    private static readonly Vector2 FinisherSlotPosition = new(724, 138);
+    private static readonly Vector2 FinisherSlotSize = new(210, 68);
     private const float ColorEnergySlotGap = 4f;
     private const float ColorEnergySlotTop = 8f;
     private static readonly Vector2 RelicStripPosition = new(50, 286);
@@ -45,11 +47,18 @@ public sealed class BattleHudView
         BlockPanel = null;
         ActionPointPanel = null;
 
+        var beatModeActive = combatState.BeatRound is not null;
         RenderPlayerHud(rootControl, combatState);
         RenderColorEnergyHud(rootControl, combatState);
-
-        ActionPointPanel = CreateActionPointBadge(combatState);
-        AddAt(rootControl, ActionPointPanel, new Vector2(70, 760), new Vector2(156, 156));
+        if (beatModeActive)
+        {
+            AddAt(rootControl, CreateFinisherSlot(combatState, gameContent), FinisherSlotPosition, FinisherSlotSize);
+        }
+        else
+        {
+            ActionPointPanel = CreateActionPointBadge(combatState);
+            AddAt(rootControl, ActionPointPanel, new Vector2(70, 760), new Vector2(156, 156));
+        }
 
         if (run.RelicIds.Count > 0)
         {
@@ -335,6 +344,48 @@ public sealed class BattleHudView
         ap.Size = new Vector2(68, 30);
         root.AddChild(ap);
         return root;
+    }
+
+    private Control CreateFinisherSlot(CombatState combat, GameContent content)
+    {
+        var cardId = combat.BeatRound?.FinisherSlot.CardId;
+        var text = !string.IsNullOrWhiteSpace(cardId) && content.CardsById.ContainsKey(cardId)
+            ? content.CardName(cardId)
+            : "终结槽";
+        var panel = new PanelContainer
+        {
+            TooltipText = "三拍终结槽",
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.10f, 0.065f, 0.11f, 0.88f),
+            BorderColor = new Color(0.62f, 0.34f, 0.86f, 0.95f),
+            BorderWidthLeft = 2,
+            BorderWidthRight = 2,
+            BorderWidthTop = 2,
+            BorderWidthBottom = 2,
+            CornerRadiusBottomLeft = 6,
+            CornerRadiusBottomRight = 6,
+            CornerRadiusTopLeft = 6,
+            CornerRadiusTopRight = 6,
+            ContentMarginLeft = 12,
+            ContentMarginRight = 12,
+            ContentMarginTop = 6,
+            ContentMarginBottom = 6
+        });
+
+        var label = CreateHudLabel(
+            text,
+            24,
+            new Color(1.0f, 0.86f, 0.98f),
+            heavy: true,
+            outlineSize: 2,
+            outlineColor: new Color(0.02f, 0.0f, 0.03f, 0.82f));
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        panel.AddChild(label);
+        return panel;
     }
 
     private Button CreateEndTurnButton()

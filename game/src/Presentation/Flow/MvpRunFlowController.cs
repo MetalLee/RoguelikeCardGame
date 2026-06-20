@@ -17,6 +17,7 @@ namespace RoguelikeCardGame.Presentation.Flow;
 
 public sealed class MvpRunFlowController
 {
+    private const bool UseBeatCombatPrototype = true;
     private const string StartMenuScenePath = "res://scenes/menus/StartMenuScreen.tscn";
     private const string WeaponSelectionScenePath = "res://scenes/menus/WeaponSelectionScreen.tscn";
     private const string BattleScenePath = "res://scenes/battle/BattleScreen.tscn";
@@ -33,6 +34,7 @@ public sealed class MvpRunFlowController
     private RunRandomStreams? randomStreams;
     private CombatStateFactory combatFactory = new();
     private CombatTurnService turnService = new();
+    private BeatCombatRoundFactory beatRoundFactory = new();
     private CardPlayService cardPlayService = new();
     private RunState? run;
     private CombatState? combat;
@@ -214,7 +216,17 @@ public sealed class MvpRunFlowController
             runState: run,
             encounter: encounter,
             enemiesById: content.EnemiesById);
-        combat = turnService.StartCombat(combat);
+        combat = UseBeatCombatPrototype
+            ? turnService.StartBeatCombat(combat)
+            : turnService.StartCombat(combat);
+        if (UseBeatCombatPrototype)
+        {
+            combat = combat with
+            {
+                BeatRound = beatRoundFactory.CreateRound(combat, content.EnemiesById)
+            };
+        }
+
         actionCardsPlayedThisTurn = 0;
         ShowBattle();
     }
