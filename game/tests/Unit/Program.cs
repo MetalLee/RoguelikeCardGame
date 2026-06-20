@@ -229,6 +229,54 @@ AssertEqual(strike.WeaponId, deserializedCard?.WeaponId, "CardDefinition keeps w
 AssertEqual(1, deserializedCard?.ColorEnergyGeneration?.Amount, "CardDefinition keeps action color energy generation");
 AssertEqual(strike.VfxAsset, deserializedCard?.VfxAsset, "CardDefinition keeps card VFX asset");
 
+var beatSlashCard = strike with
+{
+    Id = "card.beat_slash",
+    BeatActions =
+    [
+        new BeatActionDefinition { Kind = BeatActionKind.Attack, AttackType = BeatAttackType.Slash, Value = 6, Repeat = 1 }
+    ],
+    CardSource = "weapon",
+    FinisherAttackType = null
+};
+var beatFinisher = finisher with
+{
+    Id = "card.beat_finisher",
+    FinisherAttackType = BeatAttackType.Projectile
+};
+var beatEnemy = enemy with
+{
+    Id = "enemy.beat_dummy",
+    Resistances = new BeatResistanceProfile
+    {
+        Slash = BeatResistanceGrade.Weakness,
+        Strike = BeatResistanceGrade.Standard,
+        Projectile = BeatResistanceGrade.Resist
+    },
+    BeatSequences =
+    [
+        new EnemyBeatSequenceDefinition
+        {
+            Id = "sequence.opening",
+            Beats =
+            [
+                new EnemyBeatDefinition
+                {
+                    ActionCardId = "enemy_card.dummy_slash",
+                    Actions =
+                    [
+                        new BeatActionDefinition { Kind = BeatActionKind.Attack, AttackType = BeatAttackType.Slash, Value = 4 }
+                    ]
+                }
+            ]
+        }
+    ]
+};
+AssertEqual(BeatAttackType.Slash, beatSlashCard.BeatActions[0].AttackType, "CardDefinition stores beat action type");
+AssertEqual(BeatAttackType.Projectile, beatFinisher.FinisherAttackType, "CardDefinition stores finisher attack type");
+AssertEqual(BeatResistanceGrade.Weakness, beatEnemy.Resistances.Slash, "EnemyDefinition stores slash weakness");
+AssertEqual(1, beatEnemy.BeatSequences[0].Beats.Count, "EnemyDefinition stores beat sequence");
+
 var slashAction = new BeatActionDefinition
 {
     Kind = BeatActionKind.Attack,

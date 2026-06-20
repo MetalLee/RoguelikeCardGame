@@ -136,6 +136,15 @@ public sealed record CardDefinition
     [JsonPropertyName("effects")]
     public List<EffectDefinition> Effects { get; init; } = new();
 
+    [JsonPropertyName("beat_actions")]
+    public List<BeatActionDefinition> BeatActions { get; init; } = new();
+
+    [JsonPropertyName("card_source")]
+    public string CardSource { get; init; } = "weapon";
+
+    [JsonPropertyName("finisher_attack_type")]
+    public BeatAttackType? FinisherAttackType { get; init; }
+
     [JsonPropertyName("color_interactions")]
     public CardColorInteractionsDefinition ColorInteractions { get; init; } = new();
 
