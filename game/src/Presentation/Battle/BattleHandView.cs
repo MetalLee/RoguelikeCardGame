@@ -24,6 +24,7 @@ public sealed partial class BattleHandView : Control
     private Func<string, Font?>? loadFont;
     private HandCardInteraction? draggingCard;
     private bool interactionsLocked;
+    private bool beatPrototypeMode;
 
     public event Action<string, string, int, string?>? CardRequested;
     public event Action<string>? FeedbackRequested;
@@ -36,7 +37,8 @@ public sealed partial class BattleHandView : Control
         CardPlayService playService,
         BattleTargetingOverlay targeting,
         Func<string, Texture2D?> textureLoader,
-        Func<string, Font?> fontLoader)
+        Func<string, Font?> fontLoader,
+        bool beatPrototype = false)
     {
         combat = combatState;
         run = runState;
@@ -47,6 +49,7 @@ public sealed partial class BattleHandView : Control
         loadFont = fontLoader;
         draggingCard = null;
         interactionsLocked = false;
+        beatPrototypeMode = beatPrototype;
         cardNodes.Clear();
         cardNodesByHandIndex.Clear();
         handCardsByIndex.Clear();
@@ -138,7 +141,7 @@ public sealed partial class BattleHandView : Control
         var canPlay = PreviewCanPlayCard(cardInstanceId, card, handIndex);
         var enchantment = ResolveEnchantmentForInstance(cardInstanceId);
         var preview = RequireCardPlayService().PreviewCard(RequireCombat(), card, null, enchantment);
-        var panel = CardPanel.Create(card, RequireContent(), RequireTextureLoader(), RequireFontLoader(), width: 220, dimmed: !canPlay.Succeeded, enchantment: enchantment, preview: preview);
+        var panel = CardPanel.Create(card, RequireContent(), RequireTextureLoader(), RequireFontLoader(), width: 220, dimmed: !beatPrototypeMode && !canPlay.Succeeded, enchantment: enchantment, preview: preview);
         panel.MouseFilter = MouseFilterEnum.Ignore;
         return panel;
     }
@@ -148,7 +151,9 @@ public sealed partial class BattleHandView : Control
         var canPlay = PreviewCanPlayCard(cardInstanceId, card, handIndex);
         var enchantment = ResolveEnchantmentForInstance(cardInstanceId);
         var preview = RequireCardPlayService().PreviewCard(RequireCombat(), card, card.TargetRule == TargetRule.SingleEnemy ? RequireCombat().Enemies.FirstOrDefault(enemy => enemy.CurrentHp > 0)?.InstanceId : null, enchantment);
-        var typeText = BuildCardTooltip(card, preview, canPlay);
+        var typeText = beatPrototypeMode
+            ? BuildBeatPrototypeTooltip(card)
+            : BuildCardTooltip(card, preview, canPlay);
         var interaction = new HandCardInteraction(
             panel,
             cardInstanceId,
@@ -241,6 +246,43 @@ public sealed partial class BattleHandView : Control
         return string.Join("\n", builder);
     }
 
+    private static string BuildBeatPrototypeTooltip(CardDefinition card)
+    {
+        var builder = new List<string>
+        {
+            "当前原型请使用三拍区/结束结算"
+        };
+        if (card.BeatActions.Count > 0)
+        {
+            builder.Add("动作：" + string.Join(" -> ", card.BeatActions.Select(BeatActionText)));
+        }
+
+        return string.Join("\n", builder);
+    }
+
+    private static string BeatActionText(BeatActionDefinition action)
+    {
+        var text = action.Kind switch
+        {
+            BeatActionKind.Attack => $"{BeatAttackText(action.AttackType)} {action.Value}",
+            BeatActionKind.Block => $"格挡 {action.Value}",
+            BeatActionKind.Dodge => $"闪避 {action.DodgeChancePercent}%",
+            _ => action.Kind.ToString()
+        };
+        return action.Repeat > 1 ? $"{text} x{action.Repeat}" : text;
+    }
+
+    private static string BeatAttackText(BeatAttackType? attackType)
+    {
+        return attackType switch
+        {
+            BeatAttackType.Slash => "斩击",
+            BeatAttackType.Strike => "钝击",
+            BeatAttackType.Projectile => "弹射",
+            _ => "斩击"
+        };
+    }
+
     private CardInstance ResolveCardInstance(string cardInstanceId)
     {
         return RequireRun().MasterDeckInstances.FirstOrDefault(instance =>
@@ -289,6 +331,13 @@ public sealed partial class BattleHandView : Control
     {
         if (input is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true })
         {
+            return;
+        }
+
+        if (beatPrototypeMode)
+        {
+            FeedbackRequested?.Invoke("当前原型请使用三拍区/结束结算");
+            GetViewport().SetInputAsHandled();
             return;
         }
 

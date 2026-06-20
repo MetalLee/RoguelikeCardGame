@@ -104,7 +104,7 @@ public partial class BattleScreen : ComicScreen
             CardRequested?.Invoke(cardInstanceId, cardId, handIndex, targetEnemyId);
         };
         battleHandView.FeedbackRequested += ShowDragFeedback;
-        battleHandView.Render(combat, run, RequireContent(), cardPlayService, targetingOverlay, LoadTexture, LoadFont);
+        battleHandView.Render(combat, run, RequireContent(), cardPlayService, targetingOverlay, LoadTexture, LoadFont, beatPrototype: combat.BeatRound is not null);
         handNode = battleHandView;
         AddAt(root, battleHandView, new Vector2(475, 742), new Vector2(950, 360));
 

@@ -216,10 +216,10 @@ public sealed class MvpRunFlowController
             runState: run,
             encounter: encounter,
             enemiesById: content.EnemiesById);
-        combat = UseBeatCombatPrototype
+        combat = IsBeatCombatPrototypeEnabled()
             ? turnService.StartBeatCombat(combat)
             : turnService.StartCombat(combat);
-        if (UseBeatCombatPrototype)
+        if (IsBeatCombatPrototypeEnabled())
         {
             combat = combat with
             {
@@ -248,6 +248,12 @@ public sealed class MvpRunFlowController
 
     private async void PlayCard(string cardInstanceId, string cardId, int handIndex, string? targetEnemyInstanceId)
     {
+        if (IsBeatCombatPrototypeEnabled())
+        {
+            ShowBattle("当前原型请使用三拍区/结束结算");
+            return;
+        }
+
         if (!TryBeginBattleAnimation(out var operationVersion))
         {
             return;
@@ -375,6 +381,12 @@ public sealed class MvpRunFlowController
             var animationScreen = screenHost.ActiveScreen as BattleScreen;
             var startLogCount = combat.Log.Count;
 
+            if (IsBeatCombatPrototypeEnabled())
+            {
+                await EndBeatTurn(operationVersion, animationScreen);
+                return;
+            }
+
             combat = turnService.EndPlayerTurn(combat);
             combat = turnService.ResolveEnemyTurn(combat, content.EnemiesById);
 
@@ -411,6 +423,45 @@ public sealed class MvpRunFlowController
         {
             FinishBattleAnimation(operationVersion);
         }
+    }
+
+    private async Task EndBeatTurn(int operationVersion, BattleScreen? animationScreen)
+    {
+        if (combat is null || combat.BeatRound is null)
+        {
+            ShowBattle("当前三拍回合尚未准备完成");
+            return;
+        }
+
+        var result = new BeatCombatService().ResolveBeatRound(combat, content.CardsById, content.EnemiesById);
+        combat = result.Combat;
+
+        await PlayBattleAnimationsAsync(animationScreen, result.Events, null, null);
+        if (!IsCurrentFlow(operationVersion))
+        {
+            return;
+        }
+
+        if (combat.Status == CombatStatus.Victory)
+        {
+            ResolveCombatVictory();
+            return;
+        }
+
+        if (combat.Status == CombatStatus.Defeat)
+        {
+            run = runProgressService.ApplyCombatResult(run!, combat, encounter);
+            ShowRunResult();
+            return;
+        }
+
+        combat = turnService.PrepareNextBeatRound(combat);
+        combat = combat with
+        {
+            BeatRound = beatRoundFactory.CreateRound(combat, content.EnemiesById)
+        };
+        actionCardsPlayedThisTurn = 0;
+        ShowBattle();
     }
 
     private void ResolveCombatVictory()
@@ -683,5 +734,10 @@ public sealed class MvpRunFlowController
         {
             battleScreen.SetInteractionsLocked(locked);
         }
+    }
+
+    private static bool IsBeatCombatPrototypeEnabled()
+    {
+        return UseBeatCombatPrototype;
     }
 }
