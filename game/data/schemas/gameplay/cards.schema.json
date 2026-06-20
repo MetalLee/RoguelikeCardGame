@@ -18,6 +18,9 @@
           "id": { "type": "string", "pattern": "^card\\.[a-z0-9_]+$" },
           "weapon_id": { "type": "string", "pattern": "^weapon\\.[a-z0-9_]+$" },
           "card_type": { "type": "string", "enum": ["action", "finisher"] },
+          "card_source": { "type": "string", "enum": ["weapon", "enemy", "special"] },
+          "beat_actions": { "type": "array", "items": { "$ref": "#/$defs/beat_action" } },
+          "finisher_attack_type": { "type": "string", "enum": ["slash", "strike", "projectile"] },
           "rarity": { "type": "string", "enum": ["starter", "common", "uncommon", "rare"] },
           "costs": { "type": "array", "items": { "$ref": "#/$defs/resource_amount" } },
           "requirements": { "type": "array", "items": { "type": "object" } },
@@ -114,6 +117,18 @@
         "amount": { "type": "integer", "minimum": 0 },
         "min_amount": { "type": "integer", "minimum": 0 },
         "color_filter": { "type": "string", "enum": ["any", "colored_only"] }
+      }
+    },
+    "beat_action": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "enum": ["attack", "block", "dodge"] },
+        "attack_type": { "type": "string", "enum": ["slash", "strike", "projectile"] },
+        "value": { "type": "integer", "minimum": 0 },
+        "repeat": { "type": "integer", "minimum": 1 },
+        "dodge_chance_percent": { "type": "integer", "minimum": 0, "maximum": 100 }
       }
     }
   }

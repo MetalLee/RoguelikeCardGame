@@ -60,8 +60,53 @@
             }
           },
           "immunities": { "type": "array", "items": { "type": "string" } },
+          "resistances": { "$ref": "#/$defs/resistance_profile" },
+          "beat_sequences": { "type": "array", "items": { "$ref": "#/$defs/beat_sequence" } },
           "tags": { "type": "array", "items": { "type": "string" } }
         }
+      }
+    }
+  },
+  "$defs": {
+    "resistance_grade": { "type": "string", "enum": ["resist", "standard", "weakness"] },
+    "resistance_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "slash": { "$ref": "#/$defs/resistance_grade" },
+        "strike": { "$ref": "#/$defs/resistance_grade" },
+        "projectile": { "$ref": "#/$defs/resistance_grade" }
+      }
+    },
+    "beat_action": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "enum": ["attack", "block", "dodge"] },
+        "attack_type": { "type": "string", "enum": ["slash", "strike", "projectile"] },
+        "value": { "type": "integer", "minimum": 0 },
+        "repeat": { "type": "integer", "minimum": 1 },
+        "dodge_chance_percent": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "beat": {
+      "type": "object",
+      "required": ["action_card_id", "actions", "hidden"],
+      "additionalProperties": false,
+      "properties": {
+        "action_card_id": { "type": "string", "pattern": "^(enemy_card|card)\\.[a-z0-9_]+$" },
+        "actions": { "type": "array", "items": { "$ref": "#/$defs/beat_action" } },
+        "hidden": { "type": "boolean" }
+      }
+    },
+    "beat_sequence": {
+      "type": "object",
+      "required": ["id", "beats"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "beats": { "type": "array", "items": { "$ref": "#/$defs/beat" } }
       }
     }
   }

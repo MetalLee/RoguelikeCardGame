@@ -6,6 +6,19 @@
       "id": "enemy.training_dummy",
       "rank": "normal",
       "stats": { "max_hp": 24 },
+      "resistances": { "slash": "standard", "strike": "standard", "projectile": "standard" },
+      "beat_sequences": [
+        {
+          "id": "opening",
+          "beats": [
+            {
+              "action_card_id": "enemy_card.tutorial_slash",
+              "actions": [{ "kind": "attack", "attack_type": "slash", "value": 4, "repeat": 1 }],
+              "hidden": false
+            }
+          ]
+        }
+      ],
       "ai": {
         "type": "fixed_sequence",
         "loop": true,

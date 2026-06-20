@@ -374,6 +374,11 @@ public sealed class GameContent
             AfterPlay = item.GetProperty("after_play").EnumerateArray().Select(ParseContentEffect).ToList(),
             Rarity = ParseCardRarity(item.GetProperty("rarity").GetStringRequired("rarity")),
             Balance = ParseCardBalance(item.GetProperty("balance")),
+            BeatActions = ReadBeatActions(item, "beat_actions"),
+            CardSource = item.TryGetProperty("card_source", out var cardSource)
+                ? cardSource.GetStringRequired("card_source")
+                : "weapon",
+            FinisherAttackType = TryParseBeatAttackType(item, "finisher_attack_type"),
             Tags = ReadStringList(item, "tags")
         };
     }
@@ -623,6 +628,8 @@ public sealed class GameContent
             Id = item.GetProperty("id").GetStringRequired("id"),
             MaxHp = item.GetProperty("stats").GetProperty("max_hp").GetInt32(),
             IntentSequence = item.GetProperty("ai").GetProperty("intents").EnumerateArray().Select(ParseEnemyIntent).ToList(),
+            Resistances = ReadResistanceProfile(item),
+            BeatSequences = ReadBeatSequences(item),
             StatusImmunities = ReadStringList(item, "immunities"),
             Tags = tags.Distinct(StringComparer.Ordinal).ToList()
         };
@@ -812,6 +819,69 @@ public sealed class GameContent
             : [];
     }
 
+    private static List<BeatActionDefinition> ReadBeatActions(JsonElement item, string propertyName)
+    {
+        return item.TryGetProperty(propertyName, out var actions) && actions.ValueKind == JsonValueKind.Array
+            ? actions.EnumerateArray().Select(ReadBeatAction).ToList()
+            : [];
+    }
+
+    private static BeatActionDefinition ReadBeatAction(JsonElement item)
+    {
+        return new BeatActionDefinition
+        {
+            Kind = ParseBeatActionKind(item.GetProperty("kind").GetStringRequired("kind")),
+            AttackType = TryParseBeatAttackType(item, "attack_type"),
+            Value = ReadOptionalInt(item, "value") ?? 0,
+            Repeat = ReadOptionalInt(item, "repeat") ?? 1,
+            DodgeChancePercent = ReadOptionalInt(item, "dodge_chance_percent") ?? 50
+        };
+    }
+
+    private static BeatResistanceProfile ReadResistanceProfile(JsonElement item)
+    {
+        if (!item.TryGetProperty("resistances", out var resistances) || resistances.ValueKind != JsonValueKind.Object)
+        {
+            return new BeatResistanceProfile();
+        }
+
+        return new BeatResistanceProfile
+        {
+            Slash = resistances.TryGetProperty("slash", out var slash)
+                ? ParseBeatResistanceGrade(slash.GetStringRequired("resistances.slash"))
+                : BeatResistanceGrade.Standard,
+            Strike = resistances.TryGetProperty("strike", out var strike)
+                ? ParseBeatResistanceGrade(strike.GetStringRequired("resistances.strike"))
+                : BeatResistanceGrade.Standard,
+            Projectile = resistances.TryGetProperty("projectile", out var projectile)
+                ? ParseBeatResistanceGrade(projectile.GetStringRequired("resistances.projectile"))
+                : BeatResistanceGrade.Standard
+        };
+    }
+
+    private static List<EnemyBeatSequenceDefinition> ReadBeatSequences(JsonElement item)
+    {
+        if (!item.TryGetProperty("beat_sequences", out var sequences) || sequences.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return sequences.EnumerateArray()
+            .Select(sequence => new EnemyBeatSequenceDefinition
+            {
+                Id = sequence.GetProperty("id").GetStringRequired("beat_sequences.id"),
+                Beats = sequence.GetProperty("beats").EnumerateArray()
+                    .Select(beat => new EnemyBeatDefinition
+                    {
+                        ActionCardId = beat.GetProperty("action_card_id").GetStringRequired("beat.action_card_id"),
+                        Actions = ReadBeatActions(beat, "actions"),
+                        Hidden = beat.TryGetProperty("hidden", out var hidden) && hidden.GetBoolean()
+                    })
+                    .ToList()
+            })
+            .ToList();
+    }
+
     private static CardType ParseCardType(string value) => value switch
     {
         "action" => CardType.Action,
@@ -836,6 +906,35 @@ public sealed class GameContent
         "uncommon" => CardRarity.Uncommon,
         "rare" => CardRarity.Rare,
         _ => throw new InvalidOperationException($"Unknown card rarity '{value}'.")
+    };
+
+    private static BeatActionKind ParseBeatActionKind(string value) => value switch
+    {
+        "attack" => BeatActionKind.Attack,
+        "block" => BeatActionKind.Block,
+        "dodge" => BeatActionKind.Dodge,
+        _ => throw new InvalidOperationException($"Unknown beat action kind '{value}'.")
+    };
+
+    private static BeatAttackType? TryParseBeatAttackType(JsonElement item, string propertyName)
+    {
+        return item.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetStringRequired(propertyName) switch
+            {
+                "slash" => BeatAttackType.Slash,
+                "strike" => BeatAttackType.Strike,
+                "projectile" => BeatAttackType.Projectile,
+                var unknown => throw new InvalidOperationException($"Unknown beat attack type '{unknown}'.")
+            }
+            : null;
+    }
+
+    private static BeatResistanceGrade ParseBeatResistanceGrade(string value) => value switch
+    {
+        "resist" => BeatResistanceGrade.Resist,
+        "standard" => BeatResistanceGrade.Standard,
+        "weakness" => BeatResistanceGrade.Weakness,
+        _ => throw new InvalidOperationException($"Unknown beat resistance grade '{value}'.")
     };
 
     private static TargetRule ParseTargetRule(JsonElement targeting)
