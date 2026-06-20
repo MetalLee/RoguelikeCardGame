@@ -337,6 +337,75 @@ var resisted = beatService.ResolveActionCollision(
     playerResistance: new BeatResistanceProfile());
 AssertEqual(5, resisted.EnemyDamageTaken, "Projectile resistance halves direct damage");
 
+var beatTargetCombat = CreatePlayableCombat([], enemies: [CreateEnemyState("enemy_01")]);
+var threeBeatRound = CreateBeatTargetRound(
+    beatCount: 3,
+    enemyBeatIndexes: [0, 1, 2],
+    playerBeats:
+    [
+        CreatePlayerBeat(0, "card.beat_slash", CreateEnemyBeatTarget(0)),
+        CreatePlayerBeat(1, "card.beat_slash", CreateEnemyBeatTarget(1)),
+        CreatePlayerBeat(2, "card.beat_slash", CreateEnemyBeatTarget(2))
+    ]);
+Assert(beatService.ValidatePlayerBeatTargets(threeBeatRound, beatTargetCombat).Succeeded, "Three player beats can lock three different enemy beats");
+
+var duplicateEnemyBeatTarget = beatService.ValidatePlayerBeatTargets(
+    CreateBeatTargetRound(
+        beatCount: 3,
+        enemyBeatIndexes: [0, 1, 2],
+        playerBeats:
+        [
+            CreatePlayerBeat(0, "card.beat_slash", CreateEnemyBeatTarget(1)),
+            CreatePlayerBeat(1, "card.beat_slash", CreateEnemyBeatTarget(1))
+        ]),
+    beatTargetCombat);
+Assert(!duplicateEnemyBeatTarget.Succeeded, "Duplicate enemy beat targets are rejected");
+AssertEqual(BeatTargetValidationFailureReason.DuplicateEnemyBeatTarget, duplicateEnemyBeatTarget.FailureReason, "Duplicate enemy beat target exposes failure reason");
+
+var bodyTargetBeforeLocks = beatService.ValidatePlayerBeatTargets(
+    CreateBeatTargetRound(
+        beatCount: 3,
+        enemyBeatIndexes: [0, 1, 2],
+        playerBeats:
+        [
+            CreatePlayerBeat(0, "card.beat_slash", CreateEnemyBeatTarget(0)),
+            CreatePlayerBeat(1, "card.beat_slash", CreateEnemyBodyTarget())
+        ]),
+    beatTargetCombat);
+Assert(!bodyTargetBeforeLocks.Succeeded, "Body targets require all enemy beats to be locked first");
+AssertEqual(BeatTargetValidationFailureReason.BodyTargetRequiresAllEnemyBeatsLocked, bodyTargetBeforeLocks.FailureReason, "Body target lock failure exposes failure reason");
+
+var bodyTargetAfterLocks = beatService.ValidatePlayerBeatTargets(
+    CreateBeatTargetRound(
+        beatCount: 4,
+        enemyBeatIndexes: [0, 1, 2],
+        playerBeats:
+        [
+            CreatePlayerBeat(0, "card.beat_slash", CreateEnemyBeatTarget(0)),
+            CreatePlayerBeat(1, "card.beat_slash", CreateEnemyBeatTarget(1)),
+            CreatePlayerBeat(2, "card.beat_slash", CreateEnemyBeatTarget(2)),
+            CreatePlayerBeat(3, "card.beat_slash", CreateEnemyBodyTarget())
+        ]),
+    beatTargetCombat);
+Assert(bodyTargetAfterLocks.Succeeded, "Body targets are valid once all enemy beats are locked");
+
+var missingBeatTarget = beatService.ValidatePlayerBeatTargets(
+    CreateBeatTargetRound(
+        beatCount: 3,
+        enemyBeatIndexes: [0, 1, 2],
+        playerBeats: [CreatePlayerBeat(0, "card.beat_slash", null)]),
+    beatTargetCombat);
+Assert(!missingBeatTarget.Succeeded, "Player beats with cards require a target");
+AssertEqual(BeatTargetValidationFailureReason.TargetMissing, missingBeatTarget.FailureReason, "Missing target exposes failure reason");
+
+var emptyBeat = beatService.ValidatePlayerBeatTargets(
+    CreateBeatTargetRound(
+        beatCount: 3,
+        enemyBeatIndexes: [0, 1, 2],
+        playerBeats: [CreatePlayerBeat(0, null, null)]),
+    beatTargetCombat);
+Assert(emptyBeat.Succeeded, "Empty player beats without targets are allowed");
+
 var runFactory = new RunStateFactory();
 var run = runFactory.CreateNewRun(
     runId: "run_smoke_001",
@@ -1365,6 +1434,55 @@ static CombatEnemyState CreateEnemyState(
         CurrentHp = currentHp,
         Block = block,
         IntentIndex = intentIndex
+    };
+}
+
+static BeatRoundState CreateBeatTargetRound(
+    int beatCount,
+    IEnumerable<int> enemyBeatIndexes,
+    IEnumerable<PlayerBeatSlot> playerBeats)
+{
+    return new BeatRoundState
+    {
+        BeatCount = beatCount,
+        PlayerBeats = playerBeats.ToList(),
+        EnemyBeats = enemyBeatIndexes
+            .Select(index => new EnemyBeatSlot
+            {
+                EnemyInstanceId = "enemy_01",
+                BeatIndex = index,
+                ActionCardId = $"enemy_card.beat_{index}"
+            })
+            .ToList()
+    };
+}
+
+static PlayerBeatSlot CreatePlayerBeat(int beatIndex, string? cardId, BeatTarget? target)
+{
+    return new PlayerBeatSlot
+    {
+        BeatIndex = beatIndex,
+        CardId = cardId,
+        Target = target
+    };
+}
+
+static BeatTarget CreateEnemyBeatTarget(int beatIndex)
+{
+    return new BeatTarget
+    {
+        Kind = BeatTargetKind.EnemyBeat,
+        EnemyInstanceId = "enemy_01",
+        EnemyBeatIndex = beatIndex
+    };
+}
+
+static BeatTarget CreateEnemyBodyTarget()
+{
+    return new BeatTarget
+    {
+        Kind = BeatTargetKind.EnemyBody,
+        EnemyInstanceId = "enemy_01"
     };
 }
 

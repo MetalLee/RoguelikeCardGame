@@ -16,6 +16,34 @@ public sealed record BeatRoundResolveResult
     public List<CombatLogEvent> Events { get; init; } = new();
 }
 
+public sealed record BeatTargetValidationResult
+{
+    public bool Succeeded { get; init; }
+    public BeatTargetValidationFailureReason? FailureReason { get; init; }
+    public string? Message { get; init; }
+
+    public static BeatTargetValidationResult Success() => new() { Succeeded = true };
+
+    public static BeatTargetValidationResult Failure(BeatTargetValidationFailureReason reason, string message) => new()
+    {
+        FailureReason = reason,
+        Message = message
+    };
+}
+
+public enum BeatTargetValidationFailureReason
+{
+    PlayerBeatIndexOutOfRange,
+    DuplicatePlayerBeatIndex,
+    TargetMissing,
+    TargetWithoutCard,
+    EnemyMissing,
+    EnemyBeatIndexMissing,
+    EnemyBeatMissing,
+    DuplicateEnemyBeatTarget,
+    BodyTargetRequiresAllEnemyBeatsLocked
+}
+
 public sealed class BeatCombatService
 {
     private readonly Func<int> dodgeRollPercent;
@@ -23,6 +51,111 @@ public sealed class BeatCombatService
     public BeatCombatService(Func<int>? dodgeRollPercent = null)
     {
         this.dodgeRollPercent = dodgeRollPercent ?? (() => 100);
+    }
+
+    public BeatTargetValidationResult ValidatePlayerBeatTargets(BeatRoundState round, CombatState combat)
+    {
+        var livingEnemyIds = combat.Enemies
+            .Where(enemy => enemy.CurrentHp > 0)
+            .Select(enemy => enemy.InstanceId)
+            .ToHashSet(StringComparer.Ordinal);
+        var playerBeatIndexes = new HashSet<int>();
+        var lockedEnemyBeats = new HashSet<(string EnemyInstanceId, int BeatIndex)>();
+
+        foreach (var playerBeat in round.PlayerBeats)
+        {
+            if (playerBeat.BeatIndex < 0 || playerBeat.BeatIndex >= round.BeatCount)
+            {
+                return BeatTargetValidationResult.Failure(
+                    BeatTargetValidationFailureReason.PlayerBeatIndexOutOfRange,
+                    $"Player beat index {playerBeat.BeatIndex} is outside beat count {round.BeatCount}.");
+            }
+
+            if (!playerBeatIndexes.Add(playerBeat.BeatIndex))
+            {
+                return BeatTargetValidationResult.Failure(
+                    BeatTargetValidationFailureReason.DuplicatePlayerBeatIndex,
+                    $"Player beat index {playerBeat.BeatIndex} is assigned more than once.");
+            }
+
+            var hasCard = !string.IsNullOrWhiteSpace(playerBeat.CardInstanceId) ||
+                !string.IsNullOrWhiteSpace(playerBeat.CardId);
+            if (!hasCard)
+            {
+                if (playerBeat.Target is not null)
+                {
+                    return BeatTargetValidationResult.Failure(
+                        BeatTargetValidationFailureReason.TargetWithoutCard,
+                        $"Player beat index {playerBeat.BeatIndex} has a target but no card.");
+                }
+
+                continue;
+            }
+
+            if (playerBeat.Target is null)
+            {
+                return BeatTargetValidationResult.Failure(
+                    BeatTargetValidationFailureReason.TargetMissing,
+                    $"Player beat index {playerBeat.BeatIndex} has a card but no target.");
+            }
+
+            var target = playerBeat.Target;
+            if (!livingEnemyIds.Contains(target.EnemyInstanceId))
+            {
+                return BeatTargetValidationResult.Failure(
+                    BeatTargetValidationFailureReason.EnemyMissing,
+                    $"Enemy '{target.EnemyInstanceId}' is missing or defeated.");
+            }
+
+            if (target.Kind != BeatTargetKind.EnemyBeat)
+            {
+                continue;
+            }
+
+            if (target.EnemyBeatIndex is null)
+            {
+                return BeatTargetValidationResult.Failure(
+                    BeatTargetValidationFailureReason.EnemyBeatIndexMissing,
+                    $"Player beat index {playerBeat.BeatIndex} targets an enemy beat without a beat index.");
+            }
+
+            var enemyBeatKey = (target.EnemyInstanceId, target.EnemyBeatIndex.Value);
+            if (!round.EnemyBeats.Any(enemyBeat =>
+                    string.Equals(enemyBeat.EnemyInstanceId, target.EnemyInstanceId, StringComparison.Ordinal) &&
+                    enemyBeat.BeatIndex == target.EnemyBeatIndex.Value))
+            {
+                return BeatTargetValidationResult.Failure(
+                    BeatTargetValidationFailureReason.EnemyBeatMissing,
+                    $"Enemy '{target.EnemyInstanceId}' has no beat index {target.EnemyBeatIndex.Value} in this round.");
+            }
+
+            if (!lockedEnemyBeats.Add(enemyBeatKey))
+            {
+                return BeatTargetValidationResult.Failure(
+                    BeatTargetValidationFailureReason.DuplicateEnemyBeatTarget,
+                    $"Enemy '{target.EnemyInstanceId}' beat index {target.EnemyBeatIndex.Value} is targeted more than once.");
+            }
+        }
+
+        foreach (var playerBeat in round.PlayerBeats)
+        {
+            if (playerBeat.Target?.Kind != BeatTargetKind.EnemyBody)
+            {
+                continue;
+            }
+
+            var enemyBeatKeys = round.EnemyBeats
+                .Where(enemyBeat => string.Equals(enemyBeat.EnemyInstanceId, playerBeat.Target.EnemyInstanceId, StringComparison.Ordinal))
+                .Select(enemyBeat => (enemyBeat.EnemyInstanceId, enemyBeat.BeatIndex));
+            if (enemyBeatKeys.Any(enemyBeatKey => !lockedEnemyBeats.Contains(enemyBeatKey)))
+            {
+                return BeatTargetValidationResult.Failure(
+                    BeatTargetValidationFailureReason.BodyTargetRequiresAllEnemyBeatsLocked,
+                    $"Enemy '{playerBeat.Target.EnemyInstanceId}' body cannot be targeted before all enemy beats are locked.");
+            }
+        }
+
+        return BeatTargetValidationResult.Success();
     }
 
     public BeatCollisionResult ResolveActionCollision(
