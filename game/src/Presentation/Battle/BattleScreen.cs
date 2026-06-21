@@ -1020,7 +1020,22 @@ public partial class BattleScreen : ComicScreen
 			battleEnemyView?.EnemyNodes ?? new Dictionary<string, Control>(),
 			handIndex => battleHandView?.GetCardNodeByHandIndex(handIndex),
 			cardId => battleHandView?.GetFirstCardNode(cardId),
-			_ => Task.CompletedTask);
+			PlayBeatClashCutInAsync);
+	}
+
+	private Task PlayBeatClashCutInAsync(IReadOnlyList<BeatClashAnimationStep> steps)
+	{
+		if (canvasRoot is null || !GodotObject.IsInstanceValid(canvasRoot))
+		{
+			return Task.CompletedTask;
+		}
+
+		var layer = new BeatClashCutInLayer(
+			this,
+			canvasRoot,
+			playerNode,
+			battleEnemyView?.EnemyNodes ?? new Dictionary<string, Control>());
+		return layer.PlayAsync(steps);
 	}
 
 	private static Control CreateInputBlocker()
