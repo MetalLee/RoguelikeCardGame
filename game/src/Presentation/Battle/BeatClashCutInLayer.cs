@@ -56,6 +56,15 @@ internal sealed class BeatClashCutInLayer
                 }
 
                 var targetChanged = !string.Equals(currentTargetId, step.TargetId, StringComparison.Ordinal);
+                if (step.ReturnToStartBeforeStep && targetChanged && targetClone is not null)
+                {
+                    await TweenPositionAsync(playerClone, PlayerStartPosition, 0.12, Tween.EaseType.Out);
+                    if (!GodotObject.IsInstanceValid(overlay) || !GodotObject.IsInstanceValid(playerClone))
+                    {
+                        return;
+                    }
+                }
+
                 if (targetClone is null || targetChanged)
                 {
                     if (targetClone is not null && GodotObject.IsInstanceValid(targetClone))
@@ -68,9 +77,13 @@ internal sealed class BeatClashCutInLayer
                     ComicScreen.AddAnimationNodeAt(overlay, targetClone, TargetPosition, targetClone.CustomMinimumSize);
                 }
 
-                if (step.ReturnToStartBeforeStep)
+                if (step.ReturnToStartBeforeStep && !targetChanged)
                 {
                     await TweenPositionAsync(playerClone, PlayerStartPosition, 0.12, Tween.EaseType.Out);
+                    if (!GodotObject.IsInstanceValid(overlay) || !GodotObject.IsInstanceValid(playerClone))
+                    {
+                        return;
+                    }
                 }
 
                 await PlayStepAsync(overlay, playerClone, targetClone, step);
@@ -140,6 +153,12 @@ internal sealed class BeatClashCutInLayer
     {
         var dashPosition = targetClone.Position + new Vector2(-270, 70);
         await TweenPositionAsync(playerClone, dashPosition, 0.14, Tween.EaseType.Out);
+        if (!GodotObject.IsInstanceValid(overlay) ||
+            !GodotObject.IsInstanceValid(playerClone) ||
+            !GodotObject.IsInstanceValid(targetClone))
+        {
+            return;
+        }
 
         var impactCenter = playerClone.Position + new Vector2(PlayerSize.X * 0.88f, PlayerSize.Y * 0.44f);
         var targetCenter = targetClone.Position + targetClone.Size * 0.5f;
