@@ -604,6 +604,64 @@ Assert(!beatClashSteps[1].ReturnToStartBeforeStep, "Beat clash planner keeps the
 AssertEqual("enemy_b", beatClashSteps[2].TargetId, "Beat clash planner keeps the changed target id");
 Assert(!beatClashSteps[2].ContinuesPreviousTarget, "Beat clash planner does not continue when the target changes");
 Assert(beatClashSteps[2].ReturnToStartBeforeStep, "Beat clash planner returns before switching targets");
+var multiTurnBeatClashSteps = beatClashPlanner.Plan(
+    [
+        new CombatLogEvent
+        {
+            EventId = "turn_2_energy",
+            EventType = CombatLogEventType.BeatEnergyGenerated,
+            TurnNumber = 2,
+            NumericChanges = new Dictionary<string, int> { ["color_energy_generated"] = 3 },
+            Metadata = new Dictionary<string, string>
+            {
+                ["card_instance_id"] = "reused_card_instance",
+                ["color"] = "Yellow"
+            }
+        },
+        new CombatLogEvent
+        {
+            EventId = "turn_2_resolved",
+            EventType = CombatLogEventType.BeatActionResolved,
+            TurnNumber = 2,
+            SourceId = "card.reused",
+            TargetIds = ["enemy_b"],
+            NumericChanges = new Dictionary<string, int> { ["beat_index"] = 0 },
+            Metadata = new Dictionary<string, string>
+            {
+                ["card_instance_id"] = "reused_card_instance",
+                ["target_kind"] = "EnemyBody"
+            }
+        },
+        new CombatLogEvent
+        {
+            EventId = "turn_1_resolved",
+            EventType = CombatLogEventType.BeatActionResolved,
+            TurnNumber = 1,
+            SourceId = "card.reused",
+            TargetIds = ["enemy_a"],
+            NumericChanges = new Dictionary<string, int> { ["beat_index"] = 2 },
+            Metadata = new Dictionary<string, string>
+            {
+                ["card_instance_id"] = "reused_card_instance",
+                ["target_kind"] = "EnemyBody"
+            }
+        },
+        new CombatLogEvent
+        {
+            EventId = "turn_1_energy",
+            EventType = CombatLogEventType.BeatEnergyGenerated,
+            TurnNumber = 1,
+            NumericChanges = new Dictionary<string, int> { ["color_energy_generated"] = 1 },
+            Metadata = new Dictionary<string, string>
+            {
+                ["card_instance_id"] = "reused_card_instance",
+                ["color"] = "Red"
+            }
+        }
+    ]);
+AssertSequenceEqual([1, 2], multiTurnBeatClashSteps.Select(step => step.TurnNumber), "Beat clash planner keeps full combat log input ordered by turn before beat");
+AssertSequenceEqual([1, 3], multiTurnBeatClashSteps.Select(step => step.EnergyGeneratedTotal), "Beat clash planner matches generated energy by turn and card instance");
+AssertSequenceEqual(["Red", "Yellow"], multiTurnBeatClashSteps.Select(step => step.EnergyColors.Single().Color), "Beat clash planner does not mix energy colors across turns for a reused card instance");
 var beatTargetingOperations = new List<string>();
 RoguelikeCardGame.Presentation.Battle.BeatTargetingInputPresentation.CompleteTargetSelection(
     markInputHandled: () => beatTargetingOperations.Add("handled"),

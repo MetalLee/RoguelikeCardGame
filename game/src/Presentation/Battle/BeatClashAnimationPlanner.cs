@@ -6,27 +6,28 @@ public sealed class BeatClashAnimationPlanner
 {
     public IReadOnlyList<BeatClashAnimationStep> Plan(IReadOnlyList<CombatLogEvent> combatLog)
     {
-        var energyByCardInstanceId = combatLog
+        var energyByCardInstanceTurn = combatLog
             .Where(item => item.EventType == CombatLogEventType.BeatEnergyGenerated)
             .Select(item => new
             {
+                item.TurnNumber,
                 CardInstanceId = TryGetMetadata(item, "card_instance_id"),
                 Color = TryGetMetadata(item, "color"),
                 Amount = TryGetNumeric(item, "color_energy_generated")
             })
             .Where(item => !string.IsNullOrWhiteSpace(item.CardInstanceId) && item.Amount > 0)
-            .GroupBy(item => item.CardInstanceId!, StringComparer.Ordinal)
+            .GroupBy(item => new BeatClashEnergyKey(item.TurnNumber, item.CardInstanceId!))
             .ToDictionary(
                 group => group.Key,
                 group => (IReadOnlyList<BeatClashEnergyColor>)group
                     .Select(item => new BeatClashEnergyColor(item.Color ?? string.Empty, item.Amount))
-                    .ToList(),
-                StringComparer.Ordinal);
+                    .ToList());
 
         var orderedSteps = combatLog
             .Where(item => item.EventType == CombatLogEventType.BeatActionResolved)
-            .Select(item => CreateStep(item, energyByCardInstanceId))
-            .OrderBy(step => step.BeatIndex)
+            .Select(item => CreateStep(item, energyByCardInstanceTurn))
+            .OrderBy(step => step.TurnNumber)
+            .ThenBy(step => step.BeatIndex)
             .ToList();
 
         for (var index = 0; index < orderedSteps.Count; index++)
@@ -58,14 +59,15 @@ public sealed class BeatClashAnimationPlanner
 
     private static BeatClashAnimationStep CreateStep(
         CombatLogEvent logEvent,
-        IReadOnlyDictionary<string, IReadOnlyList<BeatClashEnergyColor>> energyByCardInstanceId)
+        IReadOnlyDictionary<BeatClashEnergyKey, IReadOnlyList<BeatClashEnergyColor>> energyByCardInstanceTurn)
     {
         var cardInstanceId = TryGetMetadata(logEvent, "card_instance_id");
-        var energyColors = cardInstanceId is not null && energyByCardInstanceId.TryGetValue(cardInstanceId, out var colors)
+        var energyColors = cardInstanceId is not null && energyByCardInstanceTurn.TryGetValue(new BeatClashEnergyKey(logEvent.TurnNumber, cardInstanceId), out var colors)
             ? colors
             : [];
         return new BeatClashAnimationStep
         {
+            TurnNumber = logEvent.TurnNumber,
             BeatIndex = TryGetNumeric(logEvent, "beat_index"),
             CardId = logEvent.SourceId,
             SourceId = logEvent.SourceId,
@@ -100,8 +102,12 @@ public sealed class BeatClashAnimationPlanner
     }
 }
 
+internal sealed record BeatClashEnergyKey(int TurnNumber, string CardInstanceId);
+
 public sealed record BeatClashAnimationStep
 {
+    public int TurnNumber { get; init; }
+
     public int BeatIndex { get; init; }
 
     public string? CardId { get; init; }
