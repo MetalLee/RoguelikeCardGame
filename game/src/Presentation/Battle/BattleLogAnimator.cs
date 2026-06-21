@@ -28,16 +28,45 @@ public sealed class BattleLogAnimator
             return;
         }
 
+        await PlayBeatClashCutInAsync(events, targets);
+        var genericEvents = events
+            .Where(item => !IsBeatClashAnimationEvent(item.EventType))
+            .ToList();
+
         if (playConcurrently)
         {
-            await Task.WhenAll(events.Select(item => PlayLogEventAsync(item, targets, playedCard, playedHandIndex)));
+            await Task.WhenAll(genericEvents.Select(item => PlayLogEventAsync(item, targets, playedCard, playedHandIndex)));
             return;
         }
 
-        foreach (var item in events)
+        foreach (var item in genericEvents)
         {
             await PlayLogEventAsync(item, targets, playedCard, playedHandIndex);
         }
+    }
+
+    private static async Task PlayBeatClashCutInAsync(
+        IReadOnlyList<CombatLogEvent> events,
+        BattleAnimationTargets targets)
+    {
+        if (!events.Any(item => item.EventType == CombatLogEventType.BeatActionResolved) ||
+            targets.PlayBeatClashCutInAsync is null)
+        {
+            return;
+        }
+
+        var steps = new BeatClashAnimationPlanner().Plan(events);
+        if (steps.Count == 0)
+        {
+            return;
+        }
+
+        await targets.PlayBeatClashCutInAsync(steps);
+    }
+
+    private static bool IsBeatClashAnimationEvent(CombatLogEventType eventType)
+    {
+        return eventType is CombatLogEventType.BeatActionResolved or CombatLogEventType.BeatEnergyGenerated;
     }
 
     private async Task PlayLogEventAsync(
@@ -288,4 +317,5 @@ public sealed record BattleAnimationTargets(
     Control? FxLayer,
     IReadOnlyDictionary<string, Control> EnemyNodes,
     Func<int, Control?> CardNodeByHandIndex,
-    Func<string, Control?> FirstCardNodeByCardId);
+    Func<string, Control?> FirstCardNodeByCardId,
+    Func<IReadOnlyList<BeatClashAnimationStep>, Task>? PlayBeatClashCutInAsync);

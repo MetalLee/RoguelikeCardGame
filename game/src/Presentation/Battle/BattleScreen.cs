@@ -1019,7 +1019,8 @@ public partial class BattleScreen : ComicScreen
 			fxLayer,
 			battleEnemyView?.EnemyNodes ?? new Dictionary<string, Control>(),
 			handIndex => battleHandView?.GetCardNodeByHandIndex(handIndex),
-			cardId => battleHandView?.GetFirstCardNode(cardId));
+			cardId => battleHandView?.GetFirstCardNode(cardId),
+			_ => Task.CompletedTask);
 	}
 
 	private static Control CreateInputBlocker()
