@@ -1030,12 +1030,21 @@ public partial class BattleScreen : ComicScreen
 			return Task.CompletedTask;
 		}
 
+		var enemyNodes = battleEnemyView?.EnemyNodes ?? new Dictionary<string, Control>();
+		var playerActionSteps = steps
+			.Where(step => !string.IsNullOrWhiteSpace(step.TargetId) && enemyNodes.ContainsKey(step.TargetId))
+			.ToList();
+		if (playerActionSteps.Count == 0)
+		{
+			return Task.CompletedTask;
+		}
+
 		var layer = new BeatClashCutInLayer(
 			this,
 			canvasRoot,
 			playerNode,
-			battleEnemyView?.EnemyNodes ?? new Dictionary<string, Control>());
-		return layer.PlayAsync(steps);
+			enemyNodes);
+		return layer.PlayAsync(playerActionSteps);
 	}
 
 	private static Control CreateInputBlocker()
