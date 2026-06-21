@@ -97,6 +97,13 @@ public abstract partial class ComicScreen : Control
         parent.AddChild(child);
     }
 
+    internal Texture2D? LoadAnimationTexture(string assetId) => LoadTexture(assetId);
+
+    internal Font? LoadAnimationFont(string assetId) => LoadFont(assetId);
+
+    internal static void AddAnimationNodeAt(Control parent, Control child, Vector2 position, Vector2 size) =>
+        AddAt(parent, child, position, size);
+
     protected void AddImageAt(Control parent, string assetId, Vector2 position, Vector2 size, TextureRect.StretchModeEnum stretchMode)
     {
         AddAt(parent, CreateImage(assetId, size, stretchMode), position, size);
