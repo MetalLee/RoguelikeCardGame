@@ -496,6 +496,114 @@ AssertEqual(-8f, arrowTip.Y, "Beat connector arrow tip follows the curve endpoin
 var arrowTail = RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.ArrowTailFromTip(100, 0, 1, 0, 34);
 AssertEqual(66f, arrowTail.X, "Beat connector arrow tip remains attached to the diamond vertex while the tail backs into the curve");
 AssertEqual(-62f, RoguelikeCardGame.Presentation.Battle.BeatCardDragPresentation.CardLiftOffsetY, "Beat card deployment lifts the card instead of dragging the card body to a beat slot");
+var beatClashPlanner = new RoguelikeCardGame.Presentation.Battle.BeatClashAnimationPlanner();
+var beatClashSteps = beatClashPlanner.Plan(
+    [
+        new CombatLogEvent
+        {
+            EventId = "beat_iii_resolved",
+            EventType = CombatLogEventType.BeatActionResolved,
+            TurnNumber = 1,
+            SourceId = "card.third",
+            TargetIds = ["enemy_b"],
+            NumericChanges = new Dictionary<string, int>
+            {
+                ["beat_index"] = 2,
+                ["enemy_damage"] = 5,
+                ["player_damage"] = 1,
+                ["successful_player_actions"] = 1,
+                ["successful_enemy_actions"] = 1
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["card_instance_id"] = "card_instance.third",
+                ["target_kind"] = "EnemyBody"
+            }
+        },
+        new CombatLogEvent
+        {
+            EventId = "beat_i_blue_energy",
+            EventType = CombatLogEventType.BeatEnergyGenerated,
+            TurnNumber = 1,
+            SourceId = "card.first",
+            NumericChanges = new Dictionary<string, int> { ["color_energy_generated"] = 2 },
+            Metadata = new Dictionary<string, string>
+            {
+                ["card_instance_id"] = "card_instance.first",
+                ["color"] = "Blue"
+            }
+        },
+        new CombatLogEvent
+        {
+            EventId = "beat_ii_resolved",
+            EventType = CombatLogEventType.BeatActionResolved,
+            TurnNumber = 1,
+            SourceId = "card.second",
+            TargetIds = ["enemy_a"],
+            NumericChanges = new Dictionary<string, int>
+            {
+                ["beat_index"] = 1,
+                ["enemy_damage"] = 3,
+                ["successful_player_actions"] = 1
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["card_instance_id"] = "card_instance.second",
+                ["target_kind"] = "EnemyBeat",
+                ["enemy_beat_index"] = "1"
+            }
+        },
+        new CombatLogEvent
+        {
+            EventId = "beat_i_resolved",
+            EventType = CombatLogEventType.BeatActionResolved,
+            TurnNumber = 1,
+            SourceId = "card.first",
+            TargetIds = ["enemy_a"],
+            NumericChanges = new Dictionary<string, int>
+            {
+                ["beat_index"] = 0,
+                ["enemy_damage"] = 7,
+                ["successful_player_actions"] = 1
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["card_instance_id"] = "card_instance.first",
+                ["target_kind"] = "EnemyBody"
+            }
+        },
+        new CombatLogEvent
+        {
+            EventId = "beat_i_red_energy",
+            EventType = CombatLogEventType.BeatEnergyGenerated,
+            TurnNumber = 1,
+            SourceId = "card.first",
+            NumericChanges = new Dictionary<string, int> { ["color_energy_generated"] = 1 },
+            Metadata = new Dictionary<string, string>
+            {
+                ["card_instance_id"] = "card_instance.first",
+                ["color"] = "Red"
+            }
+        }
+    ]);
+AssertSequenceEqual([0, 1, 2], beatClashSteps.Select(step => step.BeatIndex), "Beat clash planner orders steps by beat index");
+AssertEqual("card.first", beatClashSteps[0].CardId, "Beat clash planner keeps the resolved action source card");
+AssertEqual("card_instance.first", beatClashSteps[0].CardInstanceId, "Beat clash planner keeps the card instance id");
+AssertEqual("enemy_a", beatClashSteps[0].TargetId, "Beat clash planner uses the first target id");
+AssertEqual("EnemyBody", beatClashSteps[0].TargetKind, "Beat clash planner keeps the target kind");
+AssertEqual(7, beatClashSteps[0].EnemyDamage, "Beat clash planner keeps enemy damage");
+AssertEqual(3, beatClashSteps[0].EnergyGeneratedTotal, "Beat clash planner aggregates generated energy for the action card instance");
+AssertSequenceEqual(["Blue", "Red"], beatClashSteps[0].EnergyColors.Select(color => color.Color), "Beat clash planner keeps generated energy colors");
+AssertSequenceEqual([2, 1], beatClashSteps[0].EnergyColors.Select(color => color.Amount), "Beat clash planner keeps generated energy amounts");
+Assert(!beatClashSteps[0].ReturnToStartBeforeStep, "Beat clash planner does not return before the first step");
+Assert(!beatClashSteps[0].ContinuesPreviousTarget, "Beat clash planner does not continue before the first step");
+AssertEqual("enemy_a", beatClashSteps[1].TargetId, "Beat clash planner keeps the second beat target id");
+AssertEqual(1, beatClashSteps[1].EnemyBeatIndex, "Beat clash planner parses enemy beat index");
+Assert(beatClashSteps[1].ContinuesPreviousTarget, "Beat clash planner marks consecutive beats against the same target");
+Assert(!beatClashSteps[1].ReturnToStartBeforeStep, "Beat clash planner keeps the camera on consecutive target beats");
+AssertEqual("enemy_b", beatClashSteps[2].TargetId, "Beat clash planner keeps the changed target id");
+Assert(!beatClashSteps[2].ContinuesPreviousTarget, "Beat clash planner does not continue when the target changes");
+Assert(beatClashSteps[2].ReturnToStartBeforeStep, "Beat clash planner returns before switching targets");
 var beatTargetingOperations = new List<string>();
 RoguelikeCardGame.Presentation.Battle.BeatTargetingInputPresentation.CompleteTargetSelection(
     markInputHandled: () => beatTargetingOperations.Add("handled"),
