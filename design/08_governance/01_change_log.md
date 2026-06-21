@@ -15,6 +15,10 @@
 
 ## 日志
 
+### 2026-06-22
+
+- 落地三拍对撞特写覆盖层 MVP：行动牌结算按玩家拍位 I、II、III 顺序组织演出，主角冲到对撞目标魔物身边，覆盖层只保留主角与当前目标魔物、速度线、冲击 VFX、伤害数字和彩能获得提示；连续拍位锁定同一魔物时不切出覆盖层、不回初始占位，切换魔物时先回位再冲向下一个目标。同步明确真实规则结算也以左侧玩家拍位顺序为准，而不是目标选择先后或魔物拍位顺序。更新 [[design/01_core_gameplay/02_combat_system|战斗系统]] 与 [[design/03_experience/00_ui_ux|界面与交互]]。
+
 ### 2026-06-21
 
 - 通读并同步 `design/` 与 `docs/superpowers/` 中的战斗机制相关文档，将当前第一版 MVP 口径统一为“三拍拆招 + 成功产无色彩能 + 终结槽手动释放 + 武器卡牌三选一”。旧行动点自由出牌、技能牌、卡牌包奖励、3 / 5 / 8 连锁阈值不再作为当前主流程；五色色彩碎片、行动牌附魔和五色终结转译统一标记为后续阶段。同步更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/03_experience/00_ui_ux|界面与交互]]、[[design/06_technical_production/00_technical_requirements|技术需求]] 与 [[design/08_governance/02_glossary|术语表]] 等文档。
