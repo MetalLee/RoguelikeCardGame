@@ -727,6 +727,9 @@ var beatCombat = CreatePlayableCombat(
 var beatCards = new Dictionary<string, CardDefinition>
 {
     [beatSlashCard.Id] = beatSlashCard,
+    ["card.beat_slash_i"] = beatSlashCard with { Id = "card.beat_slash_i" },
+    ["card.beat_slash_ii"] = beatSlashCard with { Id = "card.beat_slash_ii" },
+    ["card.beat_slash_iii"] = beatSlashCard with { Id = "card.beat_slash_iii" },
     [finisher.Id] = finisher
 };
 var beatEnemies = new Dictionary<string, EnemyDefinition>
@@ -817,6 +820,47 @@ var resolvedBeatRound = beatService.ResolveBeatRound(beatCombat, beatCards, beat
 AssertEqual(1, resolvedBeatRound.Combat.ColorEnergy.Count, "Successful unopposed attack generates one colorless energy");
 AssertEqual(21, resolvedBeatRound.Combat.Enemies[0].CurrentHp, "Weakness-adjusted beat damage is applied to enemy HP");
 Assert(resolvedBeatRound.Events.Any(item => item.EventType == CombatLogEventType.BeatEnergyGenerated), "Beat energy generation is logged");
+
+var unorderedBeatCombat = CreatePlayableCombat(
+    [],
+    actionPoints: 0,
+    colorEnergy: ColorEnergyPool.Empty(),
+    enemies: [CreateEnemyState("enemy_01", currentHp: 40, maxHp: 40, enemyId: beatEnemy.Id)]) with
+{
+    CombatId = "combat_unordered_player_beats",
+    BeatRound = CreateBeatTargetRound(
+        beatCount: 3,
+        enemyBeatIndexes: [0, 1, 2],
+        playerBeats:
+        [
+            new PlayerBeatSlot
+            {
+                BeatIndex = 2,
+                CardInstanceId = "card_instance.beat_iii",
+                CardId = "card.beat_slash_iii",
+                Target = CreateEnemyBeatTarget(0)
+            },
+            new PlayerBeatSlot
+            {
+                BeatIndex = 0,
+                CardInstanceId = "card_instance.beat_i",
+                CardId = "card.beat_slash_i",
+                Target = CreateEnemyBeatTarget(2)
+            },
+            new PlayerBeatSlot
+            {
+                BeatIndex = 1,
+                CardInstanceId = "card_instance.beat_ii",
+                CardId = "card.beat_slash_ii",
+                Target = CreateEnemyBeatTarget(1)
+            }
+        ])
+};
+var resolvedUnorderedBeatRound = new BeatCombatService().ResolveBeatRound(unorderedBeatCombat, beatCards, beatEnemies);
+var resolvedPlayerBeatIndexes = resolvedUnorderedBeatRound.Events
+    .Where(item => item.EventType == CombatLogEventType.BeatActionResolved)
+    .Select(item => item.NumericChanges["beat_index"]);
+AssertSequenceEqual([0, 1, 2], resolvedPlayerBeatIndexes, "Beat round resolves player actions by left-to-right beat index, not PlayerBeats list order");
 
 var unblockedEnemyBeatCombat = CreatePlayableCombat(
     [beatSlashCard.Id, finisher.Id],
