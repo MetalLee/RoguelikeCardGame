@@ -1,6 +1,6 @@
 {
   "schema": "roguelike_card_game.run_sequence.v1",
-  "content_version": "mvp.0.2",
+  "content_version": "mvp.1.1-trimmed",
   "id": "run.mvp.linear_01",
   "player": {
     "max_hp": 60,
@@ -10,11 +10,8 @@
   "starter_deck": [],
   "nodes": [
     { "order": 1, "encounter_id": "encounter.mvp.normal_01" },
-    { "order": 2, "encounter_id": "encounter.mvp.normal_02" },
-    { "order": 3, "encounter_id": "encounter.mvp.normal_03" },
-    { "order": 4, "encounter_id": "encounter.mvp.elite_01" },
-    { "order": 5, "encounter_id": "encounter.mvp.normal_04" },
-    { "order": 6, "encounter_id": "encounter.mvp.boss_01" }
+    { "order": 2, "encounter_id": "encounter.mvp.normal_03" },
+    { "order": 3, "encounter_id": "encounter.mvp.boss_01" }
   ],
   "completion": {
     "boss_encounter_id": "encounter.mvp.boss_01",

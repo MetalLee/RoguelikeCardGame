@@ -496,6 +496,13 @@ AssertEqual(-8f, arrowTip.Y, "Beat connector arrow tip follows the curve endpoin
 var arrowTail = RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.ArrowTailFromTip(100, 0, 1, 0, 34);
 AssertEqual(66f, arrowTail.X, "Beat connector arrow tip remains attached to the diamond vertex while the tail backs into the curve");
 AssertEqual(-62f, RoguelikeCardGame.Presentation.Battle.BeatCardDragPresentation.CardLiftOffsetY, "Beat card deployment lifts the card instead of dragging the card body to a beat slot");
+var beatTargetingOperations = new List<string>();
+RoguelikeCardGame.Presentation.Battle.BeatTargetingInputPresentation.CompleteTargetSelection(
+    markInputHandled: () => beatTargetingOperations.Add("handled"),
+    hideArrow: () => beatTargetingOperations.Add("hidden"),
+    clearTargetingState: () => beatTargetingOperations.Add("cleared"),
+    publishSelection: () => beatTargetingOperations.Add("published"));
+AssertEqual("handled,hidden,cleared,published", string.Join(",", beatTargetingOperations), "Beat target selection marks input handled before publishing callbacks that may replace the screen");
 
 var missingCardIdWithInstance = beatService.ValidatePlayerBeatTargets(
     CreateBeatTargetRound(
@@ -778,10 +785,8 @@ var revolverStartingPool = new WeaponStartingPoolDefinition
     [
         "card.revolver_slash",
         "card.revolver_slash",
-        "card.revolver_slash",
-        "card.revolver_double_slash",
-        "card.revolver_heavy_cannon",
-        "card.revolver_bullet_storm"
+        "card.revolver_hundred_blades",
+        "card.revolver_planetary_poem"
     ]
 };
 var armStartingPool = new WeaponStartingPoolDefinition
@@ -791,10 +796,8 @@ var armStartingPool = new WeaponStartingPoolDefinition
     [
         "card.arm_guard",
         "card.arm_guard",
-        "card.arm_guard",
-        "card.arm_crush",
         "card.arm_counter",
-        "card.arm_army_sweep"
+        "card.arm_sweep"
     ]
 };
 var startingPools = new[] { revolverStartingPool, armStartingPool };
@@ -806,22 +809,20 @@ var revolverMainSelection = new StartingDeckSelection
     [
         "card.revolver_slash",
         "card.revolver_slash",
-        "card.revolver_slash",
-        "card.revolver_double_slash",
-        "card.revolver_heavy_cannon",
-        "card.revolver_bullet_storm"
+        "card.revolver_hundred_blades",
+        "card.revolver_planetary_poem"
     ],
     OffHandCardIds =
     [
         "card.arm_guard",
         "card.arm_guard",
-        "card.arm_guard",
-        "card.arm_crush"
+        "card.arm_counter",
+        "card.arm_sweep"
     ]
 };
 var revolverMainValidation = startingDeckSelectionService.Validate(revolverMainSelection, startingPools);
-Assert(revolverMainValidation.IsValid, "Revolver sword main-hand 6 plus mechanical arm off-hand 4 is a valid start");
-AssertEqual(10, revolverMainValidation.SelectedCardIds.Count, "Starting deck selection creates a 10-card starter deck");
+Assert(revolverMainValidation.IsValid, "Revolver sword main-hand 4 plus mechanical arm off-hand 4 is a valid start");
+AssertEqual(8, revolverMainValidation.SelectedCardIds.Count, "Starting deck selection creates an 8-card starter deck");
 var automaticRevolverMain = startingDeckSelectionService.BuildAutomaticStarterDeck(
     revolverStartingPool.WeaponId,
     armStartingPool.WeaponId,
@@ -829,16 +830,14 @@ var automaticRevolverMain = startingDeckSelectionService.BuildAutomaticStarterDe
     new Dictionary<string, CardDefinition>
     {
         ["card.revolver_slash"] = strike with { Id = "card.revolver_slash" },
-        ["card.revolver_double_slash"] = strike with { Id = "card.revolver_double_slash" },
-        ["card.revolver_heavy_cannon"] = finisher with { Id = "card.revolver_heavy_cannon" },
-        ["card.revolver_bullet_storm"] = finisher with { Id = "card.revolver_bullet_storm" },
+        ["card.revolver_hundred_blades"] = strike with { Id = "card.revolver_hundred_blades" },
+        ["card.revolver_planetary_poem"] = finisher with { Id = "card.revolver_planetary_poem" },
         ["card.arm_guard"] = guardAction with { Id = "card.arm_guard" },
-        ["card.arm_crush"] = strike with { Id = "card.arm_crush", WeaponId = "weapon.mechanical_arm" },
-        ["card.arm_counter"] = finisher with { Id = "card.arm_counter", WeaponId = "weapon.mechanical_arm" },
-        ["card.arm_army_sweep"] = finisher with { Id = "card.arm_army_sweep", WeaponId = "weapon.mechanical_arm" }
+        ["card.arm_counter"] = guardAction with { Id = "card.arm_counter", WeaponId = "weapon.mechanical_arm" },
+        ["card.arm_sweep"] = finisher with { Id = "card.arm_sweep", WeaponId = "weapon.mechanical_arm" }
     });
-Assert(automaticRevolverMain.IsValid, "Automatic starter deck accepts main-hand all cards and off-hand actions");
-AssertSequenceEqual(revolverMainValidation.SelectedCardIds, automaticRevolverMain.SelectedCardIds, "Automatic starter deck matches the fixed 6 plus 4 action rule");
+Assert(automaticRevolverMain.IsValid, "Automatic starter deck accepts both fixed 4-card weapon pools");
+AssertSequenceEqual(revolverMainValidation.SelectedCardIds, automaticRevolverMain.SelectedCardIds, "Automatic starter deck matches the fixed 4 plus 4 rule");
 var revolverMainRun = runFactory.CreateNewRunFromWeaponSelection(
     "run_revolver_main",
     22222,
@@ -851,7 +850,7 @@ var revolverMainRun = runFactory.CreateNewRunFromWeaponSelection(
     [encounter.Id]);
 AssertEqual("weapon.revolver_sword", revolverMainRun.MainHandWeaponId, "Run can start with revolver sword as main hand");
 AssertEqual("weapon.mechanical_arm", revolverMainRun.OffHandWeaponId, "Run can start with mechanical arm as off hand");
-AssertEqual(10, revolverMainRun.MasterDeckInstances.Count, "Weapon-selected run creates card instances for all starter cards");
+AssertEqual(8, revolverMainRun.MasterDeckInstances.Count, "Weapon-selected run creates card instances for all starter cards");
 
 var armMainSelection = new StartingDeckSelection
 {
@@ -861,21 +860,19 @@ var armMainSelection = new StartingDeckSelection
     [
         "card.arm_guard",
         "card.arm_guard",
-        "card.arm_guard",
-        "card.arm_crush",
         "card.arm_counter",
-        "card.arm_army_sweep"
+        "card.arm_sweep"
     ],
     OffHandCardIds =
     [
         "card.revolver_slash",
         "card.revolver_slash",
-        "card.revolver_slash",
-        "card.revolver_double_slash",
+        "card.revolver_hundred_blades",
+        "card.revolver_planetary_poem",
     ]
 };
 var armMainValidation = startingDeckSelectionService.Validate(armMainSelection, startingPools);
-Assert(armMainValidation.IsValid, "Mechanical arm main-hand 6 plus revolver sword off-hand 4 is a valid start");
+Assert(armMainValidation.IsValid, "Mechanical arm main-hand 4 plus revolver sword off-hand 4 is a valid start");
 var armMainRun = runFactory.CreateNewRunFromWeaponSelection(
     "run_arm_main",
     22223,
@@ -888,7 +885,7 @@ var armMainRun = runFactory.CreateNewRunFromWeaponSelection(
     [encounter.Id]);
 AssertEqual("weapon.mechanical_arm", armMainRun.MainHandWeaponId, "Run can start with mechanical arm as main hand");
 AssertEqual("weapon.revolver_sword", armMainRun.OffHandWeaponId, "Run can start with revolver sword as off hand");
-AssertEqual(10, armMainRun.MasterDeckInstances.Count, "Automatic-compatible arm main run also creates 10 starter card instances");
+AssertEqual(8, armMainRun.MasterDeckInstances.Count, "Automatic-compatible arm main run also creates 8 starter card instances");
 
 var loadedContent = GameContent.LoadFromDataRoot(FindGameDataRoot());
 AssertEqual(5, loadedContent.ColorsById.Count, "GameContent loads all MVP colors");
@@ -897,47 +894,49 @@ AssertEqual("extra_casts", loadedContent.ColorsById["color.yellow"].BaseEffectTe
 AssertEqual(1, loadedContent.ColorsById["color.yellow"].StackRule.MaxPerCard, "GameContent maps color stack rules");
 AssertEqual(2, loadedContent.WeaponsById.Count, "GameContent loads MVP weapons");
 AssertEqual("card_pool.starting.revolver_sword", loadedContent.WeaponsById["weapon.revolver_sword"].StartingPoolId, "GameContent maps weapon starting pools");
-AssertEqual(20, loadedContent.CardsById.Count, "GameContent loads the 20-card MVP weapon card set");
+AssertEqual(6, loadedContent.CardsById.Count, "GameContent loads the trimmed 6-card MVP weapon card set");
 var loadedActionCard = loadedContent.CardsById["card.revolver_slash"];
 AssertEqual(CardType.Action, loadedActionCard.Type, "GameContent maps card type");
 AssertEqual("action_point", loadedActionCard.Costs[0].Resource, "GameContent maps structured card costs");
 Assert(loadedActionCard.Targeting.Required, "GameContent maps targeting.required");
 AssertEqual(5, loadedActionCard.ColorInteractions.Enchantment.SelfEffects.Count, "GameContent maps action enchantment color effects");
 AssertEqual("move_card", loadedActionCard.AfterPlay[0].Type, "GameContent maps after_play operations");
-AssertEqual("basic_single_target_generator", loadedActionCard.Balance.Role, "GameContent maps card balance metadata");
+AssertEqual("single_slash_action", loadedActionCard.Balance.Role, "GameContent maps card balance metadata");
 var loadedBeatActionCard = loadedContent.CardsById["card.revolver_slash"];
 Assert(loadedBeatActionCard.BeatActions.Count > 0, "GameContent maps action card beat actions");
 AssertEqual(BeatActionKind.Attack, loadedBeatActionCard.BeatActions[0].Kind, "GameContent maps beat action kind");
 AssertEqual(BeatAttackType.Slash, loadedBeatActionCard.BeatActions[0].AttackType, "GameContent maps beat attack type");
 AssertEqual("weapon", loadedBeatActionCard.CardSource, "GameContent maps card source");
-var loadedFinisher = loadedContent.CardsById["card.revolver_heavy_cannon"];
+var loadedFinisher = loadedContent.CardsById["card.revolver_planetary_poem"];
 AssertEqual("any", loadedFinisher.ColorEnergyCost?.ColorFilter, "GameContent maps finisher color filter");
 AssertEqual(5, loadedFinisher.ColorInteractions.FinisherColorEffects.Count, "GameContent maps finisher color effects");
-var loadedBeatFinisher = loadedContent.CardsById["card.revolver_heavy_cannon"];
+var loadedBeatFinisher = loadedContent.CardsById["card.revolver_planetary_poem"];
 AssertEqual(BeatAttackType.Projectile, loadedBeatFinisher.FinisherAttackType, "GameContent maps finisher attack type");
 var loadedBeatEnemy = loadedContent.EnemiesById.Values.First(enemy => enemy.BeatSequences.Count > 0);
 AssertEqual(BeatResistanceGrade.Standard, loadedBeatEnemy.Resistances.Strike, "GameContent maps default enemy strike resistance");
 Assert(loadedBeatEnemy.BeatSequences[0].Beats.Count > 0, "GameContent maps enemy beat sequences");
-AssertEqual(6, loadedContent.ExpandedStartingCardIdsForWeapon("weapon.revolver_sword").Count, "GameContent expands fixed 6-card weapon starting pools");
-AssertEqual(CardRarity.Common, loadedContent.CardsById["card.revolver_quick_thrust"].Rarity, "Quick thrust is a common reward-pool card");
-Assert(!loadedContent.CardsById["card.revolver_quick_thrust"].Tags.Contains("starting_pool"), "Quick thrust is no longer tagged as a starting-pool card");
-AssertEqual(CardRarity.Common, loadedContent.CardsById["card.arm_bind"].Rarity, "Bind is a common reward-pool card");
-Assert(!loadedContent.CardsById["card.arm_bind"].Tags.Contains("starting_pool"), "Bind is no longer tagged as a starting-pool card");
-Assert(loadedContent.CardPoolsById["card_pool.reward.mechanical_arm"].RewardByRarity["rare"].Contains("card.arm_shield_overload"), "GameContent maps weapon reward pools");
-AssertEqual(6, loadedContent.EncountersById.Count, "GameContent loads the MVP encounter sequence");
+AssertEqual(4, loadedContent.ExpandedStartingCardIdsForWeapon("weapon.revolver_sword").Count, "GameContent expands fixed 4-card weapon starting pools");
+AssertEqual(CardRarity.Starter, loadedContent.CardsById["card.revolver_hundred_blades"].Rarity, "Hundred Blades is part of the starter-sized MVP card set");
+AssertEqual(CardRarity.Starter, loadedContent.CardsById["card.arm_counter"].Rarity, "Counter is part of the starter-sized MVP card set");
+Assert(loadedContent.CardPoolsById["card_pool.reward.mechanical_arm"].RewardByRarity["common"].Contains("card.arm_sweep"), "GameContent maps trimmed weapon reward pools");
+AssertEqual(3, loadedContent.EncountersById.Count, "GameContent loads the trimmed MVP encounter sequence");
+AssertSequenceEqual(
+    ["encounter.mvp.normal_01", "encounter.mvp.normal_03", "encounter.mvp.boss_01"],
+    loadedContent.MvpRun.EncounterSequence,
+    "MVP run keeps one single-target normal, one multi-target normal, and one boss encounter");
 AssertEqual(0, loadedContent.EncountersById["encounter.mvp.normal_01"].RewardProfile.CardPackIds.Count, "GameContent preserves empty card_pack_ids compatibility field");
 AssertEqual("左轮剑", loadedContent.WeaponName("weapon.revolver_sword"), "GameContent maps localization for weapons");
 Assert(loadedContent.AssetsById.ContainsKey("asset.card.template.action"), "GameContent loads presentation asset manifest");
 
 var underPicked = startingDeckSelectionService.Validate(revolverMainSelection with
 {
-    MainHandCardIds = revolverMainSelection.MainHandCardIds.Take(5).ToList()
+    MainHandCardIds = revolverMainSelection.MainHandCardIds.Take(3).ToList()
 }, startingPools);
 Assert(!underPicked.IsValid, "Under-picking main-hand starting cards cannot start a run");
 
 var overPicked = startingDeckSelectionService.Validate(revolverMainSelection with
 {
-    OffHandCardIds = revolverMainSelection.OffHandCardIds.Concat(["card.arm_counter"]).ToList()
+    OffHandCardIds = revolverMainSelection.OffHandCardIds.Concat(["card.arm_guard"]).ToList()
 }, startingPools);
 Assert(!overPicked.IsValid, "Over-picking off-hand starting cards cannot start a run");
 
@@ -947,9 +946,7 @@ var outsidePoolPick = startingDeckSelectionService.Validate(revolverMainSelectio
     [
         "card.revolver_slash",
         "card.revolver_slash",
-        "card.revolver_slash",
-        "card.revolver_double_slash",
-        "card.revolver_heavy_cannon",
+        "card.revolver_hundred_blades",
         "card.arm_guard"
     ]
 }, startingPools);
@@ -1450,16 +1447,11 @@ AssertEqual(5, duplicateRewardRun.MasterDeckInstances.Count(instance => instance
 var mvpRegressionCardsById = new Dictionary<string, CardDefinition>
 {
     ["card.revolver_slash"] = strike with { Id = "card.revolver_slash" },
-    ["card.revolver_double_slash"] = strike with { Id = "card.revolver_double_slash" },
-    ["card.revolver_quick_thrust"] = strike with { Id = "card.revolver_quick_thrust", Cost = 0 },
-    ["card.revolver_reload_slash"] = strike with { Id = "card.revolver_reload_slash" },
-    ["card.revolver_heavy_cannon"] = finisher with { Id = "card.revolver_heavy_cannon" },
-    ["card.revolver_bullet_storm"] = finisher with { Id = "card.revolver_bullet_storm" },
+    ["card.revolver_hundred_blades"] = strike with { Id = "card.revolver_hundred_blades" },
+    ["card.revolver_planetary_poem"] = finisher with { Id = "card.revolver_planetary_poem" },
     ["card.arm_guard"] = guardAction with { Id = "card.arm_guard" },
-    ["card.arm_bind"] = strike with { Id = "card.arm_bind", WeaponId = "weapon.mechanical_arm" },
-    ["card.arm_crush"] = strike with { Id = "card.arm_crush", WeaponId = "weapon.mechanical_arm" },
-    ["card.arm_counter"] = finisher with { Id = "card.arm_counter", WeaponId = "weapon.mechanical_arm" },
-    ["card.arm_army_sweep"] = finisher with { Id = "card.arm_army_sweep", WeaponId = "weapon.mechanical_arm" }
+    ["card.arm_counter"] = guardAction with { Id = "card.arm_counter", WeaponId = "weapon.mechanical_arm" },
+    ["card.arm_sweep"] = finisher with { Id = "card.arm_sweep", WeaponId = "weapon.mechanical_arm" }
 };
 var mvpSelectedRun = revolverMainRun with
 {
@@ -1472,18 +1464,15 @@ var mvpOpeningCombat = turnService.StartCombat(combatFactory.CreateCombat(
     encounter,
     enemiesById));
 AssertEqual(CombatStatus.PlayerTurn, mvpOpeningCombat.Status, "Full MVP regression can enter combat after weapon starting deck selection");
-AssertEqual(10, mvpSelectedRun.MasterDeckInstances.Count, "Full MVP regression starts from 10 weapon-selected CardInstances");
+AssertEqual(8, mvpSelectedRun.MasterDeckInstances.Count, "Full MVP regression starts from 8 weapon-selected CardInstances");
 
 var mvpPostCombatRun = runProgressService.ApplyCombatResult(
     mvpSelectedRun,
     CreateCombatResult(encounter.Id, CombatStatus.Victory, playerHp: 42),
     encounter);
-var mvpShardRun = rewardService.AddPendingColorShard(mvpPostCombatRun, ColorType.Blue);
-var mvpEnchantTarget = rewardService.ListEnchantableActionCards(mvpShardRun, mvpRegressionCardsById).First();
-var mvpEnchantedRun = rewardService.ApplyColorShard(mvpShardRun, ColorType.Blue, mvpEnchantTarget.InstanceId, mvpRegressionCardsById);
-string[] mvpRewardCandidates = ["card.revolver_slash", "card.arm_guard", "card.revolver_heavy_cannon"];
-var mvpRewardedRun = rewardService.ClaimWeaponCardChoice(mvpEnchantedRun, mvpRewardCandidates, ["card.arm_guard"]);
-AssertEqual(0, mvpRewardedRun.PendingColorShards.Count, "Full MVP regression consumes the post-combat color shard");
+string[] mvpRewardCandidates = ["card.revolver_slash", "card.arm_guard", "card.revolver_planetary_poem"];
+var mvpRewardedRun = rewardService.ClaimWeaponCardChoice(mvpPostCombatRun, mvpRewardCandidates, ["card.arm_guard"]);
+AssertEqual(0, mvpRewardedRun.PendingColorShards.Count, "Full MVP regression skips post-combat enchantment rewards");
 AssertEqual(mvpSelectedRun.MasterDeckInstances.Count + 1, mvpRewardedRun.MasterDeckInstances.Count, "Full MVP regression adds one weapon reward card instance");
 var mvpNextRun = runProgressService.AdvanceAfterRewards(mvpRewardedRun, encounter);
 AssertEqual(1, mvpNextRun.CurrentEncounterIndex, "Full MVP regression advances to the next combat after rewards");

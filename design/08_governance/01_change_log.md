@@ -18,6 +18,7 @@
 ### 2026-06-21
 
 - 通读并同步 `design/` 与 `docs/superpowers/` 中的战斗机制相关文档，将当前第一版 MVP 口径统一为“三拍拆招 + 成功产无色彩能 + 终结槽手动释放 + 武器卡牌三选一”。旧行动点自由出牌、技能牌、卡牌包奖励、3 / 5 / 8 连锁阈值不再作为当前主流程；五色色彩碎片、行动牌附魔和五色终结转译统一标记为后续阶段。同步更新 [[design/00_product/03_scope_and_success_criteria|项目范围与成功标准]]、[[design/01_core_gameplay/02_combat_system|战斗系统]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/03_experience/00_ui_ux|界面与交互]]、[[design/06_technical_production/00_technical_requirements|技术需求]] 与 [[design/08_governance/02_glossary|术语表]] 等文档。
+- 进一步收束当前 MVP 实现范围为 3 场固定战斗：单目标普通战斗、多目标普通战斗、Boss / 精英强度战斗；战斗后暂时跳过色彩碎片附魔奖励，只保留武器卡牌三选一。同步将左轮剑与机械臂卡池替换为 6 张极小教学卡，并补充“斩击 / 钝击 / 弹射 / 格挡 / 闪避 + 数值”的卡牌描述规范。更新 [[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/01_run_structure|单局结构]]、[[design/01_core_gameplay/03_card_system|卡牌系统]]、[[design/02_content_systems/03_relics_items_rewards|遗物、道具与奖励]] 与 [[design/07_production/03_mvp_project_status|MVP 项目状态]]。
 
 ### 2026-06-20
 

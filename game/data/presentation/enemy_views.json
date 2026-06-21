@@ -1,6 +1,6 @@
 {
   "schema": "roguelike_card_game.enemy_views.v1",
-  "content_version": "mvp.0.2",
+  "content_version": "mvp.1.1-trimmed",
   "items": [
     {
       "id": "enemy.training_dummy",
@@ -19,23 +19,6 @@
       }
     },
     {
-      "id": "enemy.intent_scout",
-      "name_key": "enemy.intent_scout.name",
-      "stand_asset": "asset.enemy.skeleton_smoke.sheet",
-      "animation_sheet": {
-        "sheet_asset": "asset.enemy.skeleton_smoke.sheet",
-        "frame_width": 360,
-        "frame_height": 360,
-        "frame_count": 12,
-        "columns": 4,
-        "frame_seconds": 0.24
-      },
-      "intent_text_keys": {
-        "intent.attack": "enemy.intent_scout.intent.attack",
-        "intent.guard": "enemy.intent_scout.intent.guard"
-      }
-    },
-    {
       "id": "enemy.splitling",
       "name_key": "enemy.splitling.name",
       "stand_asset": "asset.enemy.skeleton_smoke.sheet",
@@ -49,39 +32,6 @@
       },
       "intent_text_keys": {
         "intent.attack": "enemy.splitling.intent.attack"
-      }
-    },
-    {
-      "id": "enemy.elite_guardian",
-      "name_key": "enemy.elite_guardian.name",
-      "stand_asset": "asset.enemy.elite_guardian.walk.sheet",
-      "animation_sheet": {
-        "sheet_asset": "asset.enemy.elite_guardian.walk.sheet",
-        "frame_width": 420,
-        "frame_height": 560,
-        "frame_count": 5,
-        "columns": 3,
-        "frame_seconds": 0.32
-      },
-      "intent_text_keys": {
-        "intent.attack": "enemy.elite_guardian.intent.attack",
-        "intent.guard": "enemy.elite_guardian.intent.guard"
-      }
-    },
-    {
-      "id": "enemy.relic_tester",
-      "name_key": "enemy.relic_tester.name",
-      "stand_asset": "asset.enemy.skeleton_smoke.sheet",
-      "animation_sheet": {
-        "sheet_asset": "asset.enemy.skeleton_smoke.sheet",
-        "frame_width": 360,
-        "frame_height": 360,
-        "frame_count": 12,
-        "columns": 4,
-        "frame_seconds": 0.24
-      },
-      "intent_text_keys": {
-        "intent.attack": "enemy.relic_tester.intent.attack"
       }
     },
     {

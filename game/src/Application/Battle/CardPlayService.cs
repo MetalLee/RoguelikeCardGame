@@ -924,6 +924,10 @@ public sealed class CardPlayService
 		return effect.Target switch
 		{
 			"all_enemies" => combat.Enemies.Where(enemy => enemy.CurrentHp > 0).Select(enemy => enemy.InstanceId).ToList(),
+			"random_enemy" => targetEnemyInstanceId is not null &&
+							  combat.Enemies.Any(enemy => enemy.InstanceId == targetEnemyInstanceId && enemy.CurrentHp > 0)
+				? [targetEnemyInstanceId]
+				: combat.Enemies.Where(enemy => enemy.CurrentHp > 0).Take(1).Select(enemy => enemy.InstanceId).ToList(),
 			"selected_enemy" => targetEnemyInstanceId is null ? [] : [targetEnemyInstanceId],
 			"selected_target" => targetEnemyInstanceId is null ? [] : [targetEnemyInstanceId],
 			"self" => ["player"],

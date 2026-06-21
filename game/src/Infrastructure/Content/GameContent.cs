@@ -804,7 +804,7 @@ public sealed class GameContent
         {
             "all_enemies" => "all_enemies",
             "selected_target" => "selected_enemy",
-            "random_enemy" => "all_enemies",
+            "random_enemy" => "random_enemy",
             "self" => "self",
             "player" => "player",
             "hand_action_cards" => "hand_action_cards",

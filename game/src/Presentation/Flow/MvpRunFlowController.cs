@@ -40,9 +40,6 @@ public sealed class MvpRunFlowController
     private RunState? run;
     private CombatState? combat;
     private EncounterDefinition? encounter;
-    private ColorType? pendingRewardColorShard;
-    private List<CardInstance> rewardEnchantableCards = new();
-    private string? selectedRewardEnchantTargetId;
     private List<string> weaponRewardCandidateIds = new();
     private string? selectedWeaponRewardCardId;
     private int actionCardsPlayedThisTurn;
@@ -742,75 +739,6 @@ public sealed class MvpRunFlowController
             return;
         }
 
-        pendingRewardColorShard = rewardService.GenerateColorShard(randomStreams.Reward.NextInt);
-        run = rewardService.AddPendingColorShard(run, pendingRewardColorShard.Value);
-        rewardEnchantableCards = rewardService.ListEnchantableActionCards(run, content.CardsById).ToList();
-        selectedRewardEnchantTargetId = null;
-        weaponRewardCandidateIds = [];
-        selectedWeaponRewardCardId = null;
-
-        var screen = ShowRewardScreen();
-        screen.RenderColorShardStep(
-            encounter,
-            pendingRewardColorShard.Value,
-            rewardEnchantableCards,
-            selectedRewardEnchantTargetId);
-    }
-
-    private void SelectRewardEnchantTarget(string cardInstanceId)
-    {
-        if (rewardEnchantableCards.All(instance => instance.InstanceId != cardInstanceId))
-        {
-            return;
-        }
-
-        selectedRewardEnchantTargetId = string.Equals(selectedRewardEnchantTargetId, cardInstanceId, StringComparison.Ordinal)
-            ? null
-            : cardInstanceId;
-        RenderColorShardStep();
-    }
-
-    private void RenderColorShardStep()
-    {
-        if (encounter is null || pendingRewardColorShard is null)
-        {
-            ShowStartMenu();
-            return;
-        }
-
-        var screen = ShowRewardScreen();
-        screen.RenderColorShardStep(
-            encounter,
-            pendingRewardColorShard.Value,
-            rewardEnchantableCards,
-            selectedRewardEnchantTargetId);
-    }
-
-    private void ConfirmColorShardStep()
-    {
-        if (run is null || encounter is null || pendingRewardColorShard is null || randomStreams is null)
-        {
-            ShowStartMenu();
-            return;
-        }
-
-        if (selectedRewardEnchantTargetId is null)
-        {
-            if (rewardEnchantableCards.Count > 0)
-            {
-                RenderColorShardStep();
-                return;
-            }
-        }
-        else
-        {
-            run = rewardService.ApplyColorShard(
-                run,
-                pendingRewardColorShard.Value,
-                selectedRewardEnchantTargetId,
-                content.CardsById);
-        }
-
         weaponRewardCandidateIds = rewardService.GenerateWeaponCardCandidates(
             run,
             BuildWeaponRewardPools(),
@@ -835,7 +763,7 @@ public sealed class MvpRunFlowController
 
     private void RenderWeaponCardRewardStep()
     {
-        if (encounter is null || pendingRewardColorShard is null)
+        if (encounter is null)
         {
             ShowStartMenu();
             return;
@@ -844,7 +772,7 @@ public sealed class MvpRunFlowController
         var screen = ShowRewardScreen();
         screen.RenderWeaponCardChoiceStep(
             encounter,
-            pendingRewardColorShard.Value,
+            ColorType.Colorless,
             weaponRewardCandidateIds,
             selectedWeaponRewardCardId);
     }
@@ -918,8 +846,6 @@ public sealed class MvpRunFlowController
     private RewardScreen ShowRewardScreen()
     {
         var screen = screenHost.ShowScreen<RewardScreen>(RewardScenePath);
-        screen.ColorShardTargetSelected += SelectRewardEnchantTarget;
-        screen.ColorShardConfirmed += ConfirmColorShardStep;
         screen.WeaponCardSelected += SelectWeaponRewardCard;
         screen.WeaponCardSkipped += SkipWeaponCardReward;
         screen.ConfirmRequested += ConfirmReward;

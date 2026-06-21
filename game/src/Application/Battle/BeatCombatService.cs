@@ -19,6 +19,13 @@ public sealed record BeatRoundResolveResult
     public List<CombatLogEvent> Events { get; init; } = new();
 }
 
+internal sealed record FinisherDamageResolution
+{
+    public required List<CombatEnemyState> Enemies { get; init; }
+    public List<string> TargetIds { get; init; } = new();
+    public int TotalDamage { get; init; }
+}
+
 public sealed record BeatTargetValidationResult
 {
     public bool Succeeded { get; init; }
@@ -313,30 +320,23 @@ public sealed class BeatCombatService
             throw new InvalidOperationException($"Not enough color energy to release finisher '{finisher.Id}'.");
         }
 
+        var requiresSelectedTarget = finisher.TargetRule == TargetRule.SingleEnemy;
         var targetIndex = combat.Enemies.FindIndex(enemy => string.Equals(enemy.InstanceId, targetEnemyInstanceId, StringComparison.Ordinal));
-        if (targetIndex < 0 || combat.Enemies[targetIndex].CurrentHp <= 0)
+        if (requiresSelectedTarget && (targetIndex < 0 || combat.Enemies[targetIndex].CurrentHp <= 0))
         {
             throw new InvalidOperationException($"Target enemy '{targetEnemyInstanceId}' is missing or defeated.");
         }
 
         var logStartIndex = combat.Log.Count;
         var spent = combat.ColorEnergy.Spend(finisher.ColorEnergyCost.Mode, spendAmount, finisher.ColorEnergyCost.MinAmount);
-        var damage = finisher.Effects
-            .Where(effect => string.Equals(effect.Type, "damage", StringComparison.Ordinal))
-            .Sum(effect => effect.Value ?? 0);
-        var enemies = combat.Enemies.ToList();
-        var target = enemies[targetIndex];
-        enemies[targetIndex] = target with
-        {
-            CurrentHp = Math.Max(0, target.CurrentHp - damage)
-        };
+        var resolvedDamage = ResolveFinisherDamage(combat.Enemies, finisher, requiresSelectedTarget ? targetEnemyInstanceId : null);
 
         var working = combat with
         {
             ColorEnergy = spent.Pool,
-            Enemies = enemies
+            Enemies = resolvedDamage.Enemies
         };
-        working = AppendFinisherReleasedLog(working, finisher, round.FinisherSlot, targetEnemyInstanceId, damage, spent.Spent.Count);
+        working = AppendFinisherReleasedLog(working, finisher, round.FinisherSlot, resolvedDamage.TargetIds, resolvedDamage.TotalDamage, spent.Spent.Count);
         working = ApplyBeatOutcome(working);
 
         return new BeatRoundResolveResult
@@ -344,6 +344,73 @@ public sealed class BeatCombatService
             Combat = working,
             Events = working.Log.Skip(logStartIndex).ToList()
         };
+    }
+
+    private FinisherDamageResolution ResolveFinisherDamage(
+        IReadOnlyList<CombatEnemyState> currentEnemies,
+        CardDefinition finisher,
+        string? selectedTargetEnemyInstanceId)
+    {
+        var enemies = currentEnemies.ToList();
+        var targetIds = new List<string>();
+        var totalDamage = 0;
+
+        foreach (var effect in finisher.Effects.Where(effect => string.Equals(effect.Type, "damage", StringComparison.Ordinal)))
+        {
+            var targetIndexes = ResolveFinisherDamageTargetIndexes(enemies, effect.Target, selectedTargetEnemyInstanceId);
+            foreach (var index in targetIndexes)
+            {
+                var enemy = enemies[index];
+                var damage = Math.Max(0, effect.Value ?? 0);
+                enemies[index] = enemy with
+                {
+                    CurrentHp = Math.Max(0, enemy.CurrentHp - damage)
+                };
+                targetIds.Add(enemy.InstanceId);
+                totalDamage += damage;
+            }
+        }
+
+        return new FinisherDamageResolution
+        {
+            Enemies = enemies,
+            TargetIds = targetIds.Distinct(StringComparer.Ordinal).ToList(),
+            TotalDamage = totalDamage
+        };
+    }
+
+    private List<int> ResolveFinisherDamageTargetIndexes(
+        IReadOnlyList<CombatEnemyState> enemies,
+        string? effectTarget,
+        string? selectedTargetEnemyInstanceId)
+    {
+        if (string.Equals(effectTarget, "all_enemies", StringComparison.Ordinal))
+        {
+            return enemies
+                .Select((enemy, index) => (enemy, index))
+                .Where(item => item.enemy.CurrentHp > 0)
+                .Select(item => item.index)
+                .ToList();
+        }
+
+        if (string.Equals(effectTarget, "random_enemy", StringComparison.Ordinal))
+        {
+            var living = enemies
+                .Select((enemy, index) => (enemy, index))
+                .Where(item => item.enemy.CurrentHp > 0)
+                .ToList();
+            if (living.Count == 0)
+            {
+                return [];
+            }
+
+            return [living[Math.Abs(dodgeRollPercent()) % living.Count].index];
+        }
+
+        var selectedIndex = enemies.ToList().FindIndex(enemy =>
+            string.Equals(enemy.InstanceId, selectedTargetEnemyInstanceId, StringComparison.Ordinal) &&
+            enemy.CurrentHp > 0);
+        return selectedIndex < 0 ? [] : [selectedIndex];
     }
 
     public BeatCollisionResult ResolveActionCollision(
@@ -639,7 +706,7 @@ public sealed class BeatCombatService
         CombatState combat,
         CardDefinition finisher,
         FinisherSlotState slot,
-        string targetEnemyInstanceId,
+        IReadOnlyList<string> targetEnemyInstanceIds,
         int damage,
         int spentEnergy)
     {
@@ -650,7 +717,7 @@ public sealed class BeatCombatService
             EventType = CombatLogEventType.FinisherReleased,
             TurnNumber = combat.TurnNumber,
             SourceId = finisher.Id,
-            TargetIds = [targetEnemyInstanceId],
+            TargetIds = targetEnemyInstanceIds.ToList(),
             NumericChanges = new Dictionary<string, int>
             {
                 ["damage"] = damage,

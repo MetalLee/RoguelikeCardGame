@@ -1,119 +1,54 @@
 {
   "schema": "roguelike_card_game.card_views.v1",
-  "content_version": "mvp.0.2",
+  "content_version": "mvp.1.1-trimmed",
   "items": [
     {
-      "id": "card.basic_strike",
-      "name_key": "card.basic_strike.name",
-      "rules_key": "card.basic_strike.rules",
-      "flavor_key": "card.basic_strike.flavor",
+      "id": "card.revolver_slash",
+      "name_key": "card.revolver_slash.name",
+      "rules_key": "card.revolver_slash.rules",
+      "flavor_key": "card.revolver_slash.flavor",
       "template_asset": "asset.card.template.action",
       "art_asset": "asset.card.basic_strike.art"
     },
     {
-      "id": "card.quick_jab",
-      "name_key": "card.quick_jab.name",
-      "rules_key": "card.quick_jab.rules",
-      "flavor_key": "card.quick_jab.flavor",
+      "id": "card.revolver_hundred_blades",
+      "name_key": "card.revolver_hundred_blades.name",
+      "rules_key": "card.revolver_hundred_blades.rules",
+      "flavor_key": "card.revolver_hundred_blades.flavor",
       "template_asset": "asset.card.template.action",
       "art_asset": "asset.card.quick_jab.art"
     },
     {
-      "id": "card.heavy_strike",
-      "name_key": "card.heavy_strike.name",
-      "rules_key": "card.heavy_strike.rules",
-      "flavor_key": "card.heavy_strike.flavor",
-      "template_asset": "asset.card.template.action",
-      "art_asset": "asset.card.heavy_strike.art"
-    },
-    {
-      "id": "card.flow_step",
-      "name_key": "card.flow_step.name",
-      "rules_key": "card.flow_step.rules",
-      "flavor_key": "card.flow_step.flavor",
-      "template_asset": "asset.card.template.action",
-      "art_asset": "asset.card.flow_step.art"
-    },
-    {
-      "id": "card.guard_break",
-      "name_key": "card.guard_break.name",
-      "rules_key": "card.guard_break.rules",
-      "flavor_key": "card.guard_break.flavor",
-      "template_asset": "asset.card.template.action",
-      "art_asset": "asset.card.guard_break.art"
-    },
-    {
-      "id": "card.basic_guard",
-      "name_key": "card.basic_guard.name",
-      "rules_key": "card.basic_guard.rules",
-      "flavor_key": "card.basic_guard.flavor",
-      "template_asset": "asset.card.template.action",
-      "art_asset": "asset.card.basic_guard.art"
-    },
-    {
-      "id": "card.tactical_read",
-      "name_key": "card.tactical_read.name",
-      "rules_key": "card.tactical_read.rules",
-      "flavor_key": "card.tactical_read.flavor",
-      "template_asset": "asset.card.template.action",
-      "art_asset": "asset.card.tactical_read.art"
-    },
-    {
-      "id": "card.second_wind",
-      "name_key": "card.second_wind.name",
-      "rules_key": "card.second_wind.rules",
-      "flavor_key": "card.second_wind.flavor",
-      "template_asset": "asset.card.template.action",
-      "art_asset": "asset.card.second_wind.art"
-    },
-    {
-      "id": "card.deep_focus",
-      "name_key": "card.deep_focus.name",
-      "rules_key": "card.deep_focus.rules",
-      "flavor_key": "card.deep_focus.flavor",
-      "template_asset": "asset.card.template.action",
-      "art_asset": "asset.card.deep_focus.art"
-    },
-    {
-      "id": "card.setup_discount",
-      "name_key": "card.setup_discount.name",
-      "rules_key": "card.setup_discount.rules",
-      "flavor_key": "card.setup_discount.flavor",
-      "template_asset": "asset.card.template.action",
-      "art_asset": "asset.card.setup_discount.art"
-    },
-    {
-      "id": "card.burst_finish",
-      "name_key": "card.burst_finish.name",
-      "rules_key": "card.burst_finish.rules",
-      "flavor_key": "card.burst_finish.flavor",
+      "id": "card.revolver_planetary_poem",
+      "name_key": "card.revolver_planetary_poem.name",
+      "rules_key": "card.revolver_planetary_poem.rules",
+      "flavor_key": "card.revolver_planetary_poem.flavor",
       "template_asset": "asset.card.template.finisher",
       "art_asset": "asset.card.burst_finish.art"
     },
     {
-      "id": "card.arc_sweep_finish",
-      "name_key": "card.arc_sweep_finish.name",
-      "rules_key": "card.arc_sweep_finish.rules",
-      "flavor_key": "card.arc_sweep_finish.flavor",
+      "id": "card.arm_guard",
+      "name_key": "card.arm_guard.name",
+      "rules_key": "card.arm_guard.rules",
+      "flavor_key": "card.arm_guard.flavor",
+      "template_asset": "asset.card.template.action",
+      "art_asset": "asset.card.basic_guard.art"
+    },
+    {
+      "id": "card.arm_counter",
+      "name_key": "card.arm_counter.name",
+      "rules_key": "card.arm_counter.rules",
+      "flavor_key": "card.arm_counter.flavor",
+      "template_asset": "asset.card.template.action",
+      "art_asset": "asset.card.guard_break.art"
+    },
+    {
+      "id": "card.arm_sweep",
+      "name_key": "card.arm_sweep.name",
+      "rules_key": "card.arm_sweep.rules",
+      "flavor_key": "card.arm_sweep.flavor",
       "template_asset": "asset.card.template.finisher",
       "art_asset": "asset.card.arc_sweep_finish.art"
-    },
-    {
-      "id": "card.refund_finish",
-      "name_key": "card.refund_finish.name",
-      "rules_key": "card.refund_finish.rules",
-      "flavor_key": "card.refund_finish.flavor",
-      "template_asset": "asset.card.template.finisher",
-      "art_asset": "asset.card.refund_finish.art"
-    },
-    {
-      "id": "card.bulwark_finish",
-      "name_key": "card.bulwark_finish.name",
-      "rules_key": "card.bulwark_finish.rules",
-      "flavor_key": "card.bulwark_finish.flavor",
-      "template_asset": "asset.card.template.finisher",
-      "art_asset": "asset.card.bulwark_finish.art"
     }
   ]
 }
-

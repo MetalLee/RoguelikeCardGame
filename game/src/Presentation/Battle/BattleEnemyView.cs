@@ -12,10 +12,7 @@ public sealed partial class BattleEnemyView : Control
     private static readonly Dictionary<string, EnemySpriteLayout> EnemySpriteLayouts = new(StringComparer.Ordinal)
     {
         ["enemy.training_dummy"] = new(new Vector2(360, 360), 552f, 1.0f),
-        ["enemy.intent_scout"] = new(new Vector2(360, 360), 552f, 1.0f),
         ["enemy.splitling"] = new(new Vector2(360, 360), 552f, 1.0f),
-        ["enemy.elite_guardian"] = new(new Vector2(420, 560), 552f, 1.0f),
-        ["enemy.relic_tester"] = new(new Vector2(360, 360), 552f, 1.12f),
         ["enemy.black_tower_warden"] = new(new Vector2(700, 560), 552f, 1.0f)
     };
 

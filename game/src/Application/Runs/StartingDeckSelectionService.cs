@@ -31,7 +31,7 @@ public sealed record StartingDeckValidationResult
 
 public sealed class StartingDeckSelectionService
 {
-    public const int MainHandPickCount = 6;
+    public const int MainHandPickCount = 4;
     public const int OffHandPickCount = 4;
 
     public StartingDeckValidationResult BuildAutomaticStarterDeck(
@@ -64,19 +64,10 @@ public sealed class StartingDeckSelectionService
         }
 
         var mainHandCardIds = mainHandPool!.CardIds.ToList();
-        var offHandCardIds = new List<string>();
-        foreach (var cardId in offHandPool!.CardIds)
+        var offHandCardIds = offHandPool!.CardIds.ToList();
+        foreach (var cardId in offHandCardIds.Where(cardId => !cardsById.ContainsKey(cardId)))
         {
-            if (!cardsById.TryGetValue(cardId, out var card))
-            {
-                errors.Add($"off hand: unknown card '{cardId}' in starting pool.");
-                continue;
-            }
-
-            if (card.Type == CardType.Action)
-            {
-                offHandCardIds.Add(cardId);
-            }
+            errors.Add($"off hand: unknown card '{cardId}' in starting pool.");
         }
 
         if (errors.Count > 0)

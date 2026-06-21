@@ -1,6 +1,6 @@
 {
   "schema": "roguelike_card_game.enemies.v1",
-  "content_version": "mvp.0.2",
+  "content_version": "mvp.1.1-trimmed",
   "items": [
     {
       "id": "enemy.training_dummy",
@@ -12,7 +12,7 @@
           "id": "opening",
           "beats": [
             {
-              "action_card_id": "enemy_card.tutorial_slash",
+              "action_card_id": "enemy_card.training_dummy_slash",
               "actions": [{ "kind": "attack", "attack_type": "slash", "value": 4, "repeat": 1 }],
               "hidden": false
             }
@@ -33,39 +33,25 @@
         ]
       },
       "immunities": [],
-      "tags": ["teaching"]
-    },
-    {
-      "id": "enemy.intent_scout",
-      "rank": "normal",
-      "stats": { "max_hp": 30 },
-      "ai": {
-        "type": "fixed_sequence",
-        "loop": true,
-        "intents": [
-          {
-            "id": "intent.attack",
-            "preview": [{ "kind": "attack", "amount": 7 }],
-            "effects": [
-              { "op": "damage", "target": { "ref": "player" }, "amount": 7 }
-            ]
-          },
-          {
-            "id": "intent.guard",
-            "preview": [{ "kind": "block", "amount": 5 }],
-            "effects": [
-              { "op": "gain_block", "target": { "ref": "self" }, "amount": 5 }
-            ]
-          }
-        ]
-      },
-      "immunities": [],
-      "tags": ["intent_teaching"]
+      "tags": ["teaching", "single_target"]
     },
     {
       "id": "enemy.splitling",
       "rank": "normal",
       "stats": { "max_hp": 16 },
+      "resistances": { "slash": "standard", "strike": "standard", "projectile": "standard" },
+      "beat_sequences": [
+        {
+          "id": "opening",
+          "beats": [
+            {
+              "action_card_id": "enemy_card.splitling_bite",
+              "actions": [{ "kind": "attack", "attack_type": "strike", "value": 3, "repeat": 1 }],
+              "hidden": false
+            }
+          ]
+        }
+      ],
       "ai": {
         "type": "fixed_sequence",
         "loop": true,
@@ -83,56 +69,27 @@
       "tags": ["multi_enemy"]
     },
     {
-      "id": "enemy.elite_guardian",
-      "rank": "elite",
-      "stats": { "max_hp": 48 },
-      "ai": {
-        "type": "fixed_sequence",
-        "loop": true,
-        "intents": [
-          {
-            "id": "intent.attack",
-            "preview": [{ "kind": "attack", "amount": 11 }],
-            "effects": [
-              { "op": "damage", "target": { "ref": "player" }, "amount": 11 }
-            ]
-          },
-          {
-            "id": "intent.guard",
-            "preview": [{ "kind": "block", "amount": 7 }],
-            "effects": [
-              { "op": "gain_block", "target": { "ref": "self" }, "amount": 7 }
-            ]
-          }
-        ]
-      },
-      "immunities": [],
-      "tags": []
-    },
-    {
-      "id": "enemy.relic_tester",
-      "rank": "normal",
-      "stats": { "max_hp": 36 },
-      "ai": {
-        "type": "fixed_sequence",
-        "loop": true,
-        "intents": [
-          {
-            "id": "intent.attack",
-            "preview": [{ "kind": "attack", "amount": 9 }],
-            "effects": [
-              { "op": "damage", "target": { "ref": "player" }, "amount": 9 }
-            ]
-          }
-        ]
-      },
-      "immunities": [],
-      "tags": ["post_elite"]
-    },
-    {
       "id": "enemy.black_tower_warden",
       "rank": "boss",
-      "stats": { "max_hp": 84 },
+      "stats": { "max_hp": 72 },
+      "resistances": { "slash": "standard", "strike": "standard", "projectile": "standard" },
+      "beat_sequences": [
+        {
+          "id": "opening",
+          "beats": [
+            {
+              "action_card_id": "enemy_card.warden_slash",
+              "actions": [{ "kind": "attack", "attack_type": "slash", "value": 6, "repeat": 1 }],
+              "hidden": false
+            },
+            {
+              "action_card_id": "enemy_card.warden_guard",
+              "actions": [{ "kind": "block", "value": 5, "repeat": 1 }],
+              "hidden": false
+            }
+          ]
+        }
+      ],
       "ai": {
         "type": "fixed_sequence",
         "loop": true,
@@ -158,7 +115,7 @@
         ]
       },
       "immunities": [],
-      "tags": []
+      "tags": ["boss", "mvp_final"]
     }
   ]
 }

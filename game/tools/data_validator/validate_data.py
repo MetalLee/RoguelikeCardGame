@@ -332,6 +332,16 @@ def validate_unified_gameplay(project_root: Path, documents: dict[str, dict[str,
         finisher_color_effects = color_interactions.get("finisher_color_effects", []) if isinstance(color_interactions, dict) else []
 
         if card_type == "action":
+            beat_actions = card.get("beat_actions", [])
+            if not isinstance(beat_actions, list) or not beat_actions:
+                errors.append(f"gameplay.cards:{card_id}.beat_actions: action cards must declare at least 1 beat action")
+            else:
+                expanded_action_count = sum(
+                    action.get("repeat", 1) if isinstance(action, dict) and isinstance(action.get("repeat", 1), int) else 1
+                    for action in beat_actions
+                )
+                if expanded_action_count > 3:
+                    errors.append(f"gameplay.cards:{card_id}.beat_actions: action cards may contain at most 3 ordered actions, got {expanded_action_count}")
             generate = energy.get("generate") if isinstance(energy, dict) else None
             if not isinstance(generate, dict):
                 errors.append(f"gameplay.cards:{card_id}.energy.generate: action cards must declare color energy generation")
@@ -426,10 +436,10 @@ def validate_unified_gameplay(project_root: Path, documents: dict[str, dict[str,
                         finisher_count += count
                 if isinstance(count, int):
                     total += count
-            if total != 6:
-                errors.append(f"gameplay.card_pools:{pool_id}.starting_entries: each MVP starting weapon needs exactly 6 cards, got {total}")
-            if action_count != 4 or finisher_count != 2:
-                errors.append(f"gameplay.card_pools:{pool_id}.starting_entries: each MVP starting weapon needs 4 action cards and 2 finishers, got {action_count} action and {finisher_count} finisher")
+            if total != 4:
+                errors.append(f"gameplay.card_pools:{pool_id}.starting_entries: each MVP starting weapon needs exactly 4 cards, got {total}")
+            if action_count != 3 or finisher_count != 1:
+                errors.append(f"gameplay.card_pools:{pool_id}.starting_entries: each MVP starting weapon needs 3 action cards and 1 finisher, got {action_count} action and {finisher_count} finisher")
         elif pool_type == "reward":
             reward_pool_by_weapon[weapon_id] = pool
             reward_by_rarity = pool.get("reward_by_rarity", {})
@@ -508,8 +518,8 @@ def validate_unified_gameplay(project_root: Path, documents: dict[str, dict[str,
             errors.append(f"encounters:{encounter_id}.reward_profile.relic_id: unknown relic id {relic_id!r}")
 
     ordered_nodes = sorted(run_sequence.get("nodes", []), key=lambda node: node.get("order", 0))
-    if len(ordered_nodes) != 6:
-        errors.append(f"run_sequence.nodes: MVP run sequence must contain 6 encounters, got {len(ordered_nodes)}")
+    if len(ordered_nodes) != 3:
+        errors.append(f"run_sequence.nodes: MVP run sequence must contain 3 encounters, got {len(ordered_nodes)}")
     for node in ordered_nodes:
         encounter_id = node.get("encounter_id") if isinstance(node, dict) else None
         if encounter_id not in encounters_by_id:

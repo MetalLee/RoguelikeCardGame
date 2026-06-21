@@ -1,6 +1,6 @@
 {
   "schema": "roguelike_card_game.encounters.v1",
-  "content_version": "mvp.0.2",
+  "content_version": "mvp.1.1-trimmed",
   "items": [
     {
       "id": "encounter.mvp.normal_01",
@@ -13,20 +13,7 @@
         "relic_id": null
       },
       "teaching_goal_key": "encounter.mvp.normal_01.goal",
-      "difficulty_note": "Teaches action points, action cards, and color energy generation."
-    },
-    {
-      "id": "encounter.mvp.normal_02",
-      "node_type": "normal",
-      "enemies": [
-        { "instance_id": "enemy_01", "enemy_id": "enemy.intent_scout" }
-      ],
-      "reward_profile": {
-        "card_pack_ids": [],
-        "relic_id": null
-      },
-      "teaching_goal_key": "encounter.mvp.normal_02.goal",
-      "difficulty_note": "Teaches monster intent and using block before monster actions."
+      "difficulty_note": "Single-target teaching fight for action cards, beat targeting, and colorless energy."
     },
     {
       "id": "encounter.mvp.normal_03",
@@ -40,33 +27,7 @@
         "relic_id": null
       },
       "teaching_goal_key": "encounter.mvp.normal_03.goal",
-      "difficulty_note": "Teaches multiple monsters, target choice, and value of all-monster finishers."
-    },
-    {
-      "id": "encounter.mvp.elite_01",
-      "node_type": "elite",
-      "enemies": [
-        { "instance_id": "enemy_01", "enemy_id": "enemy.elite_guardian" }
-      ],
-      "reward_profile": {
-        "card_pack_ids": [],
-        "relic_id": "relic.mvp_color_spark"
-      },
-      "teaching_goal_key": "encounter.mvp.elite_01.goal",
-      "difficulty_note": "Checks attack and defense pacing before granting the fixed common relic."
-    },
-    {
-      "id": "encounter.mvp.normal_04",
-      "node_type": "normal",
-      "enemies": [
-        { "instance_id": "enemy_01", "enemy_id": "enemy.relic_tester" }
-      ],
-      "reward_profile": {
-        "card_pack_ids": [],
-        "relic_id": null
-      },
-      "teaching_goal_key": "encounter.mvp.normal_04.goal",
-      "difficulty_note": "Lets the player try the relic and new cards before the boss."
+      "difficulty_note": "Multi-target teaching fight for target choice and all-enemy finishers."
     },
     {
       "id": "encounter.mvp.boss_01",
@@ -79,7 +40,7 @@
         "relic_id": null
       },
       "teaching_goal_key": "encounter.mvp.boss_01.goal",
-      "difficulty_note": "Final MVP check for action points, color energy, finishers, defense, and deck growth."
+      "difficulty_note": "Final MVP check for three-beat planning, defense, colorless energy, and finishers."
     }
   ]
 }
