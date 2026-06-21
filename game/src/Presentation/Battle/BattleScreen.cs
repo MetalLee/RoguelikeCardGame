@@ -12,12 +12,18 @@ public partial class BattleScreen : ComicScreen
     private const float PlayerStageGroundY = 980f;
     private const float PlayerSpriteBottomTransparentPadding = 23f;
     private const double ThoughtBubbleDurationSeconds = 2.0;
-    private static readonly Vector2 BeatLanePosition = new(440, 626);
-    private static readonly Vector2 BeatLaneSize = new(570, 82);
-    private static readonly Vector2 BeatSlotSize = new(170, 58);
-    private static readonly Vector2 EnemyBeatLanePosition = new(1065, 470);
-    private static readonly Vector2 EnemyBeatLaneSize = new(710, 180);
-    private static readonly Vector2 EnemyBeatSlotSize = new(150, 56);
+    private static readonly Vector2 BeatLanePosition = new(24, 232);
+    private static readonly Vector2 BeatLaneSize = new(230, 306);
+    private static readonly Vector2 BeatSlotSize = new(128, 128);
+    private static readonly Vector2 EnemyBeatSlotSize = new(76, 76);
+    private static readonly Vector2[] PlayerBeatSlotPositions =
+    [
+        new(6, 0),
+        new(84, 80),
+        new(6, 160)
+    ];
+    private const float EnemyBeatSlotSpacing = 12f;
+    private const float EnemyBeatGapAboveHealthBar = 14f;
     private static readonly Vector2 ThoughtBubblePosition = new(346, 382);
     private static readonly Vector2 ThoughtBubbleSize = new(610, 238);
 
@@ -108,16 +114,18 @@ public partial class BattleScreen : ComicScreen
         battleEnemyView = new BattleEnemyView();
         battleEnemyView.Render(root, combat, RequireContent(), targetingOverlay, LoadTexture);
 
-        var enemyBeatLane = CreateEnemyBeatLane(combat);
-        if (enemyBeatLane is not null)
-        {
-            AddAt(root, enemyBeatLane, EnemyBeatLanePosition, EnemyBeatLaneSize);
-        }
+        CreateEnemyBeatSlots(root, combat);
 
-        beatLane = CreateBeatLane(combat);
+        beatLane = CreateDiamondBeatLane(combat);
         if (beatLane is not null)
         {
             AddAt(root, beatLane, BeatLanePosition, BeatLaneSize);
+        }
+
+        var connectorOverlay = CreateBeatTargetConnectorOverlay(root, combat);
+        if (connectorOverlay is not null)
+        {
+            AddAt(root, connectorOverlay, Vector2.Zero, new Vector2(1920, 1080));
         }
 
         battleHandView = new BattleHandView();
@@ -128,7 +136,16 @@ public partial class BattleScreen : ComicScreen
         };
         battleHandView.FeedbackRequested += ShowDragFeedback;
         battleHandView.BeatCardDropRequested += HandleBeatCardDropRequested;
-        battleHandView.Render(combat, run, RequireContent(), cardPlayService, targetingOverlay, LoadTexture, LoadFont, beatPrototype: combat.BeatRound is not null);
+        battleHandView.Render(
+            combat,
+            run,
+            RequireContent(),
+            cardPlayService,
+            targetingOverlay,
+            LoadTexture,
+            LoadFont,
+            beatPrototype: combat.BeatRound is not null,
+            beatSlotHover: viewportPoint => PlayerBeatIndexUnderMouse(viewportPoint) is not null);
         handNode = battleHandView;
         AddAt(root, battleHandView, new Vector2(475, 742), new Vector2(950, 360));
 
@@ -237,7 +254,7 @@ public partial class BattleScreen : ComicScreen
         var beatIndex = PlayerBeatIndexUnderMouse(viewportMouse);
         if (beatIndex is null)
         {
-            ShowDragFeedback("需要把行动牌拖到一个空的玩家拍位");
+            ShowDragFeedback("需要将箭头指向一个空的玩家拍位");
             return;
         }
 
@@ -302,6 +319,151 @@ public partial class BattleScreen : ComicScreen
         var label = CreateSmallLabel("最近结算：\n" + string.Join("\n", latest));
         panel.AddChild(label);
         return panel;
+    }
+
+    private void CreateEnemyBeatSlots(Control root, CombatState combatState)
+    {
+        if (combatState.BeatRound is null ||
+            combatState.BeatRound.EnemyBeats.Count == 0 ||
+            battleEnemyView is null)
+        {
+            return;
+        }
+
+        foreach (var group in combatState.BeatRound.EnemyBeats
+            .GroupBy(beat => beat.EnemyInstanceId)
+            .OrderBy(group => EnemyOrder(group.Key)))
+        {
+            if (!battleEnemyView.EnemyNodes.TryGetValue(group.Key, out var enemyNode))
+            {
+                continue;
+            }
+
+            var beats = group.OrderBy(beat => beat.BeatIndex).ToList();
+            var rowWidth = beats.Count * EnemyBeatSlotSize.X + Math.Max(0, beats.Count - 1) * EnemyBeatSlotSpacing;
+            var start = new Vector2(
+                enemyNode.Position.X + (enemyNode.Size.X - rowWidth) * 0.5f,
+                enemyNode.Position.Y - EnemyBeatSlotSize.Y - 22f - EnemyBeatGapAboveHealthBar);
+
+            for (var index = 0; index < beats.Count; index++)
+            {
+                var slot = CreateDiamondEnemyBeatSlot(combatState, beats[index]);
+                slot.ZIndex = 48;
+                AddAt(root, slot, start + new Vector2(index * (EnemyBeatSlotSize.X + EnemyBeatSlotSpacing), 0), EnemyBeatSlotSize);
+            }
+        }
+    }
+
+    private Control CreateDiamondEnemyBeatSlot(CombatState combatState, EnemyBeatSlot enemyBeat)
+    {
+        var lockedBy = PlayerBeatLockingEnemyBeat(combatState, enemyBeat.EnemyInstanceId, enemyBeat.BeatIndex);
+        var slot = new BeatDiamondSlotView
+        {
+            CustomMinimumSize = EnemyBeatSlotSize,
+            MouseFilter = MouseFilterEnum.Pass,
+            Filled = true,
+            Emphasized = lockedBy is not null,
+            SlotText = BeatSlotPresentationGeometry.RomanBeatNumber(enemyBeat.BeatIndex),
+            SlotFont = LoadFont("asset.font.source_han_sans_sc.heavy"),
+            FontSize = 24,
+            TooltipText = lockedBy is null
+                ? BeatActionSummary(enemyBeat)
+                : $"已对撞：玩家拍 {BeatSlotPresentationGeometry.RomanBeatNumber(lockedBy.Value)}\n{BeatActionSummary(enemyBeat)}"
+        };
+        enemyBeatSlotNodes[(enemyBeat.EnemyInstanceId, enemyBeat.BeatIndex)] = slot;
+        return slot;
+    }
+
+    private Control? CreateDiamondBeatLane(CombatState combatState)
+    {
+        if (combatState.BeatRound is null)
+        {
+            return null;
+        }
+
+        var panel = new Control
+        {
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+
+        foreach (var beat in combatState.BeatRound.PlayerBeats.OrderBy(slot => slot.BeatIndex))
+        {
+            var slot = CreateDiamondBeatSlot(beat);
+            var position = beat.BeatIndex < PlayerBeatSlotPositions.Length
+                ? PlayerBeatSlotPositions[beat.BeatIndex]
+                : new Vector2(6, beat.BeatIndex * 80f);
+            AddAt(panel, slot, position, BeatSlotSize);
+        }
+
+        return panel;
+    }
+
+    private Control CreateDiamondBeatSlot(PlayerBeatSlot beat)
+    {
+        var hasCard = !string.IsNullOrWhiteSpace(beat.CardId);
+        var slot = new BeatDiamondSlotView
+        {
+            CustomMinimumSize = BeatSlotSize,
+            MouseFilter = MouseFilterEnum.Pass,
+            Filled = hasCard,
+            Emphasized = beat.Target is not null,
+            SlotText = hasCard ? BeatSlotPresentationGeometry.RomanBeatNumber(beat.BeatIndex) : "",
+            SlotFont = LoadFont("asset.font.source_han_sans_sc.heavy"),
+            FontSize = 30,
+            TooltipText = !hasCard
+                ? $"拖行动牌到玩家拍 {BeatSlotPresentationGeometry.RomanBeatNumber(beat.BeatIndex)}"
+                : $"{beat.CardId}\n{BeatTargetText(beat.Target)}"
+        };
+        playerBeatSlotNodes[beat.BeatIndex] = slot;
+        return slot;
+    }
+
+    private Control? CreateBeatTargetConnectorOverlay(Control root, CombatState combatState)
+    {
+        if (combatState.BeatRound is null)
+        {
+            return null;
+        }
+
+        var connectors = new List<BeatTargetConnector>();
+        foreach (var beat in combatState.BeatRound.PlayerBeats.OrderBy(slot => slot.BeatIndex))
+        {
+            if (beat.Target is null || !playerBeatSlotNodes.TryGetValue(beat.BeatIndex, out var sourceNode))
+            {
+                continue;
+            }
+
+            var start = ControlPointInRoot(root, sourceNode, new Vector2(sourceNode.Size.X, sourceNode.Size.Y * 0.5f));
+            Vector2? end = beat.Target.Kind switch
+            {
+                BeatTargetKind.EnemyBeat when beat.Target.EnemyBeatIndex is int enemyBeatIndex &&
+                    enemyBeatSlotNodes.TryGetValue((beat.Target.EnemyInstanceId, enemyBeatIndex), out var targetNode) =>
+                    ControlPointInRoot(root, targetNode, new Vector2(0f, targetNode.Size.Y * 0.5f)),
+                BeatTargetKind.EnemyBody when battleEnemyView is not null &&
+                    battleEnemyView.EnemyNodes.TryGetValue(beat.Target.EnemyInstanceId, out var enemyNode) =>
+                    ControlPointInRoot(root, enemyNode, enemyNode.Size * 0.5f),
+                _ => null
+            };
+
+            if (end is not null)
+            {
+                connectors.Add(new BeatTargetConnector(start, end.Value));
+            }
+        }
+
+        if (connectors.Count == 0)
+        {
+            return null;
+        }
+
+        return new BeatTargetConnectorOverlay
+        {
+            Name = "BeatTargetConnectorOverlay",
+            Connections = connectors,
+            MouseFilter = MouseFilterEnum.Ignore,
+            ZIndex = 44,
+            ZAsRelative = false
+        };
     }
 
     private Control? CreateEnemyBeatLane(CombatState combatState)
@@ -535,7 +697,7 @@ public partial class BattleScreen : ComicScreen
 
         foreach (var pair in enemyBeatSlotNodes.OrderByDescending(item => EnemyOrder(item.Key.EnemyInstanceId)).ThenByDescending(item => item.Key.BeatIndex))
         {
-            if (!IsPointInsideControl(pair.Value, viewportPoint) ||
+            if (!IsPointInsideBeatDiamond(pair.Value, viewportPoint) ||
                 PlayerBeatLockingEnemyBeat(combat, pair.Key.EnemyInstanceId, pair.Key.BeatIndex) is not null)
             {
                 continue;
@@ -582,7 +744,7 @@ public partial class BattleScreen : ComicScreen
 
         foreach (var pair in playerBeatSlotNodes.OrderBy(item => item.Key))
         {
-            if (!IsPointInsideControl(pair.Value, viewportPoint))
+            if (!IsPointInsideBeatDiamond(pair.Value, viewportPoint))
             {
                 continue;
             }
@@ -716,6 +878,29 @@ public partial class BattleScreen : ComicScreen
             localPoint.Y >= 0 &&
             localPoint.X <= size.X &&
             localPoint.Y <= size.Y;
+    }
+
+    private static bool IsPointInsideBeatDiamond(Control control, Vector2 viewportPoint)
+    {
+        if (!GodotObject.IsInstanceValid(control) || !control.Visible)
+        {
+            return false;
+        }
+
+        var localPoint = control.GetGlobalTransformWithCanvas().AffineInverse() * viewportPoint;
+        var size = control.Size;
+        if (size.X <= 0 || size.Y <= 0)
+        {
+            size = control.CustomMinimumSize;
+        }
+
+        return BeatSlotPresentationGeometry.IsPointInsideDiamond(localPoint.X, localPoint.Y, size.X, size.Y);
+    }
+
+    private static Vector2 ControlPointInRoot(Control root, Control control, Vector2 localPoint)
+    {
+        var viewportPoint = control.GetGlobalTransformWithCanvas() * localPoint;
+        return root.GetGlobalTransformWithCanvas().AffineInverse() * viewportPoint;
     }
 
     private static Vector2 ControlCenterInViewport(Control control)

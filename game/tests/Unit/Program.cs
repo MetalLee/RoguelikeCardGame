@@ -477,6 +477,26 @@ AssertEqual(BeatTargetKind.EnemyBody, bodyTargetedBeat.BeatRound?.PlayerBeats.Si
 var discardAfterBeat = beatPlanning.DiscardSlottedActionCards(bodyTargetedBeat);
 Assert(discardAfterBeat.DeckZones.DiscardPile.Contains(planningCombat.DeckZones.Hand[0]), "Beat planning discards slotted action card instances after beat resolution");
 
+AssertEqual("I", RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.RomanBeatNumber(0), "Beat UI renders first beat as roman numeral I");
+AssertEqual("II", RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.RomanBeatNumber(1), "Beat UI renders second beat as roman numeral II");
+AssertEqual("III", RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.RomanBeatNumber(2), "Beat UI renders third beat as roman numeral III");
+Assert(RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.IsPointInsideDiamond(36, 36, 72, 72), "Beat UI accepts the center of a diamond slot");
+Assert(!RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.IsPointInsideDiamond(4, 4, 72, 72), "Beat UI rejects rectangular corners outside a diamond slot");
+var insetConnector = RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.InsetConnectorLine(0, 0, 100, 0, 20);
+AssertEqual(20f, insetConnector.StartX, "Beat connector starts after the source arrow head");
+AssertEqual(80f, insetConnector.EndX, "Beat connector ends before the target arrow head");
+var raisedControlY = RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.RaisedConnectorControlY(120, 80, 30);
+AssertEqual(50f, raisedControlY, "Beat connector control point stays above both endpoints");
+var arrowBase = RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.ArrowBaseCenter(0, 0, 100, 0, 34);
+AssertEqual(34f, arrowBase.SourceBaseX, "Beat connector source line endpoint matches the source arrow tail center");
+AssertEqual(66f, arrowBase.TargetBaseX, "Beat connector target line endpoint matches the target arrow tail center");
+var arrowTip = RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.ArrowTipFromBaseCenter(34, 0, 0.6f, -0.8f, 10);
+AssertEqual(40f, arrowTip.X, "Beat connector arrow tip follows the curve endpoint tangent X");
+AssertEqual(-8f, arrowTip.Y, "Beat connector arrow tip follows the curve endpoint tangent Y");
+var arrowTail = RoguelikeCardGame.Presentation.Battle.BeatSlotPresentationGeometry.ArrowTailFromTip(100, 0, 1, 0, 34);
+AssertEqual(66f, arrowTail.X, "Beat connector arrow tip remains attached to the diamond vertex while the tail backs into the curve");
+AssertEqual(-62f, RoguelikeCardGame.Presentation.Battle.BeatCardDragPresentation.CardLiftOffsetY, "Beat card deployment lifts the card instead of dragging the card body to a beat slot");
+
 var missingCardIdWithInstance = beatService.ValidatePlayerBeatTargets(
     CreateBeatTargetRound(
         beatCount: 3,

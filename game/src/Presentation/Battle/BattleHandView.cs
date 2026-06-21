@@ -22,6 +22,7 @@ public sealed partial class BattleHandView : Control
     private BattleTargetingOverlay? targetingOverlay;
     private Func<string, Texture2D?>? loadTexture;
     private Func<string, Font?>? loadFont;
+    private Func<Vector2, bool>? beatSlotHoverEvaluator;
     private HandCardInteraction? draggingCard;
     private bool interactionsLocked;
     private bool beatPrototypeMode;
@@ -39,7 +40,8 @@ public sealed partial class BattleHandView : Control
         BattleTargetingOverlay targeting,
         Func<string, Texture2D?> textureLoader,
         Func<string, Font?> fontLoader,
-        bool beatPrototype = false)
+        bool beatPrototype = false,
+        Func<Vector2, bool>? beatSlotHover = null)
     {
         combat = combatState;
         run = runState;
@@ -48,6 +50,7 @@ public sealed partial class BattleHandView : Control
         targetingOverlay = targeting;
         loadTexture = textureLoader;
         loadFont = fontLoader;
+        beatSlotHoverEvaluator = beatSlotHover;
         draggingCard = null;
         interactionsLocked = false;
         beatPrototypeMode = beatPrototype;
@@ -379,7 +382,13 @@ public sealed partial class BattleHandView : Control
         draggingCard = card;
         card.IsHovered = false;
         card.Node.ZIndex = 85;
-        if (!beatPrototypeMode && card.Card.TargetRule == TargetRule.SingleEnemy)
+        if (beatPrototypeMode)
+        {
+            card.Node.Position = card.OriginalPosition + new Vector2(0, BeatCardDragPresentation.CardLiftOffsetY);
+            card.Node.RotationDegrees = 0;
+            card.Node.Scale = card.OriginalScale * 1.02f;
+        }
+        else if (card.Card.TargetRule == TargetRule.SingleEnemy)
         {
             card.Node.Position = card.OriginalPosition + new Vector2(0, -62);
             card.Node.RotationDegrees = 0;
@@ -406,6 +415,16 @@ public sealed partial class BattleHandView : Control
         }
 
         var viewportMouse = GetViewport().GetMousePosition();
+        if (beatPrototypeMode)
+        {
+            RequireTargetingOverlay().HideReleaseZone();
+            RequireTargetingOverlay().UpdateEnemyHighlights(null);
+            var canDropOnBeat = beatSlotHoverEvaluator?.Invoke(viewportMouse) == true;
+            SetValidTargetMask(card, canDropOnBeat);
+            RequireTargetingOverlay().ShowArrowFromViewport(CurrentCardAnchorInViewport(card), viewportMouse, canDropOnBeat);
+            return;
+        }
+
         if (!beatPrototypeMode && card.Card.TargetRule == TargetRule.SingleEnemy)
         {
             RequireTargetingOverlay().HideReleaseZone();
