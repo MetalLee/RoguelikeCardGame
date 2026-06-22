@@ -9,7 +9,7 @@ namespace RoguelikeCardGame.Presentation.Battle;
 
 public partial class BattleScreen : ComicScreen
 {
-	private const float PlayerStageGroundY = 980f;
+	private const float PlayerStageGroundY = 730f;
 	private const float PlayerSpriteBottomTransparentPadding = 23f;
 	private const double ThoughtBubbleDurationSeconds = 2.0;
 	private static readonly Vector2 BeatLanePosition = new(24, 232);
@@ -106,7 +106,7 @@ public partial class BattleScreen : ComicScreen
 		actionPointPanel = battleHudView.ActionPointPanel;
 
 		var playerSize = new Vector2(212, 446);
-		var playerPosition = new Vector2(230, PlayerStageGroundY - playerSize.Y + PlayerSpriteBottomTransparentPadding);
+		var playerPosition = new Vector2(330, PlayerStageGroundY - playerSize.Y + PlayerSpriteBottomTransparentPadding);
 		playerNode = CreateImage("asset.character.zu.revolver.battle", playerSize, TextureRect.StretchModeEnum.KeepAspectCentered);
 		playerNode.Name = "PlayerStand";
 		AddAt(root, playerNode, playerPosition, playerSize);

@@ -17,6 +17,9 @@
 
 ### 2026-06-23
 
+- 临时将终结牌从 active 起始卡组、武器奖励池和战斗 HUD 中移除：开局改为主副武器各 3 张行动牌，共 6 张行动初始卡组；战斗界面暂不展示终结槽，奖励候选暂时只生成行动牌。终结牌定义与长期规则方向保留，后续恢复。同步更新 [[design/01_core_gameplay/00_core_loop|核心循环]]、[[design/01_core_gameplay/03_card_system|卡牌系统]] 与 [[design/03_experience/00_ui_ux|界面与交互]]。
+- 将行动牌模板替换为 600×802 黑白漫画卡框，并将 Godot 卡面文字布局调整为左上费用圆章、顶部标题栏、顶部机制条和底部规则框四个安全区；同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 与 [[design/03_experience/01_visual_direction|视觉方向]]。
+- 将 MVP 战斗背景从远景 / 前景两层资源收敛为单张 `asset.background.mvp_battle`，删除 active manifest 中的 split 背景入口并同步更新 [[design/03_experience/00_ui_ux|界面与交互]] 与 [[design/03_experience/01_visual_direction|视觉方向]]。
 - 生成并登记普通斩击动作音效 `asset.sfx.slash_light`，三拍对撞覆盖层中所有斩击动画序列统一复用该音效；同步更新 [[design/03_experience/02_audio_feedback|音频与反馈]]。
 
 ### 2026-06-22

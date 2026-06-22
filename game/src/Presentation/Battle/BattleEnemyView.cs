@@ -6,7 +6,7 @@ namespace RoguelikeCardGame.Presentation.Battle;
 
 public sealed partial class BattleEnemyView : Control
 {
-    private const float StageGroundY = 980f;
+    private const float StageGroundY = 780f;
     private const float EnemyHealthBarHeight = 12f;
 
     private static readonly Dictionary<string, EnemySpriteLayout> EnemySpriteLayouts = new(StringComparer.Ordinal)

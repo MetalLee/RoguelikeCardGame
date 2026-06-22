@@ -436,10 +436,10 @@ def validate_unified_gameplay(project_root: Path, documents: dict[str, dict[str,
                         finisher_count += count
                 if isinstance(count, int):
                     total += count
-            if total != 4:
-                errors.append(f"gameplay.card_pools:{pool_id}.starting_entries: each MVP starting weapon needs exactly 4 cards, got {total}")
-            if action_count != 3 or finisher_count != 1:
-                errors.append(f"gameplay.card_pools:{pool_id}.starting_entries: each MVP starting weapon needs 3 action cards and 1 finisher, got {action_count} action and {finisher_count} finisher")
+            if total != 3:
+                errors.append(f"gameplay.card_pools:{pool_id}.starting_entries: each temporary MVP starting weapon needs exactly 3 action cards, got {total}")
+            if action_count != 3 or finisher_count != 0:
+                errors.append(f"gameplay.card_pools:{pool_id}.starting_entries: finishers are temporarily disabled; expected 3 action cards and 0 finishers, got {action_count} action and {finisher_count} finisher")
         elif pool_type == "reward":
             reward_pool_by_weapon[weapon_id] = pool
             reward_by_rarity = pool.get("reward_by_rarity", {})

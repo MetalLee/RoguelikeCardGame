@@ -8,8 +8,7 @@
       "weapon_id": "weapon.revolver_sword",
       "starting_entries": [
         { "card_id": "card.revolver_slash", "count": 2 },
-        { "card_id": "card.revolver_hundred_blades", "count": 1 },
-        { "card_id": "card.revolver_planetary_poem", "count": 1 }
+        { "card_id": "card.revolver_hundred_blades", "count": 1 }
       ],
       "reward_by_rarity": { "common": [], "uncommon": [], "rare": [] },
       "tags": ["mvp", "starting_pool", "main_or_off_hand_selectable"]
@@ -22,8 +21,7 @@
       "reward_by_rarity": {
         "common": [
           "card.revolver_slash",
-          "card.revolver_hundred_blades",
-          "card.revolver_planetary_poem"
+          "card.revolver_hundred_blades"
         ],
         "uncommon": [],
         "rare": []
@@ -36,8 +34,7 @@
       "weapon_id": "weapon.mechanical_arm",
       "starting_entries": [
         { "card_id": "card.arm_guard", "count": 2 },
-        { "card_id": "card.arm_counter", "count": 1 },
-        { "card_id": "card.arm_sweep", "count": 1 }
+        { "card_id": "card.arm_counter", "count": 1 }
       ],
       "reward_by_rarity": { "common": [], "uncommon": [], "rare": [] },
       "tags": ["mvp", "starting_pool", "main_or_off_hand_selectable"]
@@ -50,8 +47,7 @@
       "reward_by_rarity": {
         "common": [
           "card.arm_guard",
-          "card.arm_counter",
-          "card.arm_sweep"
+          "card.arm_counter"
         ],
         "uncommon": [],
         "rare": []

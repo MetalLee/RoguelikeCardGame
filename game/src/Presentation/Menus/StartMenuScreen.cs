@@ -26,7 +26,7 @@ public partial class StartMenuScreen : ComicScreen
             title.AddThemeFontOverride("font", heavyFont);
         }
 
-        AddImageAt(root, "asset.character.zu.revolver.battle", new Vector2(315, 560), new Vector2(212, 446), TextureRect.StretchModeEnum.KeepAspectCentered);
+        AddImageAt(root, "asset.character.zu.revolver.battle", new Vector2(315, 360), new Vector2(212, 446), TextureRect.StretchModeEnum.KeepAspectCentered);
         AddAt(root, title, new Vector2(540, 198), new Vector2(840, 130));
 
         var start = new SketchParallelogramButton("开始游戏", heavyFont);

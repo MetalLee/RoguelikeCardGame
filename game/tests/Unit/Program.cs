@@ -13,6 +13,7 @@ using RoguelikeCardGame.Domain.Relics;
 using RoguelikeCardGame.Domain.Runs;
 using RoguelikeCardGame.Infrastructure.Content;
 using RoguelikeCardGame.Infrastructure.Randomness;
+using RoguelikeCardGame.Presentation.Cards;
 
 var options = new JsonSerializerOptions
 {
@@ -1230,8 +1231,7 @@ var revolverStartingPool = new WeaponStartingPoolDefinition
     [
         "card.revolver_slash",
         "card.revolver_slash",
-        "card.revolver_hundred_blades",
-        "card.revolver_planetary_poem"
+        "card.revolver_hundred_blades"
     ]
 };
 var armStartingPool = new WeaponStartingPoolDefinition
@@ -1241,8 +1241,7 @@ var armStartingPool = new WeaponStartingPoolDefinition
     [
         "card.arm_guard",
         "card.arm_guard",
-        "card.arm_counter",
-        "card.arm_sweep"
+        "card.arm_counter"
     ]
 };
 var startingPools = new[] { revolverStartingPool, armStartingPool };
@@ -1254,35 +1253,35 @@ var revolverMainSelection = new StartingDeckSelection
     [
         "card.revolver_slash",
         "card.revolver_slash",
-        "card.revolver_hundred_blades",
-        "card.revolver_planetary_poem"
+        "card.revolver_hundred_blades"
     ],
     OffHandCardIds =
     [
         "card.arm_guard",
         "card.arm_guard",
-        "card.arm_counter",
-        "card.arm_sweep"
+        "card.arm_counter"
     ]
 };
 var revolverMainValidation = startingDeckSelectionService.Validate(revolverMainSelection, startingPools);
-Assert(revolverMainValidation.IsValid, "Revolver sword main-hand 4 plus mechanical arm off-hand 4 is a valid start");
-AssertEqual(8, revolverMainValidation.SelectedCardIds.Count, "Starting deck selection creates an 8-card starter deck");
+Assert(revolverMainValidation.IsValid, "Revolver sword main-hand 3 actions plus mechanical arm off-hand 3 actions is a valid temporary start");
+AssertEqual(6, revolverMainValidation.SelectedCardIds.Count, "Starting deck selection creates a temporary 6-card action-only starter deck");
+var automaticStarterCardsById = new Dictionary<string, CardDefinition>
+{
+    ["card.revolver_slash"] = strike with { Id = "card.revolver_slash" },
+    ["card.revolver_hundred_blades"] = strike with { Id = "card.revolver_hundred_blades" },
+    ["card.revolver_planetary_poem"] = finisher with { Id = "card.revolver_planetary_poem" },
+    ["card.arm_guard"] = guardAction with { Id = "card.arm_guard" },
+    ["card.arm_counter"] = guardAction with { Id = "card.arm_counter", WeaponId = "weapon.mechanical_arm" },
+    ["card.arm_sweep"] = finisher with { Id = "card.arm_sweep", WeaponId = "weapon.mechanical_arm" }
+};
 var automaticRevolverMain = startingDeckSelectionService.BuildAutomaticStarterDeck(
     revolverStartingPool.WeaponId,
     armStartingPool.WeaponId,
     startingPools,
-    new Dictionary<string, CardDefinition>
-    {
-        ["card.revolver_slash"] = strike with { Id = "card.revolver_slash" },
-        ["card.revolver_hundred_blades"] = strike with { Id = "card.revolver_hundred_blades" },
-        ["card.revolver_planetary_poem"] = finisher with { Id = "card.revolver_planetary_poem" },
-        ["card.arm_guard"] = guardAction with { Id = "card.arm_guard" },
-        ["card.arm_counter"] = guardAction with { Id = "card.arm_counter", WeaponId = "weapon.mechanical_arm" },
-        ["card.arm_sweep"] = finisher with { Id = "card.arm_sweep", WeaponId = "weapon.mechanical_arm" }
-    });
-Assert(automaticRevolverMain.IsValid, "Automatic starter deck accepts both fixed 4-card weapon pools");
-AssertSequenceEqual(revolverMainValidation.SelectedCardIds, automaticRevolverMain.SelectedCardIds, "Automatic starter deck matches the fixed 4 plus 4 rule");
+    automaticStarterCardsById);
+Assert(automaticRevolverMain.IsValid, "Automatic starter deck accepts both temporary 3-action weapon pools");
+AssertSequenceEqual(revolverMainValidation.SelectedCardIds, automaticRevolverMain.SelectedCardIds, "Automatic starter deck matches the temporary action-only pool contents");
+Assert(automaticRevolverMain.SelectedCardIds.All(cardId => automaticStarterCardsById[cardId].Type == CardType.Action), "Automatic starter deck excludes finisher cards");
 var revolverMainRun = runFactory.CreateNewRunFromWeaponSelection(
     "run_revolver_main",
     22222,
@@ -1295,7 +1294,7 @@ var revolverMainRun = runFactory.CreateNewRunFromWeaponSelection(
     [encounter.Id]);
 AssertEqual("weapon.revolver_sword", revolverMainRun.MainHandWeaponId, "Run can start with revolver sword as main hand");
 AssertEqual("weapon.mechanical_arm", revolverMainRun.OffHandWeaponId, "Run can start with mechanical arm as off hand");
-AssertEqual(8, revolverMainRun.MasterDeckInstances.Count, "Weapon-selected run creates card instances for all starter cards");
+AssertEqual(6, revolverMainRun.MasterDeckInstances.Count, "Weapon-selected run creates card instances for the temporary action-only starter cards");
 
 var armMainSelection = new StartingDeckSelection
 {
@@ -1305,19 +1304,17 @@ var armMainSelection = new StartingDeckSelection
     [
         "card.arm_guard",
         "card.arm_guard",
-        "card.arm_counter",
-        "card.arm_sweep"
+        "card.arm_counter"
     ],
     OffHandCardIds =
     [
         "card.revolver_slash",
         "card.revolver_slash",
         "card.revolver_hundred_blades",
-        "card.revolver_planetary_poem",
     ]
 };
 var armMainValidation = startingDeckSelectionService.Validate(armMainSelection, startingPools);
-Assert(armMainValidation.IsValid, "Mechanical arm main-hand 4 plus revolver sword off-hand 4 is a valid start");
+Assert(armMainValidation.IsValid, "Mechanical arm main-hand 3 actions plus revolver sword off-hand 3 actions is a valid temporary start");
 var armMainRun = runFactory.CreateNewRunFromWeaponSelection(
     "run_arm_main",
     22223,
@@ -1330,7 +1327,7 @@ var armMainRun = runFactory.CreateNewRunFromWeaponSelection(
     [encounter.Id]);
 AssertEqual("weapon.mechanical_arm", armMainRun.MainHandWeaponId, "Run can start with mechanical arm as main hand");
 AssertEqual("weapon.revolver_sword", armMainRun.OffHandWeaponId, "Run can start with revolver sword as off hand");
-AssertEqual(8, armMainRun.MasterDeckInstances.Count, "Automatic-compatible arm main run also creates 8 starter card instances");
+AssertEqual(6, armMainRun.MasterDeckInstances.Count, "Automatic-compatible arm main run also creates 6 temporary action-only starter card instances");
 
 var loadedContent = GameContent.LoadFromDataRoot(FindGameDataRoot());
 AssertEqual(5, loadedContent.ColorsById.Count, "GameContent loads all MVP colors");
@@ -1360,10 +1357,26 @@ AssertEqual(BeatAttackType.Projectile, loadedBeatFinisher.FinisherAttackType, "G
 var loadedBeatEnemy = loadedContent.EnemiesById.Values.First(enemy => enemy.BeatSequences.Count > 0);
 AssertEqual(BeatResistanceGrade.Standard, loadedBeatEnemy.Resistances.Strike, "GameContent maps default enemy strike resistance");
 Assert(loadedBeatEnemy.BeatSequences[0].Beats.Count > 0, "GameContent maps enemy beat sequences");
-AssertEqual(4, loadedContent.ExpandedStartingCardIdsForWeapon("weapon.revolver_sword").Count, "GameContent expands fixed 4-card weapon starting pools");
+AssertEqual(3, loadedContent.ExpandedStartingCardIdsForWeapon("weapon.revolver_sword").Count, "GameContent expands temporary 3-action weapon starting pools");
+Assert(loadedContent.ExpandedStartingCardIdsForWeapon("weapon.revolver_sword").All(cardId => loadedContent.CardsById[cardId].Type == CardType.Action), "Revolver sword starting pool temporarily excludes finishers");
+Assert(loadedContent.ExpandedStartingCardIdsForWeapon("weapon.mechanical_arm").All(cardId => loadedContent.CardsById[cardId].Type == CardType.Action), "Mechanical arm starting pool temporarily excludes finishers");
 AssertEqual(CardRarity.Starter, loadedContent.CardsById["card.revolver_hundred_blades"].Rarity, "Hundred Blades is part of the starter-sized MVP card set");
 AssertEqual(CardRarity.Starter, loadedContent.CardsById["card.arm_counter"].Rarity, "Counter is part of the starter-sized MVP card set");
-Assert(loadedContent.CardPoolsById["card_pool.reward.mechanical_arm"].RewardByRarity["common"].Contains("card.arm_sweep"), "GameContent maps trimmed weapon reward pools");
+Assert(!loadedContent.CardPoolsById.Values
+    .SelectMany(pool => pool.RewardByRarity.Values.SelectMany(cardIds => cardIds))
+    .Any(cardId => loadedContent.CardsById[cardId].Type == CardType.Finisher), "Active weapon reward pools temporarily exclude finishers");
+var loadedAutomaticStarterDeck = startingDeckSelectionService.BuildAutomaticStarterDeck(
+    "weapon.revolver_sword",
+    "weapon.mechanical_arm",
+    loadedContent.WeaponsById.Values.Select(weapon => new WeaponStartingPoolDefinition
+    {
+        WeaponId = weapon.Id,
+        CardIds = loadedContent.ExpandedStartingCardIdsForWeapon(weapon.Id).ToList()
+    }),
+    loadedContent.CardsById);
+Assert(loadedAutomaticStarterDeck.IsValid, "Loaded temporary action-only starter deck can be built automatically");
+AssertEqual(6, loadedAutomaticStarterDeck.SelectedCardIds.Count, "Loaded temporary automatic starter deck contains 6 cards");
+Assert(loadedAutomaticStarterDeck.SelectedCardIds.All(cardId => loadedContent.CardsById[cardId].Type == CardType.Action), "Loaded temporary automatic starter deck contains only action cards");
 AssertEqual(3, loadedContent.EncountersById.Count, "GameContent loads the trimmed MVP encounter sequence");
 AssertSequenceEqual(
     ["encounter.mvp.normal_01", "encounter.mvp.normal_03", "encounter.mvp.boss_01"],
@@ -1373,10 +1386,27 @@ AssertEqual(0, loadedContent.EncountersById["encounter.mvp.normal_01"].RewardPro
 AssertEqual("左轮剑", loadedContent.WeaponName("weapon.revolver_sword"), "GameContent maps localization for weapons");
 Assert(loadedContent.AssetsById.ContainsKey("asset.card.template.action"), "GameContent loads presentation asset manifest");
 AssertEqual("audio", loadedContent.AssetsById["asset.sfx.slash_light"].Type, "GameContent loads the slash SFX audio asset");
+Assert(loadedContent.AssetsById.ContainsKey("asset.background.mvp_battle"), "GameContent keeps the single active MVP battle background asset");
+AssertEqual(1, loadedContent.AssetsById.Keys.Count(id => id.StartsWith("asset.background.mvp_battle", StringComparison.Ordinal)), "GameContent exposes only one active MVP battle background asset");
+Assert(!loadedContent.AssetsById.ContainsKey("asset.background.mvp_battle.back"), "GameContent no longer exposes a split back battle background asset");
+Assert(!loadedContent.AssetsById.ContainsKey("asset.background.mvp_battle.front"), "GameContent no longer exposes a split front battle background asset");
+var actionPanelLayout = CardPanelLayout.For(CardType.Action);
+AssertEqual(600f, actionPanelLayout.TemplateSize.Width, "Action card panel uses the new template width");
+AssertEqual(802f, actionPanelLayout.TemplateSize.Height, "Action card panel uses the new template height");
+AssertEqual(148f, actionPanelLayout.NameRect.X, "Action card title starts after the cost medallion");
+AssertEqual(62f, actionPanelLayout.NameRect.Y, "Action card title aligns with the new top banner");
+AssertEqual(64f, actionPanelLayout.CostRect.X, "Action card cost is centered in the new circular medallion");
+AssertEqual(58f, actionPanelLayout.CostRect.Y, "Action card cost follows the new circular medallion");
+Assert(actionPanelLayout.RulesRect.Y >= 590f, "Action card rules text sits in the lower rules panel");
+Assert(actionPanelLayout.RulesRect.Y + actionPanelLayout.RulesRect.Height <= 760f, "Action card rules text stays inside the lower rules panel");
+var actionTemplatePath = Path.Combine(Directory.GetParent(FindGameDataRoot())!.FullName, "assets", "art", "cards", "templates", "action_card_template.png");
+var actionTemplatePngSize = PngSize(actionTemplatePath);
+AssertEqual(600, actionTemplatePngSize.Width, "Action card template PNG is resized to 600 px wide");
+AssertEqual(802, actionTemplatePngSize.Height, "Action card template PNG is resized to 802 px tall");
 
 var underPicked = startingDeckSelectionService.Validate(revolverMainSelection with
 {
-    MainHandCardIds = revolverMainSelection.MainHandCardIds.Take(3).ToList()
+    MainHandCardIds = revolverMainSelection.MainHandCardIds.Take(2).ToList()
 }, startingPools);
 Assert(!underPicked.IsValid, "Under-picking main-hand starting cards cannot start a run");
 
@@ -1876,6 +1906,9 @@ var weaponRewardPools = new[]
 var weaponCandidates = rewardService.GenerateWeaponCardCandidates(run, weaponRewardPools, cardsById, _ => 0);
 AssertEqual(3, weaponCandidates.Count, "Weapon card reward generates three candidates");
 AssertEqual(3, weaponCandidates.Distinct().Count(), "Weapon card candidates are distinct within one offer");
+Assert(weaponCandidates.All(cardId => cardsById[cardId].Type == CardType.Action), "Weapon card reward temporarily excludes finisher candidates");
+var rareRollWeaponCandidates = rewardService.GenerateWeaponCardCandidates(run, weaponRewardPools, cardsById, _ => 99);
+Assert(rareRollWeaponCandidates.All(cardId => cardsById[cardId].Type == CardType.Action), "Weapon card reward filters finishers even when rarity rolls hit finisher-only buckets");
 AssertThrows(
     () => rewardService.ClaimWeaponCardChoice(run, weaponCandidates, []),
     "Weapon card reward cannot be skipped");
@@ -1910,13 +1943,13 @@ var mvpOpeningCombat = turnService.StartCombat(combatFactory.CreateCombat(
     encounter,
     enemiesById));
 AssertEqual(CombatStatus.PlayerTurn, mvpOpeningCombat.Status, "Full MVP regression can enter combat after weapon starting deck selection");
-AssertEqual(8, mvpSelectedRun.MasterDeckInstances.Count, "Full MVP regression starts from 8 weapon-selected CardInstances");
+AssertEqual(6, mvpSelectedRun.MasterDeckInstances.Count, "Full MVP regression starts from 6 temporary action-only weapon-selected CardInstances");
 
 var mvpPostCombatRun = runProgressService.ApplyCombatResult(
     mvpSelectedRun,
     CreateCombatResult(encounter.Id, CombatStatus.Victory, playerHp: 42),
     encounter);
-string[] mvpRewardCandidates = ["card.revolver_slash", "card.arm_guard", "card.revolver_planetary_poem"];
+string[] mvpRewardCandidates = ["card.revolver_slash", "card.arm_guard", "card.revolver_hundred_blades"];
 var mvpRewardedRun = rewardService.ClaimWeaponCardChoice(mvpPostCombatRun, mvpRewardCandidates, ["card.arm_guard"]);
 AssertEqual(0, mvpRewardedRun.PendingColorShards.Count, "Full MVP regression skips post-combat enchantment rewards");
 AssertEqual(mvpSelectedRun.MasterDeckInstances.Count + 1, mvpRewardedRun.MasterDeckInstances.Count, "Full MVP regression adds one weapon reward card instance");
@@ -2281,6 +2314,23 @@ static string FindGameDataRoot()
     }
 
     throw new DirectoryNotFoundException("Could not find game/data from the test working directory.");
+}
+
+static (int Width, int Height) PngSize(string path)
+{
+    var bytes = File.ReadAllBytes(path);
+    if (bytes.Length < 24 ||
+        bytes[0] != 0x89 ||
+        bytes[1] != 0x50 ||
+        bytes[2] != 0x4E ||
+        bytes[3] != 0x47)
+    {
+        throw new InvalidOperationException($"Not a PNG file: {path}");
+    }
+
+    var width = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+    var height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+    return (width, height);
 }
 
 static void AssertEqual<T>(T expected, T actual, string message)

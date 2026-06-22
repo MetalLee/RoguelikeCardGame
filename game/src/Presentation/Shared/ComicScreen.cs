@@ -430,11 +430,8 @@ public abstract partial class ComicScreen : Control
         paperBase.SetAnchorsPreset(LayoutPreset.FullRect);
         parent.AddChild(paperBase);
 
-        var backLayer = CreateFixedBackgroundImage("asset.background.mvp_battle.back");
-        parent.AddChild(backLayer);
-
-        var frontLayer = CreateFixedBackgroundImage("asset.background.mvp_battle.front");
-        parent.AddChild(frontLayer);
+        var backgroundLayer = CreateFixedBackgroundImage("asset.background.mvp_battle");
+        parent.AddChild(backgroundLayer);
     }
 
     private TextureRect CreateFixedBackgroundImage(string assetId)

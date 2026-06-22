@@ -147,7 +147,7 @@ public sealed class RewardService
             .ToList();
         var allCandidates = pools
             .SelectMany(pool => pool.CardIdsByRarity.Values.SelectMany(cardIds => cardIds))
-            .Where(cardsById.ContainsKey)
+            .Where(cardId => IsTemporaryWeaponRewardCandidate(cardId, cardsById))
             .Distinct(StringComparer.Ordinal)
             .ToList();
         if (allCandidates.Count < 3)
@@ -163,7 +163,7 @@ public sealed class RewardService
             var rarity = RollRewardRarity(nextInt);
             var rarityCandidates = pools
                 .SelectMany(pool => pool.CardIdsByRarity.TryGetValue(rarity, out var ids) ? ids : [])
-                .Where(cardsById.ContainsKey)
+                .Where(cardId => IsTemporaryWeaponRewardCandidate(cardId, cardsById))
                 .Where(cardId => !result.Contains(cardId, StringComparer.Ordinal))
                 .Distinct(StringComparer.Ordinal)
                 .ToList();
@@ -187,6 +187,14 @@ public sealed class RewardService
         }
 
         return result;
+    }
+
+    private static bool IsTemporaryWeaponRewardCandidate(
+        string cardId,
+        IReadOnlyDictionary<string, CardDefinition> cardsById)
+    {
+        return cardsById.TryGetValue(cardId, out var card) &&
+               card.Type == CardType.Action;
     }
 
     public RunState ClaimWeaponCardChoice(

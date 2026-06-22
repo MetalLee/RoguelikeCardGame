@@ -31,9 +31,6 @@ public sealed record StartingDeckValidationResult
 
 public sealed class StartingDeckSelectionService
 {
-    public const int MainHandPickCount = 4;
-    public const int OffHandPickCount = 4;
-
     public StartingDeckValidationResult BuildAutomaticStarterDeck(
         string mainHandWeaponId,
         string offHandWeaponId,
@@ -65,6 +62,11 @@ public sealed class StartingDeckSelectionService
 
         var mainHandCardIds = mainHandPool!.CardIds.ToList();
         var offHandCardIds = offHandPool!.CardIds.ToList();
+        foreach (var cardId in mainHandCardIds.Where(cardId => !cardsById.ContainsKey(cardId)))
+        {
+            errors.Add($"main hand: unknown card '{cardId}' in starting pool.");
+        }
+
         foreach (var cardId in offHandCardIds.Where(cardId => !cardsById.ContainsKey(cardId)))
         {
             errors.Add($"off hand: unknown card '{cardId}' in starting pool.");
@@ -109,14 +111,12 @@ public sealed class StartingDeckSelectionService
             "main hand",
             selection.MainHandWeaponId,
             selection.MainHandCardIds,
-            MainHandPickCount,
             poolsByWeapon,
             errors);
         ValidateWeaponPick(
             "off hand",
             selection.OffHandWeaponId,
             selection.OffHandCardIds,
-            OffHandPickCount,
             poolsByWeapon,
             errors);
 
@@ -144,7 +144,6 @@ public sealed class StartingDeckSelectionService
         string label,
         string weaponId,
         IReadOnlyList<string> selectedCardIds,
-        int requiredCount,
         IReadOnlyDictionary<string, WeaponStartingPoolDefinition> poolsByWeapon,
         List<string> errors)
     {
@@ -154,6 +153,7 @@ public sealed class StartingDeckSelectionService
             return;
         }
 
+        var requiredCount = pool.CardIds.Count;
         if (selectedCardIds.Count != requiredCount)
         {
             errors.Add($"{label}: must select exactly {requiredCount} cards, got {selectedCardIds.Count}.");

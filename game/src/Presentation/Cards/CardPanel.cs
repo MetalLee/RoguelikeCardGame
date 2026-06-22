@@ -11,7 +11,6 @@ namespace RoguelikeCardGame.Presentation.Cards;
 
 public static class CardPanel
 {
-	private static readonly Vector2 TemplateSize = new(1024, 1536);
 	private static readonly Color InkText = new(0.13f, 0.075f, 0.04f);
 	private static readonly Color PaperOutline = new(0.98f, 0.88f, 0.68f, 0.94f);
 	private static readonly Color ShadowInk = new(0.03f, 0.018f, 0.012f, 0.65f);
@@ -19,7 +18,13 @@ public static class CardPanel
 
 	public static Vector2 SizeForWidth(float width)
 	{
-		return new Vector2(width, width * TemplateSize.Y / TemplateSize.X);
+		return SizeForWidth(width, CardType.Action);
+	}
+
+	public static Vector2 SizeForWidth(float width, CardType type)
+	{
+		var templateSize = CardPanelLayout.For(type).TemplateSize;
+		return new Vector2(width, width * templateSize.Height / templateSize.Width);
 	}
 
 	public static Control Create(
@@ -32,7 +37,9 @@ public static class CardPanel
 		CardEnchantment? enchantment = null,
 		CardPlayPreview? preview = null)
 	{
-		var displaySize = SizeForWidth(width);
+		var layout = CardPanelLayout.For(card.Type);
+		var templateSize = ToVector2(layout.TemplateSize);
+		var displaySize = SizeForWidth(width, card.Type);
 		var root = new Control
 		{
 			CustomMinimumSize = displaySize,
@@ -40,37 +47,37 @@ public static class CardPanel
 			ClipContents = true
 		};
 
-		var scale = width / TemplateSize.X;
+		var scale = width / templateSize.X;
 		var canvas = new Control
 		{
-			CustomMinimumSize = TemplateSize,
-			Size = TemplateSize,
+			CustomMinimumSize = templateSize,
+			Size = templateSize,
 			Scale = new Vector2(scale, scale),
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
 		root.AddChild(canvas);
 
 		var view = content.CardViewsById[card.Id];
-		var layout = LayoutFor(card.Type);
 		var heavyFont = loadFont("asset.font.source_han_sans_sc.heavy");
 		var mediumFont = loadFont("asset.font.source_han_sans_sc.medium");
+		var artRect = ToRect2(layout.ArtRect);
 
 		var artWindow = new Control
 		{
-			Position = layout.ArtRect.Position,
-			Size = layout.ArtRect.Size,
-			CustomMinimumSize = layout.ArtRect.Size,
+			Position = artRect.Position,
+			Size = artRect.Size,
+			CustomMinimumSize = artRect.Size,
 			ClipContents = true,
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
 		canvas.AddChild(artWindow);
 
 		var artTexture = loadTexture(view.ArtAsset);
-		var artSize = FitTextureSize(artTexture, layout.ArtRect.Size);
+		var artSize = FitTextureSize(artTexture, artRect.Size);
 		var art = new TextureRect
 		{
 			Texture = artTexture,
-			Position = (layout.ArtRect.Size - artSize) * 0.5f,
+			Position = (artRect.Size - artSize) * 0.5f,
 			Size = artSize,
 			CustomMinimumSize = artSize,
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
@@ -84,8 +91,8 @@ public static class CardPanel
 		{
 			Texture = loadTexture(view.TemplateAsset),
 			Position = Vector2.Zero,
-			Size = TemplateSize,
-			CustomMinimumSize = TemplateSize,
+			Size = templateSize,
+			CustomMinimumSize = templateSize,
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 			StretchMode = TextureRect.StretchModeEnum.Scale,
 			TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
@@ -97,27 +104,27 @@ public static class CardPanel
 		{
 			canvas.AddChild(CreateImpactLabel(
 				costText,
-				layout.CostRect,
-				100,
+				ToRect2(layout.CostRect),
+				layout.CostFontSize,
 				InkText,
-				outlineSize: 8,
+				outlineSize: Math.Max(2, layout.CostFontSize / 12),
 				heavyFont));
 		}
 
 		canvas.AddChild(CreateTitleLabel(
 			content.CardName(card.Id),
-			layout.NameRect,
-			68,
+			ToRect2(layout.NameRect),
+			layout.NameFontSize,
 			heavyFont));
 
 		canvas.AddChild(CreateRulesLabel(
 			RulesTextWithBeatActions(card, content),
-			layout.RulesRect,
-			60,
+			ToRect2(layout.RulesRect),
+			layout.RulesFontSize,
 			mediumFont,
 			heavyFont));
 
-		canvas.AddChild(CreateEnergyBadge(card, enchantment, preview, layout.MetaRect, mediumFont, heavyFont));
+		canvas.AddChild(CreateEnergyBadge(card, enchantment, preview, ToRect2(layout.MetaRect), layout.MetaFontSize, mediumFont, heavyFont));
 
 		if (dimmed)
 		{
@@ -126,6 +133,10 @@ public static class CardPanel
 
 		return root;
 	}
+
+	private static Vector2 ToVector2(CardPanelSize size) => new(size.Width, size.Height);
+
+	private static Rect2 ToRect2(CardPanelRect rect) => new(rect.X, rect.Y, rect.Width, rect.Height);
 
 	private static Vector2 FitTextureSize(Texture2D? texture, Vector2 bounds)
 	{
@@ -330,32 +341,7 @@ public static class CardPanel
 		return false;
 	}
 
-	private static CardLayout LayoutFor(CardType type)
-	{
-		return type switch
-		{
-			CardType.Action => new CardLayout(
-				ArtRect: new Rect2(88, 236, 842, 717),
-				CostRect: new Rect2(82, 82, 142, 132),
-				NameRect: new Rect2(286, 100, 640, 120),
-				RulesRect: new Rect2(126, 1032, 772, 300),
-				MetaRect: new Rect2(126, 950, 772, 68)),
-			CardType.Finisher => new CardLayout(
-				ArtRect: new Rect2(91, 243, 842, 707),
-				CostRect: new Rect2(108, 88, 158, 138),
-				NameRect: new Rect2(310, 100, 592, 120),
-				RulesRect: new Rect2(126, 1034, 772, 300),
-				MetaRect: new Rect2(126, 952, 772, 68)),
-			_ => new CardLayout(
-				ArtRect: new Rect2(90, 244, 842, 710),
-				CostRect: new Rect2(),
-				NameRect: new Rect2(116, 86, 790, 112),
-				RulesRect: new Rect2(126, 1034, 772, 300),
-				MetaRect: new Rect2(126, 952, 772, 68))
-		};
-	}
-
-	private static Control CreateEnergyBadge(CardDefinition card, CardEnchantment? enchantment, CardPlayPreview? preview, Rect2 rect, Font? mediumFont, Font? heavyFont)
+	private static Control CreateEnergyBadge(CardDefinition card, CardEnchantment? enchantment, CardPlayPreview? preview, Rect2 rect, int fontSize, Font? mediumFont, Font? heavyFont)
 	{
 		var panel = new PanelContainer
 		{
@@ -388,7 +374,7 @@ public static class CardPanel
 		var text = card.Type == CardType.Action
 			? $"附魔 {ColorName(enchantment?.Color ?? ColorType.Colorless)} / 生成 {preview?.GeneratedColorEnergyAmount ?? card.ColorEnergyGeneration?.Amount ?? 0} {ColorName(preview?.GeneratedColorEnergyColor ?? enchantment?.Color ?? ColorType.Colorless)}彩能"
 			: $"消耗 {FinisherCostText(card)} 彩能 / 当前可消耗 {preview?.ColorEnergyCost ?? 0}";
-		var label = CreateImpactLabel(text, new Rect2(Vector2.Zero, rect.Size), 35, InkText, 2, mediumFont ?? heavyFont);
+		var label = CreateImpactLabel(text, new Rect2(Vector2.Zero, rect.Size), fontSize, InkText, 2, mediumFont ?? heavyFont);
 		panel.AddChild(label);
 		return panel;
 	}
@@ -435,5 +421,4 @@ public static class CardPanel
 		};
 	}
 
-	private readonly record struct CardLayout(Rect2 ArtRect, Rect2 CostRect, Rect2 NameRect, Rect2 RulesRect, Rect2 MetaRect);
 }
