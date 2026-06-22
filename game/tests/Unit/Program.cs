@@ -662,6 +662,47 @@ var multiTurnBeatClashSteps = beatClashPlanner.Plan(
 AssertSequenceEqual([1, 2], multiTurnBeatClashSteps.Select(step => step.TurnNumber), "Beat clash planner keeps full combat log input ordered by turn before beat");
 AssertSequenceEqual([1, 3], multiTurnBeatClashSteps.Select(step => step.EnergyGeneratedTotal), "Beat clash planner matches generated energy by turn and card instance");
 AssertSequenceEqual(["Red", "Yellow"], multiTurnBeatClashSteps.Select(step => step.EnergyColors.Single().Color), "Beat clash planner does not mix energy colors across turns for a reused card instance");
+var actionAnimationCatalog = RoguelikeCardGame.Presentation.Battle.BeatClashActionAnimationCatalog.Default;
+var runSequence = actionAnimationCatalog.RunWithSword;
+AssertEqual(3, runSequence.Sheets.Count, "Beat clash run animation uses the three supplied sword-run sprite sheets");
+Assert(runSequence.Sheets.All(sheet => sheet.Columns == 4), "Beat clash run animation treats each sword-run sheet as four frames");
+AssertEqual(0.09, runSequence.FrameDurationSeconds, "Beat clash run animation frame duration is slowed down to double the initial MVP speed");
+AssertEqual(1.0, RoguelikeCardGame.Presentation.Battle.BeatClashPresentationTiming.PreActionPauseSeconds, "Beat clash cut-in waits one second before playing the current beat action sequence");
+AssertEqual(0.5, RoguelikeCardGame.Presentation.Battle.BeatClashPresentationTiming.ActionIntervalSeconds, "Beat clash cut-in waits half a second between beat actions");
+var slashSequences = actionAnimationCatalog.SequencesFor(RoguelikeCardGame.Presentation.Battle.BeatClashActionAnimationKind.Slash);
+AssertEqual(3, slashSequences.Count, "Beat clash slash animation exposes the three supplied combo groups");
+Assert(slashSequences.All(sequence => Math.Abs(sequence.FrameDurationSeconds - 0.11) < 0.0001), "Beat clash slash animation frame duration is slowed down to double the initial MVP speed");
+AssertSequenceEqual(
+    [
+        "asset.character.zu.action.attack.combo_1",
+        "asset.character.zu.action.attack.combo_2",
+        "asset.character.zu.action.attack.combo_3"
+    ],
+    slashSequences.Select(sequence => sequence.Sheets.Single().AssetId),
+    "Beat clash slash animation groups keep stable asset ids");
+AssertSequenceEqual([4, 3, 3], slashSequences.Select(sequence => sequence.Sheets.Single().Columns), "Beat clash slash animation reads pre-cropped spritesheets by their authored frame columns");
+var actionAnimationKinds = actionAnimationCatalog.KindsForCard(
+    beatSlashCard with
+    {
+        BeatActions =
+        [
+            new BeatActionDefinition { Kind = BeatActionKind.Attack, AttackType = BeatAttackType.Slash, Value = 4 },
+            new BeatActionDefinition { Kind = BeatActionKind.Attack, AttackType = BeatAttackType.Strike, Value = 3 },
+            new BeatActionDefinition { Kind = BeatActionKind.Attack, AttackType = BeatAttackType.Projectile, Value = 2 },
+            new BeatActionDefinition { Kind = BeatActionKind.Block, Value = 4 },
+            new BeatActionDefinition { Kind = BeatActionKind.Dodge, DodgeChancePercent = 50 }
+        ]
+    });
+AssertSequenceEqual(
+    [
+        RoguelikeCardGame.Presentation.Battle.BeatClashActionAnimationKind.Slash,
+        RoguelikeCardGame.Presentation.Battle.BeatClashActionAnimationKind.Strike,
+        RoguelikeCardGame.Presentation.Battle.BeatClashActionAnimationKind.Projectile,
+        RoguelikeCardGame.Presentation.Battle.BeatClashActionAnimationKind.Block,
+        RoguelikeCardGame.Presentation.Battle.BeatClashActionAnimationKind.Dodge
+    ],
+    actionAnimationKinds,
+    "Beat clash animation catalog reserves animation interfaces for every current beat action type");
 var beatTargetingOperations = new List<string>();
 RoguelikeCardGame.Presentation.Battle.BeatTargetingInputPresentation.CompleteTargetSelection(
     markInputHandled: () => beatTargetingOperations.Add("handled"),

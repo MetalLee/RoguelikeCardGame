@@ -1043,7 +1043,9 @@ public partial class BattleScreen : ComicScreen
 			this,
 			canvasRoot,
 			playerNode,
-			enemyNodes);
+			enemyNodes,
+			enemyBeatSlotNodes,
+			RequireContent().CardsById);
 		return layer.PlayAsync(playerActionSteps);
 	}
 

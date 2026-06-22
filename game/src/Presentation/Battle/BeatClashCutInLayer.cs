@@ -1,4 +1,5 @@
 using Godot;
+using RoguelikeCardGame.Domain.Cards;
 using RoguelikeCardGame.Presentation.Shared;
 
 namespace RoguelikeCardGame.Presentation.Battle;
@@ -17,17 +18,25 @@ internal sealed class BeatClashCutInLayer
     private readonly Control root;
     private readonly Control? playerNode;
     private readonly IReadOnlyDictionary<string, Control> enemyNodes;
+    private readonly IReadOnlyDictionary<(string EnemyInstanceId, int BeatIndex), Control> enemyBeatSlotNodes;
+    private readonly IReadOnlyDictionary<string, CardDefinition> cardsById;
+    private readonly BeatClashActionAnimationCatalog actionAnimations = BeatClashActionAnimationCatalog.Default;
+    private readonly Dictionary<BeatClashActionAnimationKind, int> actionAnimationIndexes = new();
 
     public BeatClashCutInLayer(
         ComicScreen screen,
         Control root,
         Control? playerNode,
-        IReadOnlyDictionary<string, Control> enemyNodes)
+        IReadOnlyDictionary<string, Control> enemyNodes,
+        IReadOnlyDictionary<(string EnemyInstanceId, int BeatIndex), Control> enemyBeatSlotNodes,
+        IReadOnlyDictionary<string, CardDefinition> cardsById)
     {
         this.screen = screen;
         this.root = root;
         this.playerNode = playerNode;
         this.enemyNodes = enemyNodes;
+        this.enemyBeatSlotNodes = enemyBeatSlotNodes;
+        this.cardsById = cardsById;
     }
 
     public async Task PlayAsync(IReadOnlyList<BeatClashAnimationStep> steps)
@@ -37,64 +46,72 @@ internal sealed class BeatClashCutInLayer
             return;
         }
 
-        var overlay = CreateOverlay();
-        root.AddChild(overlay);
+        var index = 0;
+        while (index < steps.Count)
+        {
+            var targetId = steps[index].TargetId;
+            if (string.IsNullOrWhiteSpace(targetId) ||
+                !enemyNodes.ContainsKey(targetId) ||
+                !GodotObject.IsInstanceValid(root))
+            {
+                index++;
+                continue;
+            }
 
-        var playerClone = CreatePlayerClone();
-        ComicScreen.AddAnimationNodeAt(overlay, playerClone, PlayerStartPosition, PlayerSize);
+            var segmentSteps = steps
+                .Skip(index)
+                .TakeWhile(step => string.Equals(step.TargetId, targetId, StringComparison.Ordinal))
+                .ToList();
+            await PlayTargetSegmentAsync(targetId, segmentSteps);
+            index += segmentSteps.Count;
+        }
+    }
 
-        TextureRect? targetClone = null;
-        string? currentTargetId = null;
-
+    private async Task PlayTargetSegmentAsync(string targetId, IReadOnlyList<BeatClashAnimationStep> segmentSteps)
+    {
+        var hiddenNodes = HideNonTargetCombatants(targetId);
+        Control? overlay = null;
         try
         {
-            foreach (var step in steps)
+            overlay = CreateOverlay();
+            root.AddChild(overlay);
+
+            var playerFrame = NodeFrameInRoot(playerNode, new BeatClashNodeFrame(PlayerStartPosition, PlayerSize));
+            var targetFrame = NodeFrameInRoot(
+                enemyNodes.TryGetValue(targetId, out var targetNode) ? targetNode : null,
+                new BeatClashNodeFrame(TargetPosition, TargetCloneSize(targetId)));
+
+            var playerClone = CreatePlayerClone(playerFrame);
+            ComicScreen.AddAnimationNodeAt(overlay, playerClone, playerFrame.Position, playerFrame.Size);
+            var targetClone = CreateTargetClone(targetId, targetFrame);
+            ComicScreen.AddAnimationNodeAt(overlay, targetClone, targetFrame.Position, targetFrame.Size);
+
+            foreach (var step in segmentSteps)
             {
-                if (!GodotObject.IsInstanceValid(overlay) || !GodotObject.IsInstanceValid(playerClone))
+                if (!GodotObject.IsInstanceValid(overlay) ||
+                    !GodotObject.IsInstanceValid(playerClone) ||
+                    !GodotObject.IsInstanceValid(targetClone))
                 {
                     return;
                 }
 
-                var targetChanged = !string.Equals(currentTargetId, step.TargetId, StringComparison.Ordinal);
-                if (step.ReturnToStartBeforeStep && targetChanged && targetClone is not null)
-                {
-                    await TweenPositionAsync(playerClone, PlayerStartPosition, 0.12, Tween.EaseType.Out);
-                    if (!GodotObject.IsInstanceValid(overlay) || !GodotObject.IsInstanceValid(playerClone))
-                    {
-                        return;
-                    }
-                }
-
-                if (targetClone is null || targetChanged)
-                {
-                    if (targetClone is not null && GodotObject.IsInstanceValid(targetClone))
-                    {
-                        targetClone.QueueFree();
-                    }
-
-                    currentTargetId = step.TargetId;
-                    targetClone = CreateTargetClone(step.TargetId);
-                    ComicScreen.AddAnimationNodeAt(overlay, targetClone, TargetPosition, targetClone.CustomMinimumSize);
-                }
-
-                if (step.ReturnToStartBeforeStep && !targetChanged)
-                {
-                    await TweenPositionAsync(playerClone, PlayerStartPosition, 0.12, Tween.EaseType.Out);
-                    if (!GodotObject.IsInstanceValid(overlay) || !GodotObject.IsInstanceValid(playerClone))
-                    {
-                        return;
-                    }
-                }
-
-                await PlayStepAsync(overlay, playerClone, targetClone, step);
-                await WaitAsync(0.08);
+                await PlayStepAsync(overlay, playerClone, targetClone, playerFrame.Position, step);
             }
 
-            await FadeOutAndFreeAsync(overlay);
+            if (GodotObject.IsInstanceValid(playerClone))
+            {
+                await PlayRunToPositionAsync(playerClone, playerFrame.Position, 0.24, Tween.EaseType.Out);
+            }
+
+            if (GodotObject.IsInstanceValid(overlay))
+            {
+                await FadeOutAndFreeAsync(overlay);
+            }
         }
         finally
         {
-            if (GodotObject.IsInstanceValid(overlay))
+            RestoreVisibility(hiddenNodes);
+            if (overlay is not null && GodotObject.IsInstanceValid(overlay))
             {
                 overlay.QueueFree();
             }
@@ -131,28 +148,33 @@ internal sealed class BeatClashCutInLayer
         return overlay;
     }
 
-    private TextureRect CreatePlayerClone()
+    private TextureRect CreatePlayerClone(BeatClashNodeFrame frame)
     {
-        var clone = CreateTexture("asset.character.zu.revolver.battle", PlayerSize, TextureRect.StretchModeEnum.KeepAspectCentered);
+        var clone = CreateTexture("asset.character.zu.revolver.battle", frame.Size, TextureRect.StretchModeEnum.KeepAspectCentered);
         clone.Texture ??= FindTexture(playerNode);
         clone.ZIndex = 3;
         return clone;
     }
 
-    private TextureRect CreateTargetClone(string? targetId)
+    private TextureRect CreateTargetClone(string? targetId, BeatClashNodeFrame frame)
     {
         var texture = FindTargetTexture(targetId) ?? screen.LoadAnimationTexture("asset.enemy.skeleton_smoke.sheet");
-        var size = TargetCloneSize(targetId);
+        var size = frame.Size;
         var clone = CreateTexture(texture, size, TextureRect.StretchModeEnum.KeepAspectCentered);
         clone.ZIndex = 3;
         clone.PivotOffset = size * 0.5f;
         return clone;
     }
 
-    private async Task PlayStepAsync(Control overlay, TextureRect playerClone, TextureRect targetClone, BeatClashAnimationStep step)
+    private async Task PlayStepAsync(
+        Control overlay,
+        TextureRect playerClone,
+        TextureRect targetClone,
+        Vector2 playerStartPosition,
+        BeatClashAnimationStep step)
     {
-        var dashPosition = targetClone.Position + new Vector2(-270, 70);
-        await TweenPositionAsync(playerClone, dashPosition, 0.14, Tween.EaseType.Out);
+        var dashPosition = DashPositionBesideTarget(playerClone, targetClone);
+        await PlayRunToPositionAsync(playerClone, dashPosition, 0.28, Tween.EaseType.Out);
         if (!GodotObject.IsInstanceValid(overlay) ||
             !GodotObject.IsInstanceValid(playerClone) ||
             !GodotObject.IsInstanceValid(targetClone))
@@ -160,15 +182,26 @@ internal sealed class BeatClashCutInLayer
             return;
         }
 
-        var impactCenter = playerClone.Position + new Vector2(PlayerSize.X * 0.88f, PlayerSize.Y * 0.44f);
+        await WaitAsync(BeatClashPresentationTiming.PreActionPauseSeconds);
+
+        var actionSequences = SelectActionSequences(step);
+        for (var actionIndex = 0; actionIndex < actionSequences.Count; actionIndex++)
+        {
+            await PlaySequenceAsync(playerClone, actionSequences[actionIndex], 0);
+            if (actionIndex < actionSequences.Count - 1)
+            {
+                await WaitAsync(BeatClashPresentationTiming.ActionIntervalSeconds);
+            }
+        }
+
+        var impactCenter = playerClone.Position + new Vector2(playerClone.Size.X * 0.88f, playerClone.Size.Y * 0.44f);
         var targetCenter = targetClone.Position + targetClone.Size * 0.5f;
         impactCenter = (impactCenter + targetCenter) * 0.5f;
 
         var effects = new List<Task>
         {
             PlayImpactAsync(overlay, impactCenter),
-            ShakeAsync(targetClone, 24f, 0.16),
-            TweenPositionAsync(playerClone, dashPosition + new Vector2(-32, 0), 0.09, Tween.EaseType.Out)
+            ShakeAsync(targetClone, 24f, 0.16)
         };
 
         if (step.EnemyDamage > 0)
@@ -187,6 +220,119 @@ internal sealed class BeatClashCutInLayer
         }
 
         await Task.WhenAll(effects);
+        await PlayRunToPositionAsync(playerClone, playerStartPosition, 0.24, Tween.EaseType.Out);
+    }
+
+    private async Task PlayRunToPositionAsync(TextureRect playerClone, Vector2 position, double duration, Tween.EaseType easeType)
+    {
+        await Task.WhenAll(
+            TweenPositionAsync(playerClone, position, duration, easeType),
+            PlaySequenceAsync(playerClone, actionAnimations.RunWithSword, duration));
+    }
+
+    private IReadOnlyList<BeatClashSpriteSequence> SelectActionSequences(BeatClashAnimationStep step)
+    {
+        var selected = new List<BeatClashSpriteSequence>();
+        var kinds = CardAnimationKinds(step);
+        foreach (var kind in kinds)
+        {
+            var sequences = actionAnimations.SequencesFor(kind);
+            if (sequences.Count == 0)
+            {
+                continue;
+            }
+
+            var index = actionAnimationIndexes.GetValueOrDefault(kind);
+            actionAnimationIndexes[kind] = index + 1;
+            selected.Add(sequences[index % sequences.Count]);
+        }
+
+        return selected;
+    }
+
+    private IReadOnlyList<BeatClashActionAnimationKind> CardAnimationKinds(BeatClashAnimationStep step)
+    {
+        if (step.CardId is not null && cardsById.TryGetValue(step.CardId, out var card))
+        {
+            return actionAnimations.KindsForCard(card);
+        }
+
+        return step.EnemyDamage > 0 ? [BeatClashActionAnimationKind.Slash] : [];
+    }
+
+    private IReadOnlyList<BeatClashVisibilityState> HideNonTargetCombatants(string targetId)
+    {
+        var hidden = new List<BeatClashVisibilityState>();
+        foreach (var (enemyId, node) in enemyNodes)
+        {
+            if (string.Equals(enemyId, targetId, StringComparison.Ordinal) ||
+                !GodotObject.IsInstanceValid(node))
+            {
+                continue;
+            }
+
+            hidden.Add(new BeatClashVisibilityState(node, node.Visible));
+            node.Visible = false;
+        }
+
+        foreach (var (key, node) in enemyBeatSlotNodes)
+        {
+            if (string.Equals(key.EnemyInstanceId, targetId, StringComparison.Ordinal) ||
+                !GodotObject.IsInstanceValid(node))
+            {
+                continue;
+            }
+
+            hidden.Add(new BeatClashVisibilityState(node, node.Visible));
+            node.Visible = false;
+        }
+
+        return hidden;
+    }
+
+    private static void RestoreVisibility(IReadOnlyList<BeatClashVisibilityState> states)
+    {
+        foreach (var state in states)
+        {
+            if (GodotObject.IsInstanceValid(state.Node))
+            {
+                state.Node.Visible = state.WasVisible;
+            }
+        }
+    }
+
+    private BeatClashNodeFrame NodeFrameInRoot(Control? node, BeatClashNodeFrame fallback)
+    {
+        if (node is null || !GodotObject.IsInstanceValid(node))
+        {
+            return fallback;
+        }
+
+        var size = node.Size;
+        if (size.X <= 0 || size.Y <= 0)
+        {
+            size = node.CustomMinimumSize;
+        }
+
+        if (size.X <= 0 || size.Y <= 0)
+        {
+            return fallback;
+        }
+
+        var rootInverse = root.GetGlobalTransformWithCanvas().AffineInverse();
+        var nodeTransform = node.GetGlobalTransformWithCanvas();
+        var topLeft = rootInverse * (nodeTransform * Vector2.Zero);
+        var bottomRight = rootInverse * (nodeTransform * size);
+        return new BeatClashNodeFrame(
+            topLeft,
+            new Vector2(MathF.Abs(bottomRight.X - topLeft.X), MathF.Abs(bottomRight.Y - topLeft.Y)));
+    }
+
+    private static Vector2 DashPositionBesideTarget(TextureRect playerClone, TextureRect targetClone)
+    {
+        var x = targetClone.Position.X - playerClone.Size.X * 0.72f;
+        var y = targetClone.Position.Y + targetClone.Size.Y * 0.5f - playerClone.Size.Y * 0.5f;
+        return new Vector2(x, y);
     }
 
     private async Task PlayImpactAsync(Control overlay, Vector2 center)
@@ -270,6 +416,96 @@ internal sealed class BeatClashCutInLayer
         tween.SetEase(easeType);
         tween.TweenProperty(node, "position", position, duration);
         await screen.AwaitTweenFinishedAsync(tween, duration + 0.2);
+    }
+
+    private async Task PlaySequenceAsync(TextureRect node, BeatClashSpriteSequence sequence, double minimumDurationSeconds)
+    {
+        if (!GodotObject.IsInstanceValid(node))
+        {
+            return;
+        }
+
+        var frames = BuildFrames(sequence, node.Size.Y);
+        if (frames.Count == 0)
+        {
+            return;
+        }
+
+        var originalTexture = node.Texture;
+        var originalStretchMode = node.StretchMode;
+        var originalSize = node.Size;
+        var originalCustomMinimumSize = node.CustomMinimumSize;
+        var originalPivotOffset = node.PivotOffset;
+
+        try
+        {
+            node.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+            var elapsed = 0.0;
+            var frameIndex = 0;
+            do
+            {
+                if (!GodotObject.IsInstanceValid(node))
+                {
+                    return;
+                }
+
+                var frame = frames[frameIndex % frames.Count];
+                node.Texture = frame.Texture;
+                node.Size = frame.DisplaySize;
+                node.CustomMinimumSize = frame.DisplaySize;
+                node.PivotOffset = frame.DisplaySize * 0.5f;
+                await WaitAsync(sequence.FrameDurationSeconds);
+                elapsed += sequence.FrameDurationSeconds;
+                frameIndex++;
+            }
+            while (sequence.Loop ? elapsed < minimumDurationSeconds : frameIndex < frames.Count);
+        }
+        finally
+        {
+            if (GodotObject.IsInstanceValid(node))
+            {
+                node.Texture = originalTexture;
+                node.StretchMode = originalStretchMode;
+                node.Size = originalSize;
+                node.CustomMinimumSize = originalCustomMinimumSize;
+                node.PivotOffset = originalPivotOffset;
+            }
+        }
+    }
+
+    private IReadOnlyList<BeatClashRenderedFrame> BuildFrames(BeatClashSpriteSequence sequence, float displayHeight)
+    {
+        var frames = new List<BeatClashRenderedFrame>();
+        foreach (var sheet in sequence.Sheets)
+        {
+            var texture = screen.LoadAnimationTexture(sheet.AssetId);
+            if (texture is null)
+            {
+                continue;
+            }
+
+            var columns = Math.Max(1, sheet.Columns);
+            var rows = Math.Max(1, sheet.Rows);
+            var frameWidth = texture.GetWidth() / (float)columns;
+            var frameHeight = texture.GetHeight() / (float)rows;
+            var height = displayHeight > 0 ? displayHeight : PlayerSize.Y;
+            var displaySize = new Vector2(height * frameWidth / frameHeight, height);
+            for (var row = 0; row < rows; row++)
+            {
+                for (var column = 0; column < columns; column++)
+                {
+                    frames.Add(new BeatClashRenderedFrame(
+                        new AtlasTexture
+                        {
+                            Atlas = texture,
+                            Region = new Rect2(column * frameWidth, row * frameHeight, frameWidth, frameHeight)
+                        },
+                        displaySize));
+                }
+            }
+        }
+
+        return frames;
     }
 
     private async Task ShakeAsync(Control node, float distance, double duration)
@@ -397,4 +633,10 @@ internal sealed class BeatClashCutInLayer
 
         await screen.ToSignal(tree.CreateTimer(seconds), "timeout");
     }
+
+    private sealed record BeatClashRenderedFrame(Texture2D Texture, Vector2 DisplaySize);
+
+    private sealed record BeatClashNodeFrame(Vector2 Position, Vector2 Size);
+
+    private sealed record BeatClashVisibilityState(Control Node, bool WasVisible);
 }

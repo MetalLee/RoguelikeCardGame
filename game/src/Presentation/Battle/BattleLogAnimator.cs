@@ -61,7 +61,25 @@ public sealed class BattleLogAnimator
             return;
         }
 
-        await targets.PlayBeatClashCutInAsync(steps);
+        var originalHandVisible = targets.HandNode?.Visible;
+        if (targets.HandNode is not null && GodotObject.IsInstanceValid(targets.HandNode))
+        {
+            targets.HandNode.Visible = false;
+        }
+
+        try
+        {
+            await targets.PlayBeatClashCutInAsync(steps);
+        }
+        finally
+        {
+            if (targets.HandNode is not null &&
+                GodotObject.IsInstanceValid(targets.HandNode) &&
+                originalHandVisible is not null)
+            {
+                targets.HandNode.Visible = originalHandVisible.Value;
+            }
+        }
     }
 
     private static bool IsBeatClashAnimationEvent(CombatLogEventType eventType)
