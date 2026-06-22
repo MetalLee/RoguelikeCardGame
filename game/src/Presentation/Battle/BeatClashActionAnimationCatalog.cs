@@ -22,7 +22,7 @@ public sealed record BeatClashSpriteSequence(
 
 public static class BeatClashPresentationTiming
 {
-    public const double PreActionPauseSeconds = 1.0;
+    public const double PreActionPauseSeconds = 0.5;
 
     public const double ActionIntervalSeconds = 0.5;
 }

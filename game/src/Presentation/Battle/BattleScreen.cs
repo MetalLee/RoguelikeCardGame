@@ -1025,7 +1025,7 @@ public partial class BattleScreen : ComicScreen
 
 	private Task PlayBeatClashCutInAsync(IReadOnlyList<BeatClashAnimationStep> steps)
 	{
-		if (canvasRoot is null || !GodotObject.IsInstanceValid(canvasRoot))
+		if (canvasRoot is null || combat is null || !GodotObject.IsInstanceValid(canvasRoot))
 		{
 			return Task.CompletedTask;
 		}
@@ -1042,10 +1042,10 @@ public partial class BattleScreen : ComicScreen
 		var layer = new BeatClashCutInLayer(
 			this,
 			canvasRoot,
+			combat,
 			playerNode,
 			enemyNodes,
-			enemyBeatSlotNodes,
-			RequireContent().CardsById);
+			enemyBeatSlotNodes);
 		return layer.PlayAsync(playerActionSteps);
 	}
 

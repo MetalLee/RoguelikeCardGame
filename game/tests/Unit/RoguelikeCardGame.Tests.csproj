@@ -15,6 +15,7 @@
     <Compile Include="..\..\src\Presentation\Battle\BeatCardDragPresentation.cs" Link="Presentation\Battle\%(Filename)%(Extension)" />
     <Compile Include="..\..\src\Presentation\Battle\BeatClashActionAnimationCatalog.cs" Link="Presentation\Battle\%(Filename)%(Extension)" />
     <Compile Include="..\..\src\Presentation\Battle\BeatClashAnimationPlanner.cs" Link="Presentation\Battle\%(Filename)%(Extension)" />
+    <Compile Include="..\..\src\Presentation\Battle\BeatClashOverlayPresentation.cs" Link="Presentation\Battle\%(Filename)%(Extension)" />
     <Compile Include="..\..\src\Presentation\Battle\BeatSlotPresentationGeometry.cs" Link="Presentation\Battle\%(Filename)%(Extension)" />
     <Compile Include="..\..\src\Presentation\Battle\BeatTargetingInputPresentation.cs" Link="Presentation\Battle\%(Filename)%(Extension)" />
   </ItemGroup>

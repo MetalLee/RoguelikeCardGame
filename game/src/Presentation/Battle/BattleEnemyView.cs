@@ -220,9 +220,15 @@ internal sealed partial class EnemyHealthStrip : Control
     private static readonly Color Ink = new(0f, 0f, 0f, 1f);
     private static readonly Color Paper = new(1f, 1f, 1f, 1f);
 
-    public int CurrentHp { get; init; }
+    public int CurrentHp { get; set; }
 
     public int MaxHp { get; init; }
+
+    public void SetCurrentHp(int currentHp)
+    {
+        CurrentHp = Math.Clamp(currentHp, 0, Math.Max(0, MaxHp));
+        QueueRedraw();
+    }
 
     public override void _Draw()
     {

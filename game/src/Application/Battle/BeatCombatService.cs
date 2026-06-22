@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using RoguelikeCardGame.Domain.Cards;
 using RoguelikeCardGame.Domain.Colors;
 using RoguelikeCardGame.Domain.Combat;
@@ -7,6 +9,20 @@ namespace RoguelikeCardGame.Application.Battle;
 
 public sealed record BeatCollisionResult
 {
+    public int PlayerDamageTaken { get; init; }
+    public int EnemyDamageTaken { get; init; }
+    public int SuccessfulPlayerActions { get; init; }
+    public int SuccessfulEnemyActions { get; init; }
+    public IReadOnlyList<BeatActionStageResult> Stages { get; init; } = [];
+}
+
+public sealed record BeatActionStageResult
+{
+    public int StageIndex { get; init; }
+    public BeatActionKind? PlayerActionKind { get; init; }
+    public BeatAttackType? PlayerAttackType { get; init; }
+    public BeatActionKind? EnemyActionKind { get; init; }
+    public BeatAttackType? EnemyAttackType { get; init; }
     public int PlayerDamageTaken { get; init; }
     public int EnemyDamageTaken { get; init; }
     public int SuccessfulPlayerActions { get; init; }
@@ -57,6 +73,12 @@ public enum BeatTargetValidationFailureReason
 
 public sealed class BeatCombatService
 {
+    private static readonly JsonSerializerOptions StageLogJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) }
+    };
+
     private readonly Func<int> dodgeRollPercent;
 
     public BeatCombatService(Func<int>? dodgeRollPercent = null)
@@ -234,7 +256,8 @@ public sealed class BeatCombatService
                 playerActions,
                 enemyActions,
                 enemyDefinition.Resistances,
-                new BeatResistanceProfile());
+                new BeatResistanceProfile(),
+                enemyState.CurrentHp);
 
             working = ApplyBeatCollision(working, enemyIndex, collision);
             working = AppendBeatActionResolvedLog(working, playerBeat, card, target, collision);
@@ -417,7 +440,8 @@ public sealed class BeatCombatService
         IReadOnlyList<BeatActionDefinition> playerActions,
         IReadOnlyList<BeatActionDefinition> enemyActions,
         BeatResistanceProfile enemyResistance,
-        BeatResistanceProfile playerResistance)
+        BeatResistanceProfile playerResistance,
+        int? enemyCurrentHp = null)
     {
         var playerQueue = playerActions.SelectMany(action => action.ExpandRepeats()).ToList();
         var enemyQueue = enemyActions.SelectMany(action => action.ExpandRepeats()).ToList();
@@ -426,16 +450,44 @@ public sealed class BeatCombatService
         var enemyDamage = 0;
         var successfulPlayer = 0;
         var successfulEnemy = 0;
+        var stages = new List<BeatActionStageResult>();
+        var remainingEnemyHp = enemyCurrentHp;
 
         for (var index = 0; index < max; index++)
         {
+            if (remainingEnemyHp <= 0)
+            {
+                break;
+            }
+
             var player = index < playerQueue.Count ? playerQueue[index] : null;
             var enemy = index < enemyQueue.Count ? enemyQueue[index] : null;
             var exchange = ResolveActionPair(player, enemy, enemyResistance, playerResistance);
+            if (remainingEnemyHp is int hp)
+            {
+                exchange = exchange with
+                {
+                    EnemyDamageTaken = Math.Min(exchange.EnemyDamageTaken, hp)
+                };
+                remainingEnemyHp = Math.Max(0, hp - exchange.EnemyDamageTaken);
+            }
+
             playerDamage += exchange.PlayerDamageTaken;
             enemyDamage += exchange.EnemyDamageTaken;
             successfulPlayer += exchange.SuccessfulPlayerActions;
             successfulEnemy += exchange.SuccessfulEnemyActions;
+            stages.Add(new BeatActionStageResult
+            {
+                StageIndex = index,
+                PlayerActionKind = player?.Kind,
+                PlayerAttackType = player?.AttackType,
+                EnemyActionKind = enemy?.Kind,
+                EnemyAttackType = enemy?.AttackType,
+                PlayerDamageTaken = exchange.PlayerDamageTaken,
+                EnemyDamageTaken = exchange.EnemyDamageTaken,
+                SuccessfulPlayerActions = exchange.SuccessfulPlayerActions,
+                SuccessfulEnemyActions = exchange.SuccessfulEnemyActions
+            });
         }
 
         return new BeatCollisionResult
@@ -443,7 +495,8 @@ public sealed class BeatCombatService
             PlayerDamageTaken = playerDamage,
             EnemyDamageTaken = enemyDamage,
             SuccessfulPlayerActions = successfulPlayer,
-            SuccessfulEnemyActions = successfulEnemy
+            SuccessfulEnemyActions = successfulEnemy,
+            Stages = stages
         };
     }
 
@@ -636,7 +689,8 @@ public sealed class BeatCombatService
             {
                 ["card_instance_id"] = playerBeat.CardInstanceId ?? string.Empty,
                 ["target_kind"] = target.Kind.ToString(),
-                ["enemy_beat_index"] = target.EnemyBeatIndex?.ToString() ?? string.Empty
+                ["enemy_beat_index"] = target.EnemyBeatIndex?.ToString() ?? string.Empty,
+                ["stage_results"] = JsonSerializer.Serialize(collision.Stages, StageLogJsonOptions)
             }
         });
 
@@ -665,7 +719,8 @@ public sealed class BeatCombatService
             Metadata = new Dictionary<string, string>
             {
                 ["enemy_instance_id"] = enemyBeat.EnemyInstanceId,
-                ["target_kind"] = "Player"
+                ["target_kind"] = "Player",
+                ["stage_results"] = JsonSerializer.Serialize(collision.Stages, StageLogJsonOptions)
             }
         });
 

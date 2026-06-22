@@ -1,5 +1,5 @@
 using Godot;
-using RoguelikeCardGame.Domain.Cards;
+using RoguelikeCardGame.Domain.Combat;
 using RoguelikeCardGame.Presentation.Shared;
 
 namespace RoguelikeCardGame.Presentation.Battle;
@@ -13,30 +13,33 @@ internal sealed class BeatClashCutInLayer
     private static readonly Vector2 FallbackTargetSize = new(420, 420);
     private static readonly Vector2 MaxTargetSize = new(520, 420);
     private static readonly Vector2 ImpactSize = new(360, 240);
+    private static readonly Vector2 OverlayEnemyBeatSlotSize = new(76, 76);
+    private static readonly Vector2 OverlayEnemyHealthSize = new(240, 16);
+    private const float OverlayEnemyBeatSlotSpacing = 12f;
 
     private readonly ComicScreen screen;
     private readonly Control root;
+    private readonly CombatState combat;
     private readonly Control? playerNode;
     private readonly IReadOnlyDictionary<string, Control> enemyNodes;
     private readonly IReadOnlyDictionary<(string EnemyInstanceId, int BeatIndex), Control> enemyBeatSlotNodes;
-    private readonly IReadOnlyDictionary<string, CardDefinition> cardsById;
     private readonly BeatClashActionAnimationCatalog actionAnimations = BeatClashActionAnimationCatalog.Default;
     private readonly Dictionary<BeatClashActionAnimationKind, int> actionAnimationIndexes = new();
 
     public BeatClashCutInLayer(
         ComicScreen screen,
         Control root,
+        CombatState combat,
         Control? playerNode,
         IReadOnlyDictionary<string, Control> enemyNodes,
-        IReadOnlyDictionary<(string EnemyInstanceId, int BeatIndex), Control> enemyBeatSlotNodes,
-        IReadOnlyDictionary<string, CardDefinition> cardsById)
+        IReadOnlyDictionary<(string EnemyInstanceId, int BeatIndex), Control> enemyBeatSlotNodes)
     {
         this.screen = screen;
         this.root = root;
+        this.combat = combat;
         this.playerNode = playerNode;
         this.enemyNodes = enemyNodes;
         this.enemyBeatSlotNodes = enemyBeatSlotNodes;
-        this.cardsById = cardsById;
     }
 
     public async Task PlayAsync(IReadOnlyList<BeatClashAnimationStep> steps)
@@ -69,22 +72,22 @@ internal sealed class BeatClashCutInLayer
 
     private async Task PlayTargetSegmentAsync(string targetId, IReadOnlyList<BeatClashAnimationStep> segmentSteps)
     {
-        var hiddenNodes = HideNonTargetCombatants(targetId);
+        var playerFrame = NodeFrameInRoot(playerNode, new BeatClashNodeFrame(PlayerStartPosition, PlayerSize));
+        var targetFrame = NodeFrameInRoot(
+            enemyNodes.TryGetValue(targetId, out var targetNode) ? targetNode : null,
+            new BeatClashNodeFrame(TargetPosition, TargetCloneSize(targetId)));
+        var hiddenNodes = HideSceneCombatants();
         Control? overlay = null;
         try
         {
             overlay = CreateOverlay();
             root.AddChild(overlay);
 
-            var playerFrame = NodeFrameInRoot(playerNode, new BeatClashNodeFrame(PlayerStartPosition, PlayerSize));
-            var targetFrame = NodeFrameInRoot(
-                enemyNodes.TryGetValue(targetId, out var targetNode) ? targetNode : null,
-                new BeatClashNodeFrame(TargetPosition, TargetCloneSize(targetId)));
-
             var playerClone = CreatePlayerClone(playerFrame);
             ComicScreen.AddAnimationNodeAt(overlay, playerClone, playerFrame.Position, playerFrame.Size);
             var targetClone = CreateTargetClone(targetId, targetFrame);
             ComicScreen.AddAnimationNodeAt(overlay, targetClone, targetFrame.Position, targetFrame.Size);
+            var targetHud = CreateTargetHud(overlay, targetId, targetFrame);
 
             foreach (var step in segmentSteps)
             {
@@ -95,7 +98,8 @@ internal sealed class BeatClashCutInLayer
                     return;
                 }
 
-                await PlayStepAsync(overlay, playerClone, targetClone, playerFrame.Position, step);
+                targetHud?.FocusBeat(step.EnemyBeatIndex);
+                await PlayStepAsync(overlay, playerClone, targetClone, targetHud, step);
             }
 
             if (GodotObject.IsInstanceValid(playerClone))
@@ -170,11 +174,15 @@ internal sealed class BeatClashCutInLayer
         Control overlay,
         TextureRect playerClone,
         TextureRect targetClone,
-        Vector2 playerStartPosition,
+        BeatClashTargetHud? targetHud,
         BeatClashAnimationStep step)
     {
         var dashPosition = DashPositionBesideTarget(playerClone, targetClone);
-        await PlayRunToPositionAsync(playerClone, dashPosition, 0.28, Tween.EaseType.Out);
+        if (ShouldPlayDash(playerClone.Position, dashPosition, step.ContinuesPreviousTarget))
+        {
+            await PlayRunToPositionAsync(playerClone, dashPosition, 0.28, Tween.EaseType.Out);
+        }
+
         if (!GodotObject.IsInstanceValid(overlay) ||
             !GodotObject.IsInstanceValid(playerClone) ||
             !GodotObject.IsInstanceValid(targetClone))
@@ -184,89 +192,231 @@ internal sealed class BeatClashCutInLayer
 
         await WaitAsync(BeatClashPresentationTiming.PreActionPauseSeconds);
 
-        var actionSequences = SelectActionSequences(step);
-        for (var actionIndex = 0; actionIndex < actionSequences.Count; actionIndex++)
+        var stages = step.ActionStages.Count > 0
+            ? step.ActionStages
+            :
+            [
+                new BeatClashActionStage
+                {
+                    StageIndex = 0,
+                    PlayerAnimationKind = step.EnemyDamage > 0 ? BeatClashActionAnimationKind.Slash : null,
+                    EnemyDamage = step.EnemyDamage,
+                    PlayerDamage = step.PlayerDamage,
+                    SuccessfulPlayerActions = step.SuccessfulPlayerActions,
+                    SuccessfulEnemyActions = step.SuccessfulEnemyActions
+                }
+            ];
+        for (var stageIndex = 0; stageIndex < stages.Count; stageIndex++)
         {
-            await PlaySequenceAsync(playerClone, actionSequences[actionIndex], 0);
-            if (actionIndex < actionSequences.Count - 1)
+            var sequence = SelectActionSequence(stages[stageIndex].PlayerAnimationKind);
+            if (sequence is not null)
+            {
+                await PlaySequenceAsync(playerClone, sequence, 0);
+            }
+
+            await PlayStageFeedbackAsync(overlay, playerClone, targetClone, targetHud, stages[stageIndex]);
+            if (stageIndex < stages.Count - 1)
             {
                 await WaitAsync(BeatClashPresentationTiming.ActionIntervalSeconds);
             }
         }
 
+        var effects = new List<Task>
+        {
+            step.EnergyGeneratedTotal > 0
+                ? PlayNumberAsync(overlay, $"+{step.EnergyGeneratedTotal} 彩能", new Vector2(780, 760), new Color(0.95f, 0.88f, 0.36f, 1f), 42)
+                : Task.CompletedTask
+        };
+        await Task.WhenAll(effects);
+    }
+
+    private async Task PlayStageFeedbackAsync(
+        Control overlay,
+        TextureRect playerClone,
+        TextureRect targetClone,
+        BeatClashTargetHud? targetHud,
+        BeatClashActionStage stage)
+    {
         var impactCenter = playerClone.Position + new Vector2(playerClone.Size.X * 0.88f, playerClone.Size.Y * 0.44f);
         var targetCenter = targetClone.Position + targetClone.Size * 0.5f;
         impactCenter = (impactCenter + targetCenter) * 0.5f;
 
-        var effects = new List<Task>
+        var effects = new List<Task>();
+        if (stage.EnemyDamage > 0)
         {
-            PlayImpactAsync(overlay, impactCenter),
-            ShakeAsync(targetClone, 24f, 0.16)
-        };
-
-        if (step.EnemyDamage > 0)
-        {
-            effects.Add(PlayNumberAsync(overlay, $"-{step.EnemyDamage}", targetClone.Position + new Vector2(120, -36), new Color(1f, 0.32f, 0.18f, 1f)));
+            targetHud?.ApplyDamage(stage.EnemyDamage);
+            effects.Add(PlayImpactAsync(overlay, impactCenter));
+            effects.Add(ShakeAsync(targetClone, 24f, 0.16));
+            effects.Add(PlayNumberAsync(overlay, $"-{stage.EnemyDamage}", targetClone.Position + new Vector2(120, -36), new Color(1f, 0.32f, 0.18f, 1f)));
         }
 
-        if (step.PlayerDamage > 0)
+        if (stage.PlayerAnimationKind == BeatClashActionAnimationKind.Block && stage.SuccessfulPlayerActions > 0)
         {
-            effects.Add(PlayNumberAsync(overlay, $"-{step.PlayerDamage}", playerClone.Position + new Vector2(60, 40), new Color(1f, 0.76f, 0.36f, 1f)));
+            effects.Add(PlayBlockFeedbackAsync(overlay, playerClone));
         }
 
-        if (step.EnergyGeneratedTotal > 0)
+        if (stage.PlayerDamage > 0)
         {
-            effects.Add(PlayNumberAsync(overlay, $"+{step.EnergyGeneratedTotal} 彩能", new Vector2(780, 760), new Color(0.95f, 0.88f, 0.36f, 1f), 42));
+            effects.Add(PlayNumberAsync(overlay, $"-{stage.PlayerDamage}", playerClone.Position + new Vector2(60, 40), new Color(1f, 0.76f, 0.36f, 1f)));
         }
 
-        await Task.WhenAll(effects);
-        await PlayRunToPositionAsync(playerClone, playerStartPosition, 0.24, Tween.EaseType.Out);
+        if (effects.Count > 0)
+        {
+            await Task.WhenAll(effects);
+        }
     }
 
     private async Task PlayRunToPositionAsync(TextureRect playerClone, Vector2 position, double duration, Tween.EaseType easeType)
     {
-        await Task.WhenAll(
-            TweenPositionAsync(playerClone, position, duration, easeType),
-            PlaySequenceAsync(playerClone, actionAnimations.RunWithSword, duration));
-    }
-
-    private IReadOnlyList<BeatClashSpriteSequence> SelectActionSequences(BeatClashAnimationStep step)
-    {
-        var selected = new List<BeatClashSpriteSequence>();
-        var kinds = CardAnimationKinds(step);
-        foreach (var kind in kinds)
+        var originalFlipH = playerClone.FlipH;
+        playerClone.FlipH = BeatClashOverlayPresentation.ShouldFaceLeft(ToOverlayPoint(playerClone.Position), ToOverlayPoint(position));
+        try
         {
-            var sequences = actionAnimations.SequencesFor(kind);
-            if (sequences.Count == 0)
+            await Task.WhenAll(
+                TweenPositionAsync(playerClone, position, duration, easeType),
+                PlaySequenceAsync(playerClone, actionAnimations.RunWithSword, duration));
+        }
+        finally
+        {
+            if (GodotObject.IsInstanceValid(playerClone))
             {
-                continue;
+                playerClone.FlipH = originalFlipH;
             }
-
-            var index = actionAnimationIndexes.GetValueOrDefault(kind);
-            actionAnimationIndexes[kind] = index + 1;
-            selected.Add(sequences[index % sequences.Count]);
         }
-
-        return selected;
     }
 
-    private IReadOnlyList<BeatClashActionAnimationKind> CardAnimationKinds(BeatClashAnimationStep step)
+    private BeatClashSpriteSequence? SelectActionSequence(BeatClashActionAnimationKind? kind)
     {
-        if (step.CardId is not null && cardsById.TryGetValue(step.CardId, out var card))
+        if (kind is null)
         {
-            return actionAnimations.KindsForCard(card);
+            return null;
         }
 
-        return step.EnemyDamage > 0 ? [BeatClashActionAnimationKind.Slash] : [];
+        var sequences = actionAnimations.SequencesFor(kind.Value);
+        if (sequences.Count == 0 &&
+            (kind.Value == BeatClashActionAnimationKind.Strike || kind.Value == BeatClashActionAnimationKind.Projectile))
+        {
+            sequences = actionAnimations.SequencesFor(BeatClashActionAnimationKind.Slash);
+        }
+
+        if (sequences.Count == 0)
+        {
+            return null;
+        }
+
+        var index = actionAnimationIndexes.GetValueOrDefault(kind.Value);
+        actionAnimationIndexes[kind.Value] = index + 1;
+        return sequences[index % sequences.Count];
     }
 
-    private IReadOnlyList<BeatClashVisibilityState> HideNonTargetCombatants(string targetId)
+    private async Task PlayBlockFeedbackAsync(Control overlay, TextureRect playerClone)
+    {
+        var size = new Vector2(300, 220);
+        var center = playerClone.Position + new Vector2(playerClone.Size.X * 0.54f, playerClone.Size.Y * 0.45f);
+        var shield = CreateTexture("asset.vfx.defense_shield_flash", size, TextureRect.StretchModeEnum.KeepAspectCentered);
+        shield.Position = center - size * 0.5f;
+        shield.Size = size;
+        shield.CustomMinimumSize = size;
+        shield.PivotOffset = size * 0.5f;
+        shield.Scale = new Vector2(0.82f, 0.82f);
+        shield.Modulate = new Color(0.72f, 0.95f, 1f, 0f);
+        shield.ZIndex = 6;
+        overlay.AddChild(shield);
+
+        var tween = screen.CreateTween();
+        tween.SetParallel(true);
+        tween.SetTrans(Tween.TransitionType.Cubic);
+        tween.SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(shield, "modulate", new Color(0.72f, 0.95f, 1f, 0.94f), 0.06);
+        tween.TweenProperty(shield, "scale", new Vector2(1.18f, 1.18f), 0.18);
+        tween.Chain().TweenProperty(shield, "modulate", new Color(0.72f, 0.95f, 1f, 0f), 0.10);
+        await screen.AwaitTweenFinishedAsync(tween, 0.42);
+
+        if (GodotObject.IsInstanceValid(shield))
+        {
+            shield.QueueFree();
+        }
+    }
+
+    private BeatClashTargetHud? CreateTargetHud(Control overlay, string targetId, BeatClashNodeFrame targetFrame)
+    {
+        var enemy = combat.Enemies.FirstOrDefault(item => string.Equals(item.InstanceId, targetId, StringComparison.Ordinal));
+        if (enemy is null)
+        {
+            return null;
+        }
+
+        var health = new EnemyHealthStrip
+        {
+            CurrentHp = enemy.CurrentHp,
+            MaxHp = enemy.MaxHp,
+            Size = OverlayEnemyHealthSize,
+            CustomMinimumSize = OverlayEnemyHealthSize,
+            Position = new Vector2(
+                targetFrame.Position.X + Math.Max(0f, (targetFrame.Size.X - OverlayEnemyHealthSize.X) * 0.5f),
+                targetFrame.Position.Y - 42f),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            ZIndex = 5
+        };
+        overlay.AddChild(health);
+
+        var slots = CreateTargetBeatSlots(overlay, targetId, targetFrame);
+        return new BeatClashTargetHud(health, enemy.CurrentHp, slots);
+    }
+
+    private IReadOnlyList<BeatClashTargetBeatSlot> CreateTargetBeatSlots(Control overlay, string targetId, BeatClashNodeFrame targetFrame)
+    {
+        var beats = combat.BeatRound?.EnemyBeats
+            .Where(beat => string.Equals(beat.EnemyInstanceId, targetId, StringComparison.Ordinal))
+            .OrderBy(beat => beat.BeatIndex)
+            .ToList() ?? [];
+        if (beats.Count == 0)
+        {
+            return [];
+        }
+
+        var rowWidth = beats.Count * OverlayEnemyBeatSlotSize.X + Math.Max(0, beats.Count - 1) * OverlayEnemyBeatSlotSpacing;
+        var start = new Vector2(
+            targetFrame.Position.X + Math.Max(0f, (targetFrame.Size.X - rowWidth) * 0.5f),
+            targetFrame.Position.Y - 134f);
+        var slots = new List<BeatClashTargetBeatSlot>();
+        for (var index = 0; index < beats.Count; index++)
+        {
+            var slot = new BeatDiamondSlotView
+            {
+                CustomMinimumSize = OverlayEnemyBeatSlotSize,
+                Size = OverlayEnemyBeatSlotSize,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Filled = true,
+                Emphasized = false,
+                SlotText = BeatSlotPresentationGeometry.RomanBeatNumber(beats[index].BeatIndex),
+                SlotFont = screen.LoadAnimationFont("asset.font.source_han_sans_sc.heavy"),
+                FontSize = 24,
+                ZIndex = 5
+            };
+            ComicScreen.AddAnimationNodeAt(
+                overlay,
+                slot,
+                start + new Vector2(index * (OverlayEnemyBeatSlotSize.X + OverlayEnemyBeatSlotSpacing), 0),
+                OverlayEnemyBeatSlotSize);
+            slots.Add(new BeatClashTargetBeatSlot(beats[index].BeatIndex, slot));
+        }
+
+        return slots;
+    }
+
+    private IReadOnlyList<BeatClashVisibilityState> HideSceneCombatants()
     {
         var hidden = new List<BeatClashVisibilityState>();
-        foreach (var (enemyId, node) in enemyNodes)
+        if (playerNode is not null && GodotObject.IsInstanceValid(playerNode))
         {
-            if (string.Equals(enemyId, targetId, StringComparison.Ordinal) ||
-                !GodotObject.IsInstanceValid(node))
+            hidden.Add(new BeatClashVisibilityState(playerNode, playerNode.Visible));
+            playerNode.Visible = false;
+        }
+
+        foreach (var (_, node) in enemyNodes)
+        {
+            if (!GodotObject.IsInstanceValid(node))
             {
                 continue;
             }
@@ -275,10 +425,9 @@ internal sealed class BeatClashCutInLayer
             node.Visible = false;
         }
 
-        foreach (var (key, node) in enemyBeatSlotNodes)
+        foreach (var (_, node) in enemyBeatSlotNodes)
         {
-            if (string.Equals(key.EnemyInstanceId, targetId, StringComparison.Ordinal) ||
-                !GodotObject.IsInstanceValid(node))
+            if (!GodotObject.IsInstanceValid(node))
             {
                 continue;
             }
@@ -330,9 +479,23 @@ internal sealed class BeatClashCutInLayer
 
     private static Vector2 DashPositionBesideTarget(TextureRect playerClone, TextureRect targetClone)
     {
-        var x = targetClone.Position.X - playerClone.Size.X * 0.72f;
-        var y = targetClone.Position.Y + targetClone.Size.Y * 0.5f - playerClone.Size.Y * 0.5f;
-        return new Vector2(x, y);
+        var point = BeatClashOverlayPresentation.DashPosition(
+            new BeatClashOverlayFrame(playerClone.Position.X, playerClone.Position.Y, playerClone.Size.X, playerClone.Size.Y),
+            new BeatClashOverlayFrame(targetClone.Position.X, targetClone.Position.Y, targetClone.Size.X, targetClone.Size.Y));
+        return new Vector2(point.X, point.Y);
+    }
+
+    private static bool ShouldPlayDash(Vector2 currentPosition, Vector2 targetPosition, bool continuesPreviousTarget)
+    {
+        return BeatClashOverlayPresentation.ShouldPlayDash(
+            ToOverlayPoint(currentPosition),
+            ToOverlayPoint(targetPosition),
+            continuesPreviousTarget);
+    }
+
+    private static BeatClashOverlayPoint ToOverlayPoint(Vector2 position)
+    {
+        return new BeatClashOverlayPoint(position.X, position.Y);
     }
 
     private async Task PlayImpactAsync(Control overlay, Vector2 center)
@@ -639,4 +802,38 @@ internal sealed class BeatClashCutInLayer
     private sealed record BeatClashNodeFrame(Vector2 Position, Vector2 Size);
 
     private sealed record BeatClashVisibilityState(Control Node, bool WasVisible);
+
+    private sealed class BeatClashTargetHud
+    {
+        private readonly EnemyHealthStrip health;
+        private readonly IReadOnlyList<BeatClashTargetBeatSlot> beatSlots;
+        private int currentHp;
+
+        public BeatClashTargetHud(
+            EnemyHealthStrip health,
+            int currentHp,
+            IReadOnlyList<BeatClashTargetBeatSlot> beatSlots)
+        {
+            this.health = health;
+            this.currentHp = currentHp;
+            this.beatSlots = beatSlots;
+        }
+
+        public void ApplyDamage(int damage)
+        {
+            currentHp = Math.Max(0, currentHp - Math.Max(0, damage));
+            health.SetCurrentHp(currentHp);
+        }
+
+        public void FocusBeat(int? beatIndex)
+        {
+            foreach (var slot in beatSlots)
+            {
+                slot.Node.Emphasized = beatIndex is not null && slot.BeatIndex == beatIndex.Value;
+                slot.Node.QueueRedraw();
+            }
+        }
+    }
+
+    private sealed record BeatClashTargetBeatSlot(int BeatIndex, BeatDiamondSlotView Node);
 }

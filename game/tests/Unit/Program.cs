@@ -313,6 +313,14 @@ var clash = beatService.ResolveActionCollision(
 AssertEqual(1, clash.PlayerDamageTaken, "Block subtracts its value from incoming attack damage");
 AssertEqual(9, clash.EnemyDamageTaken, "Remaining strike action hits weakness for 150 percent damage");
 AssertEqual(2, clash.SuccessfulPlayerActions, "Effective block and successful attack both count as successful actions");
+AssertEqual(2, clash.Stages.Count, "Beat collision keeps per-action stage results");
+AssertEqual(BeatActionKind.Block, clash.Stages[0].PlayerActionKind, "First stage records player block");
+AssertEqual(BeatActionKind.Attack, clash.Stages[0].EnemyActionKind, "First stage records enemy attack");
+AssertEqual(1, clash.Stages[0].PlayerDamageTaken, "First stage records damage after block");
+AssertEqual(0, clash.Stages[0].EnemyDamageTaken, "First stage does not assign later attack damage");
+AssertEqual(BeatActionKind.Attack, clash.Stages[1].PlayerActionKind, "Second stage records player counter attack");
+AssertEqual(BeatAttackType.Strike, clash.Stages[1].PlayerAttackType, "Second stage records strike attack type");
+AssertEqual(9, clash.Stages[1].EnemyDamageTaken, "Second stage records counter attack damage");
 
 var fullyBlocked = beatService.ResolveActionCollision(
     playerActions:
@@ -569,7 +577,37 @@ var beatClashSteps = beatClashPlanner.Plan(
             Metadata = new Dictionary<string, string>
             {
                 ["card_instance_id"] = "card_instance.first",
-                ["target_kind"] = "EnemyBody"
+                ["target_kind"] = "EnemyBody",
+                ["stage_results"] = """
+                    [
+                      {
+                        "stage_index": 0,
+                        "player_action_kind": "Attack",
+                        "player_attack_type": "Slash",
+                        "enemy_damage_taken": 4,
+                        "player_damage_taken": 0,
+                        "successful_player_actions": 1,
+                        "successful_enemy_actions": 0
+                      },
+                      {
+                        "stage_index": 1,
+                        "player_action_kind": "Block",
+                        "enemy_damage_taken": 3,
+                        "player_damage_taken": 0,
+                        "successful_player_actions": 1,
+                        "successful_enemy_actions": 0
+                      },
+                      {
+                        "stage_index": 2,
+                        "player_action_kind": "Attack",
+                        "player_attack_type": "Strike",
+                        "enemy_damage_taken": 0,
+                        "player_damage_taken": 0,
+                        "successful_player_actions": 1,
+                        "successful_enemy_actions": 0
+                      }
+                    ]
+                    """
             }
         },
         new CombatLogEvent
@@ -592,6 +630,9 @@ AssertEqual("card_instance.first", beatClashSteps[0].CardInstanceId, "Beat clash
 AssertEqual("enemy_a", beatClashSteps[0].TargetId, "Beat clash planner uses the first target id");
 AssertEqual("EnemyBody", beatClashSteps[0].TargetKind, "Beat clash planner keeps the target kind");
 AssertEqual(7, beatClashSteps[0].EnemyDamage, "Beat clash planner keeps enemy damage");
+AssertEqual(3, beatClashSteps[0].ActionStages.Count, "Beat clash planner parses per-action stage results");
+AssertSequenceEqual([4, 3, 0], beatClashSteps[0].ActionStages.Select(stage => stage.EnemyDamage), "Beat clash planner keeps per-stage enemy damage");
+AssertSequenceEqual([RoguelikeCardGame.Presentation.Battle.BeatClashActionAnimationKind.Slash, RoguelikeCardGame.Presentation.Battle.BeatClashActionAnimationKind.Block, RoguelikeCardGame.Presentation.Battle.BeatClashActionAnimationKind.Strike], beatClashSteps[0].ActionStages.Select(stage => stage.PlayerAnimationKind), "Beat clash planner maps stage action types to animation kinds");
 AssertEqual(3, beatClashSteps[0].EnergyGeneratedTotal, "Beat clash planner aggregates generated energy for the action card instance");
 AssertSequenceEqual(["Blue", "Red"], beatClashSteps[0].EnergyColors.Select(color => color.Color), "Beat clash planner keeps generated energy colors");
 AssertSequenceEqual([2, 1], beatClashSteps[0].EnergyColors.Select(color => color.Amount), "Beat clash planner keeps generated energy amounts");
@@ -604,6 +645,35 @@ Assert(!beatClashSteps[1].ReturnToStartBeforeStep, "Beat clash planner keeps the
 AssertEqual("enemy_b", beatClashSteps[2].TargetId, "Beat clash planner keeps the changed target id");
 Assert(!beatClashSteps[2].ContinuesPreviousTarget, "Beat clash planner does not continue when the target changes");
 Assert(beatClashSteps[2].ReturnToStartBeforeStep, "Beat clash planner returns before switching targets");
+var dashPosition = RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPresentation.DashPosition(
+    playerPosition: new RoguelikeCardGame.Presentation.Battle.BeatClashOverlayFrame(200, 500, 300, 630),
+    targetPosition: new RoguelikeCardGame.Presentation.Battle.BeatClashOverlayFrame(1100, 120, 420, 500));
+AssertEqual(700f, dashPosition.X, "Beat clash overlay dashes to exactly 100px before the target");
+AssertEqual(500f, dashPosition.Y, "Beat clash overlay dash keeps the player's original vertical position");
+var overlayHpFrames = RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPresentation.HealthAfterStages(
+    currentHp: 11,
+    maxHp: 20,
+    beatClashSteps[0].ActionStages);
+AssertSequenceEqual([7, 4, 4], overlayHpFrames.Select(frame => frame.CurrentHp), "Beat clash overlay health strip updates after each stage damage");
+AssertSequenceEqual([0.35f, 0.2f, 0.2f], overlayHpFrames.Select(frame => frame.HealthRatio), "Beat clash overlay health ratio follows stage damage");
+Assert(!RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPresentation.ShouldMove(
+    new RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPoint(700, 500),
+    new RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPoint(702, 503)),
+    "Beat clash overlay skips dash movement between consecutive beats on the same target");
+Assert(!RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPresentation.ShouldPlayDash(
+    new RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPoint(650, 500),
+    new RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPoint(700, 500),
+    continuesPreviousTarget: true),
+    "Beat clash overlay never replays dash for consecutive beats on the same target");
+Assert(RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPresentation.ShouldPlayDash(
+    new RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPoint(650, 500),
+    new RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPoint(700, 500),
+    continuesPreviousTarget: false),
+    "Beat clash overlay still dashes for a new target segment");
+Assert(RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPresentation.ShouldFaceLeft(
+    new RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPoint(700, 500),
+    new RoguelikeCardGame.Presentation.Battle.BeatClashOverlayPoint(200, 500)),
+    "Beat clash overlay faces left when returning to the start position");
 var multiTurnBeatClashSteps = beatClashPlanner.Plan(
     [
         new CombatLogEvent
@@ -667,7 +737,7 @@ var runSequence = actionAnimationCatalog.RunWithSword;
 AssertEqual(3, runSequence.Sheets.Count, "Beat clash run animation uses the three supplied sword-run sprite sheets");
 Assert(runSequence.Sheets.All(sheet => sheet.Columns == 4), "Beat clash run animation treats each sword-run sheet as four frames");
 AssertEqual(0.09, runSequence.FrameDurationSeconds, "Beat clash run animation frame duration is slowed down to double the initial MVP speed");
-AssertEqual(1.0, RoguelikeCardGame.Presentation.Battle.BeatClashPresentationTiming.PreActionPauseSeconds, "Beat clash cut-in waits one second before playing the current beat action sequence");
+AssertEqual(0.5, RoguelikeCardGame.Presentation.Battle.BeatClashPresentationTiming.PreActionPauseSeconds, "Beat clash cut-in waits half a second before playing the current beat action sequence");
 AssertEqual(0.5, RoguelikeCardGame.Presentation.Battle.BeatClashPresentationTiming.ActionIntervalSeconds, "Beat clash cut-in waits half a second between beat actions");
 var slashSequences = actionAnimationCatalog.SequencesFor(RoguelikeCardGame.Presentation.Battle.BeatClashActionAnimationKind.Slash);
 AssertEqual(3, slashSequences.Count, "Beat clash slash animation exposes the three supplied combo groups");
@@ -861,6 +931,43 @@ var resolvedBeatRound = beatService.ResolveBeatRound(beatCombat, beatCards, beat
 AssertEqual(1, resolvedBeatRound.Combat.ColorEnergy.Count, "Successful unopposed attack generates one colorless energy");
 AssertEqual(21, resolvedBeatRound.Combat.Enemies[0].CurrentHp, "Weakness-adjusted beat damage is applied to enemy HP");
 Assert(resolvedBeatRound.Events.Any(item => item.EventType == CombatLogEventType.BeatEnergyGenerated), "Beat energy generation is logged");
+
+var hundredCutsCard = beatSlashCard with
+{
+    Id = "card.hundred_cuts_test",
+    BeatActions =
+    [
+        new BeatActionDefinition { Kind = BeatActionKind.Attack, AttackType = BeatAttackType.Slash, Value = 3, Repeat = 3 }
+    ]
+};
+var lethalMultiStageCombat = beatCombat with
+{
+    CombatId = "combat_lethal_multi_stage",
+    Enemies = [CreateEnemyState("enemy_01", currentHp: 5, maxHp: 5, enemyId: beatEnemy.Id)],
+    ColorEnergy = ColorEnergyPool.Empty(),
+    BeatRound = beatCombat.BeatRound! with
+    {
+        PlayerBeats =
+        [
+            beatCombat.BeatRound.PlayerBeats[0] with
+            {
+                CardId = hundredCutsCard.Id,
+                CardInstanceId = "card_hundred_cuts_001"
+            }
+        ]
+    }
+};
+var lethalResult = beatService.ResolveBeatRound(
+    lethalMultiStageCombat,
+    beatCards.Append(new KeyValuePair<string, CardDefinition>(hundredCutsCard.Id, hundredCutsCard)).ToDictionary(item => item.Key, item => item.Value),
+    new Dictionary<string, EnemyDefinition> { [beatEnemy.Id] = beatEnemy with { Resistances = new BeatResistanceProfile() } });
+var lethalLog = lethalResult.Events.Single(item => item.EventType == CombatLogEventType.BeatActionResolved && item.SourceId == hundredCutsCard.Id);
+AssertEqual(0, lethalResult.Combat.Enemies[0].CurrentHp, "Lethal multi-stage beat stops after reducing the enemy to zero HP");
+AssertEqual(2, lethalResult.Combat.ColorEnergy.Count, "Only successful stages before target death generate beat energy");
+AssertEqual(5, lethalLog.NumericChanges["enemy_damage"], "Lethal multi-stage beat caps total applied damage at remaining HP");
+var lethalStages = JsonSerializer.Deserialize<List<BeatActionStageResult>>(lethalLog.Metadata["stage_results"], options) ?? [];
+AssertEqual(2, lethalStages.Count, "Lethal multi-stage beat omits stages after target death");
+AssertSequenceEqual([3, 2], lethalStages.Select(stage => stage.EnemyDamageTaken), "Lethal multi-stage beat logs per-stage applied damage");
 
 var unorderedBeatCombat = CreatePlayableCombat(
     [],
