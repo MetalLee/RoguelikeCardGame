@@ -19,6 +19,8 @@ public abstract partial class ComicScreen : Control
 
     protected Dictionary<string, Font> FontCache { get; private set; } = new(StringComparer.Ordinal);
 
+    protected Dictionary<string, AudioStream> AudioCache { get; private set; } = new(StringComparer.Ordinal);
+
     protected static readonly Color InkPanel = new(0.045f, 0.035f, 0.035f, 0.9f);
     protected static readonly Color GoldLine = new(0.82f, 0.62f, 0.34f, 1.0f);
     protected static readonly Color BloodLine = new(0.78f, 0.12f, 0.09f, 1.0f);
@@ -100,6 +102,29 @@ public abstract partial class ComicScreen : Control
     internal Texture2D? LoadAnimationTexture(string assetId) => LoadTexture(assetId);
 
     internal Font? LoadAnimationFont(string assetId) => LoadFont(assetId);
+
+    internal void PlayAnimationSfx(string? assetId)
+    {
+        if (string.IsNullOrWhiteSpace(assetId))
+        {
+            return;
+        }
+
+        var stream = LoadAudio(assetId);
+        if (stream is null)
+        {
+            return;
+        }
+
+        var player = new AudioStreamPlayer
+        {
+            Stream = stream,
+            VolumeDb = -5f
+        };
+        AddChild(player);
+        player.Finished += player.QueueFree;
+        player.Play();
+    }
 
     internal static void AddAnimationNodeAt(Control parent, Control child, Vector2 position, Vector2 size) =>
         AddAt(parent, child, position, size);
@@ -371,6 +396,28 @@ public abstract partial class ComicScreen : Control
         }
 
         return font;
+    }
+
+    protected AudioStream? LoadAudio(string assetId)
+    {
+        if (AudioCache.TryGetValue(assetId, out var cached))
+        {
+            return cached;
+        }
+
+        var assets = Content?.AssetsById;
+        if (assets is null || !assets.TryGetValue(assetId, out var asset))
+        {
+            return null;
+        }
+
+        var stream = GD.Load<AudioStream>(asset.Path);
+        if (stream is not null)
+        {
+            AudioCache[assetId] = stream;
+        }
+
+        return stream;
     }
 
     protected void AddBackground(Control parent)

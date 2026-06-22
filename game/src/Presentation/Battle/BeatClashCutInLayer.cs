@@ -602,6 +602,7 @@ internal sealed class BeatClashCutInLayer
 
         try
         {
+            screen.PlayAnimationSfx(sequence.SfxAssetId);
             node.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
             var elapsed = 0.0;
             var frameIndex = 0;

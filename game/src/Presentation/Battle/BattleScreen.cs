@@ -56,7 +56,7 @@ public partial class BattleScreen : ComicScreen
 	private int thoughtBubbleVersion;
 
 	public event Action<string, string, int, string?>? CardRequested;
-	public event Action<string, string, int, int>? BeatCardDroppedOnSlot;
+	public event Action<string, string, int, BeatTarget>? BeatCardDroppedOnTarget;
 	public event Action<int, BeatTarget>? BeatTargetSelected;
 	public event Action<int, string>? BeatTargetCancelled;
 	public event Action? EndTurnRequested;
@@ -145,7 +145,7 @@ public partial class BattleScreen : ComicScreen
 			LoadTexture,
 			LoadFont,
 			beatPrototype: combat.BeatRound is not null,
-			beatSlotHover: viewportPoint => PlayerBeatIndexUnderMouse(viewportPoint) is not null);
+			beatSlotHover: viewportPoint => DeploymentTargetUnderMouse(viewportPoint) is not null);
 		handNode = battleHandView;
 		AddAt(root, battleHandView, new Vector2(475, 742), new Vector2(950, 360));
 
@@ -251,14 +251,14 @@ public partial class BattleScreen : ComicScreen
 
 	private void HandleBeatCardDropRequested(string cardInstanceId, string cardId, int handIndex, Vector2 viewportMouse)
 	{
-		var beatIndex = PlayerBeatIndexUnderMouse(viewportMouse);
-		if (beatIndex is null)
+		var target = DeploymentTargetUnderMouse(viewportMouse);
+		if (target is null)
 		{
-			ShowDragFeedback("需要将箭头指向一个空的玩家拍位");
+			ShowDragFeedback("需要将箭头指向魔物拍位或本体");
 			return;
 		}
 
-		BeatCardDroppedOnSlot?.Invoke(cardInstanceId, cardId, handIndex, beatIndex.Value);
+		BeatCardDroppedOnTarget?.Invoke(cardInstanceId, cardId, handIndex, target);
 	}
 
 	private void ShowFailureThoughtBubble(string text)
@@ -738,6 +738,52 @@ public partial class BattleScreen : ComicScreen
 		return null;
 	}
 
+	private BeatTarget? DeploymentTargetUnderMouse(Vector2 viewportPoint)
+	{
+		if (combat?.BeatRound is null || !HasEmptyPlayerBeat(combat.BeatRound))
+		{
+			return null;
+		}
+
+		foreach (var pair in enemyBeatSlotNodes.OrderByDescending(item => EnemyOrder(item.Key.EnemyInstanceId)).ThenByDescending(item => item.Key.BeatIndex))
+		{
+			if (!IsPointInsideBeatDiamond(pair.Value, viewportPoint) ||
+				PlayerBeatLockingEnemyBeat(combat, pair.Key.EnemyInstanceId, pair.Key.BeatIndex) is not null)
+			{
+				continue;
+			}
+
+			return new BeatTarget
+			{
+				Kind = BeatTargetKind.EnemyBeat,
+				EnemyInstanceId = pair.Key.EnemyInstanceId,
+				EnemyBeatIndex = pair.Key.BeatIndex
+			};
+		}
+
+		if (battleEnemyView is null)
+		{
+			return null;
+		}
+
+		foreach (var enemy in combat.Enemies.Where(enemy => enemy.CurrentHp > 0).Reverse())
+		{
+			if (!battleEnemyView.EnemyNodes.TryGetValue(enemy.InstanceId, out var enemyNode) ||
+				!IsPointInsideControl(enemyNode, viewportPoint))
+			{
+				continue;
+			}
+
+			return new BeatTarget
+			{
+				Kind = BeatTargetKind.EnemyBody,
+				EnemyInstanceId = enemy.InstanceId
+			};
+		}
+
+		return null;
+	}
+
 	private int? PlayerBeatIndexUnderMouse(Vector2 viewportPoint)
 	{
 		if (combat?.BeatRound is null)
@@ -781,6 +827,14 @@ public partial class BattleScreen : ComicScreen
 				beat.Target.EnemyBeatIndex == enemyBeatIndex)
 			.Select(beat => (int?)beat.BeatIndex)
 			.FirstOrDefault();
+	}
+
+	private static bool HasEmptyPlayerBeat(BeatRoundState round)
+	{
+		return round.PlayerBeats.Any(beat =>
+			string.IsNullOrWhiteSpace(beat.CardInstanceId) &&
+			string.IsNullOrWhiteSpace(beat.CardId) &&
+			beat.Target is null);
 	}
 
 	private static bool CanTargetEnemyBody(CombatState combatState, string enemyInstanceId)

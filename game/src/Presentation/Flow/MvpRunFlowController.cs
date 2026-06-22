@@ -239,7 +239,7 @@ public sealed class MvpRunFlowController
 
         var screen = screenHost.ShowScreen<BattleScreen>(BattleScenePath);
         screen.CardRequested += PlayCard;
-        screen.BeatCardDroppedOnSlot += PlaceBeatCard;
+        screen.BeatCardDroppedOnTarget += PlaceBeatCardOnTarget;
         screen.BeatTargetSelected += SelectBeatTarget;
         screen.BeatTargetCancelled += CancelBeatTargeting;
         screen.EndTurnRequested += EndTurn;
@@ -249,6 +249,74 @@ public sealed class MvpRunFlowController
         {
             screen.BeginBeatTargetingFromSlot(autoTargetBeatIndex.Value, autoTargetCardInstanceId);
         }
+    }
+
+    private void PlaceBeatCardOnTarget(string cardInstanceId, string cardId, int handIndex, BeatTarget target)
+    {
+        if (combat is null || combat.BeatRound is null)
+        {
+            ShowBattle("当前三拍回合尚未准备完成");
+            return;
+        }
+
+        if (!content.CardsById.TryGetValue(cardId, out var card))
+        {
+            screenHost.ShowFatalError(new InvalidOperationException($"Unknown card id '{cardId}' for beat deployment."));
+            return;
+        }
+
+        if (combat.Status != CombatStatus.PlayerTurn)
+        {
+            ShowBattle("当前不是玩家回合");
+            return;
+        }
+
+        if (card.Type != CardType.Action)
+        {
+            ShowBattle("只有行动牌可以部署到拍位");
+            return;
+        }
+
+        if (handIndex < 0 ||
+            handIndex >= combat.DeckZones.Hand.Count ||
+            !string.Equals(combat.DeckZones.Hand[handIndex], cardInstanceId, StringComparison.Ordinal))
+        {
+            ShowBattle("这张牌已经不在手牌中");
+            return;
+        }
+
+        if (!combat.BeatRound.PlayerBeats.Any(beat =>
+                string.IsNullOrWhiteSpace(beat.CardInstanceId) &&
+                string.IsNullOrWhiteSpace(beat.CardId) &&
+                beat.Target is null))
+        {
+            ShowBattle("没有空的玩家拍位");
+            return;
+        }
+
+        try
+        {
+            combat = beatPlanningService.PlaceActionCardIntoNextPlayerBeatAndTarget(
+                combat,
+                cardInstanceId,
+                cardId,
+                handIndex,
+                card,
+                target,
+                new BeatCombatService());
+        }
+        catch (InvalidOperationException)
+        {
+            ShowBattle("无法部署到该目标");
+            return;
+        }
+        catch (Exception ex)
+        {
+            screenHost.ShowFatalError(ex);
+            return;
+        }
+
+        ShowBattle();
     }
 
     private void PlaceBeatCard(string cardInstanceId, string cardId, int handIndex, int beatIndex)

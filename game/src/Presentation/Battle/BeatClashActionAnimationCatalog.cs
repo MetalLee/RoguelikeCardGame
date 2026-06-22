@@ -18,7 +18,8 @@ public sealed record BeatClashSpriteSequence(
     string Id,
     IReadOnlyList<BeatClashSpriteSheet> Sheets,
     double FrameDurationSeconds = 0.055,
-    bool Loop = false);
+    bool Loop = false,
+    string? SfxAssetId = null);
 
 public static class BeatClashPresentationTiming
 {
@@ -46,15 +47,18 @@ public sealed class BeatClashActionAnimationCatalog
                 new BeatClashSpriteSequence(
                     "zu.attack.slash.combo_1",
                     [new BeatClashSpriteSheet("asset.character.zu.action.attack.combo_1", Columns: 4)],
-                    FrameDurationSeconds: 0.11),
+                    FrameDurationSeconds: 0.11,
+                    SfxAssetId: "asset.sfx.slash_light"),
                 new BeatClashSpriteSequence(
                     "zu.attack.slash.combo_2",
                     [new BeatClashSpriteSheet("asset.character.zu.action.attack.combo_2", Columns: 3)],
-                    FrameDurationSeconds: 0.11),
+                    FrameDurationSeconds: 0.11,
+                    SfxAssetId: "asset.sfx.slash_light"),
                 new BeatClashSpriteSequence(
                     "zu.attack.slash.combo_3",
                     [new BeatClashSpriteSheet("asset.character.zu.action.attack.combo_3", Columns: 3)],
-                    FrameDurationSeconds: 0.11)
+                    FrameDurationSeconds: 0.11,
+                    SfxAssetId: "asset.sfx.slash_light")
             ],
             [BeatClashActionAnimationKind.Strike] = [],
             [BeatClashActionAnimationKind.Projectile] = [],

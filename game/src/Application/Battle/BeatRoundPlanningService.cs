@@ -64,6 +64,36 @@ public sealed class BeatRoundPlanningService
         };
     }
 
+    public CombatState PlaceActionCardIntoNextPlayerBeatAndTarget(
+        CombatState combat,
+        string cardInstanceId,
+        string cardId,
+        int handIndex,
+        CardDefinition card,
+        BeatTarget requestedTarget,
+        BeatCombatService beatCombatService)
+    {
+        EnsurePlayerTurn(combat);
+        var round = RequireBeatRound(combat);
+        var playerBeat = round.PlayerBeats
+            .OrderBy(beat => beat.BeatIndex)
+            .FirstOrDefault(IsEmptyPlayerBeat);
+        if (playerBeat is null)
+        {
+            throw new InvalidOperationException("No empty player beat slot is available for deployment.");
+        }
+
+        var resolvedTarget = ResolveDeploymentTarget(round, requestedTarget);
+        var placed = PlaceActionCardInBeat(
+            combat,
+            cardInstanceId,
+            cardId,
+            handIndex,
+            playerBeat.BeatIndex,
+            card);
+        return SetTarget(placed, playerBeat.BeatIndex, resolvedTarget, beatCombatService);
+    }
+
     public CombatState SetEnemyBeatTarget(
         CombatState combat,
         int beatIndex,
@@ -187,6 +217,55 @@ public sealed class BeatRoundPlanningService
         }
 
         return combat with { BeatRound = updatedRound };
+    }
+
+    private static BeatTarget ResolveDeploymentTarget(BeatRoundState round, BeatTarget requestedTarget)
+    {
+        if (requestedTarget.Kind == BeatTargetKind.EnemyBeat)
+        {
+            return requestedTarget;
+        }
+
+        if (requestedTarget.Kind != BeatTargetKind.EnemyBody)
+        {
+            throw new InvalidOperationException($"Unsupported beat target kind '{requestedTarget.Kind}'.");
+        }
+
+        var lockedEnemyBeatIndices = round.PlayerBeats
+            .Where(beat =>
+                beat.Target?.Kind == BeatTargetKind.EnemyBeat &&
+                string.Equals(beat.Target.EnemyInstanceId, requestedTarget.EnemyInstanceId, StringComparison.Ordinal) &&
+                beat.Target.EnemyBeatIndex is not null)
+            .Select(beat => beat.Target!.EnemyBeatIndex!.Value)
+            .ToHashSet();
+
+        var firstUnlockedEnemyBeat = round.EnemyBeats
+            .Where(beat => string.Equals(beat.EnemyInstanceId, requestedTarget.EnemyInstanceId, StringComparison.Ordinal))
+            .OrderBy(beat => beat.BeatIndex)
+            .FirstOrDefault(beat => !lockedEnemyBeatIndices.Contains(beat.BeatIndex));
+
+        if (firstUnlockedEnemyBeat is not null)
+        {
+            return new BeatTarget
+            {
+                Kind = BeatTargetKind.EnemyBeat,
+                EnemyInstanceId = requestedTarget.EnemyInstanceId,
+                EnemyBeatIndex = firstUnlockedEnemyBeat.BeatIndex
+            };
+        }
+
+        return new BeatTarget
+        {
+            Kind = BeatTargetKind.EnemyBody,
+            EnemyInstanceId = requestedTarget.EnemyInstanceId
+        };
+    }
+
+    private static bool IsEmptyPlayerBeat(PlayerBeatSlot beat)
+    {
+        return string.IsNullOrWhiteSpace(beat.CardInstanceId) &&
+            string.IsNullOrWhiteSpace(beat.CardId) &&
+            beat.Target is null;
     }
 
     private static void EnsurePlayerTurn(CombatState combat)

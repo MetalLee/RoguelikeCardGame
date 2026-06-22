@@ -8,6 +8,7 @@
     { "id": "asset.background.mvp_battle.front", "type": "image", "path": "res://assets/art/backgrounds/mvp_battle_frontground.png" },
     { "id": "asset.font.source_han_sans_sc.heavy", "type": "font", "path": "res://assets/fonts/source_han_sans_sc/SourceHanSansSC-Heavy.otf" },
     { "id": "asset.font.source_han_sans_sc.medium", "type": "font", "path": "res://assets/fonts/source_han_sans_sc/SourceHanSansSC-Medium.otf" },
+    { "id": "asset.sfx.slash_light", "type": "audio", "path": "res://assets/audio/sfx/slash_light.wav" },
     { "id": "asset.character.zu.revolver.battle", "type": "image", "path": "res://assets/art/characters/zu_revolver_sword.png" },
     { "id": "asset.character.zu.action.run.sword_1_4", "type": "image", "path": "res://assets/art/characters/actions/zu_run_sword_1_4.png" },
     { "id": "asset.character.zu.action.run.sword_5_8", "type": "image", "path": "res://assets/art/characters/actions/zu_run_sword_5_8.png" },

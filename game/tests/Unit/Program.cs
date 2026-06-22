@@ -482,6 +482,92 @@ var thirdPlacedBeat = beatPlanning.PlaceActionCardInBeat(
 var bodyTargetedBeat = beatPlanning.SetEnemyBodyTarget(thirdPlacedBeat, beatIndex: 0, enemyInstanceId: "enemy_01", new BeatCombatService());
 AssertEqual(BeatTargetKind.EnemyBody, bodyTargetedBeat.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 0).Target?.Kind, "Enemy body can be targeted after all enemy beats are locked");
 
+var directEnemyBeatDeployment = beatPlanning.PlaceActionCardIntoNextPlayerBeatAndTarget(
+    planningCombat,
+    cardInstanceId: planningCombat.DeckZones.Hand[0],
+    cardId: beatSlashCard.Id,
+    handIndex: 0,
+    beatSlashCard,
+    CreateEnemyBeatTarget(1),
+    new BeatCombatService());
+var directEnemyBeat = directEnemyBeatDeployment.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 0);
+AssertEqual(beatSlashCard.Id, directEnemyBeat?.CardId, "Direct beat deployment uses the first empty player beat");
+AssertEqual(BeatTargetKind.EnemyBeat, directEnemyBeat?.Target?.Kind, "Direct beat deployment locks the requested enemy beat");
+AssertEqual(1, directEnemyBeat?.Target?.EnemyBeatIndex, "Direct beat deployment stores the requested enemy beat index");
+Assert(!directEnemyBeatDeployment.DeckZones.Hand.Contains(planningBeatSlashInstanceA), "Direct beat deployment removes the action card from hand");
+
+var bodyDeploymentLocksNextBeatCombat = CreatePlayableCombat(
+    [planningGuardInstance],
+    actionPoints: 0,
+    enemies: [CreateEnemyState("enemy_01", currentHp: 30, maxHp: 30, enemyId: beatEnemy.Id)]) with
+{
+    BeatRound = CreateBeatTargetRound(
+        beatCount: 3,
+        enemyBeatIndexes: [0, 1],
+        playerBeats:
+        [
+            new PlayerBeatSlot
+            {
+                BeatIndex = 0,
+                CardInstanceId = "card_instance.already_slotted",
+                CardId = beatSlashCard.Id,
+                Target = CreateEnemyBeatTarget(0)
+            },
+            new PlayerBeatSlot { BeatIndex = 1 },
+            new PlayerBeatSlot { BeatIndex = 2 }
+        ])
+};
+var bodyDeploymentLocksNextBeat = beatPlanning.PlaceActionCardIntoNextPlayerBeatAndTarget(
+    bodyDeploymentLocksNextBeatCombat,
+    cardInstanceId: planningGuardInstance,
+    cardId: guardAction.Id,
+    handIndex: 0,
+    guardAction,
+    CreateEnemyBodyTarget(),
+    new BeatCombatService());
+var bodyResolvedToEnemyBeat = bodyDeploymentLocksNextBeat.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 1);
+AssertEqual(guardAction.Id, bodyResolvedToEnemyBeat?.CardId, "Body deployment fills the first empty player beat");
+AssertEqual(BeatTargetKind.EnemyBeat, bodyResolvedToEnemyBeat?.Target?.Kind, "Body deployment locks the first unlocked enemy beat before targeting the body");
+AssertEqual(1, bodyResolvedToEnemyBeat?.Target?.EnemyBeatIndex, "Body deployment resolves to the lowest unlocked enemy beat index");
+
+var bodyDeploymentAfterAllBeatsLockedCombat = CreatePlayableCombat(
+    [planningBeatSlashInstanceB],
+    actionPoints: 0,
+    enemies: [CreateEnemyState("enemy_01", currentHp: 30, maxHp: 30, enemyId: beatEnemy.Id)]) with
+{
+    BeatRound = CreateBeatTargetRound(
+        beatCount: 3,
+        enemyBeatIndexes: [0, 1],
+        playerBeats:
+        [
+            new PlayerBeatSlot
+            {
+                BeatIndex = 0,
+                CardInstanceId = "card_instance.already_slotted_0",
+                CardId = beatSlashCard.Id,
+                Target = CreateEnemyBeatTarget(0)
+            },
+            new PlayerBeatSlot
+            {
+                BeatIndex = 1,
+                CardInstanceId = "card_instance.already_slotted_1",
+                CardId = guardAction.Id,
+                Target = CreateEnemyBeatTarget(1)
+            },
+            new PlayerBeatSlot { BeatIndex = 2 }
+        ])
+};
+var bodyDeploymentAfterAllBeatsLocked = beatPlanning.PlaceActionCardIntoNextPlayerBeatAndTarget(
+    bodyDeploymentAfterAllBeatsLockedCombat,
+    cardInstanceId: planningBeatSlashInstanceB,
+    cardId: beatSlashCard.Id,
+    handIndex: 0,
+    beatSlashCard,
+    CreateEnemyBodyTarget(),
+    new BeatCombatService());
+var bodyResolvedToEnemyBody = bodyDeploymentAfterAllBeatsLocked.BeatRound?.PlayerBeats.Single(beat => beat.BeatIndex == 2);
+AssertEqual(BeatTargetKind.EnemyBody, bodyResolvedToEnemyBody?.Target?.Kind, "Body deployment targets the enemy body after all enemy beats are locked");
+
 var discardAfterBeat = beatPlanning.DiscardSlottedActionCards(bodyTargetedBeat);
 Assert(discardAfterBeat.DeckZones.DiscardPile.Contains(planningCombat.DeckZones.Hand[0]), "Beat planning discards slotted action card instances after beat resolution");
 
@@ -751,6 +837,7 @@ AssertSequenceEqual(
     slashSequences.Select(sequence => sequence.Sheets.Single().AssetId),
     "Beat clash slash animation groups keep stable asset ids");
 AssertSequenceEqual([4, 3, 3], slashSequences.Select(sequence => sequence.Sheets.Single().Columns), "Beat clash slash animation reads pre-cropped spritesheets by their authored frame columns");
+Assert(slashSequences.All(sequence => sequence.SfxAssetId == "asset.sfx.slash_light"), "Beat clash slash animations all reuse the light slash SFX");
 var actionAnimationKinds = actionAnimationCatalog.KindsForCard(
     beatSlashCard with
     {
@@ -1285,6 +1372,7 @@ AssertSequenceEqual(
 AssertEqual(0, loadedContent.EncountersById["encounter.mvp.normal_01"].RewardProfile.CardPackIds.Count, "GameContent preserves empty card_pack_ids compatibility field");
 AssertEqual("左轮剑", loadedContent.WeaponName("weapon.revolver_sword"), "GameContent maps localization for weapons");
 Assert(loadedContent.AssetsById.ContainsKey("asset.card.template.action"), "GameContent loads presentation asset manifest");
+AssertEqual("audio", loadedContent.AssetsById["asset.sfx.slash_light"].Type, "GameContent loads the slash SFX audio asset");
 
 var underPicked = startingDeckSelectionService.Validate(revolverMainSelection with
 {
